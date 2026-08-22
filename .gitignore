@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.pyc
+backend/venv/
+backend/.venv/
+*.egg-info/
+
+# Env
+.env
+!.env.example
+
+# Node
+node_modules/
+frontend/dist/
+frontend/node_modules/
+
+# Uploads
+backend/uploads/
+
+# OS / editor
+.DS_Store
+.vscode/
+.idea/
+
+# Tests
+.pytest_cache/
+.coverage
+htmlcov/
