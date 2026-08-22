@@ -1,3 +1,4 @@
+import asyncio
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -29,9 +30,28 @@ async def lifespan(app: FastAPI):
     print("Starting CivicAI Nexus backend...")
     print(f"AI provider: {settings.AI_PROVIDER}")
 
-    if check_database_connection():
+    # MongoDB (esp. in Docker Compose) can still be initializing when this
+    # process starts — `depends_on` only waits for the container to launch,
+    # not for Mongo to actually accept connections. Retry briefly instead
+    # of giving up on the first failed ping.
+    connected = False
+    for attempt in range(15):
+        if check_database_connection():
+            connected = True
+            break
+        print(f"MongoDB not ready yet, retrying ({attempt + 1}/15)...")
+        await asyncio.sleep(1)
+
+    if connected:
         print("MongoDB connection successful.")
         create_indexes()
+
+        if settings.AUTO_SEED_DEMO_DATA:
+            try:
+                from app.seed.seed_data import run as seed_run
+                seed_run(reset=False)  # no-ops safely if demo data already exists
+            except Exception as error:  # noqa: BLE001
+                print(f"WARNING: auto-seed failed (you can seed manually instead): {error}")
     else:
         print("WARNING: MongoDB is not connected. Set MONGO_URI in .env.")
 

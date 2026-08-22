@@ -29,7 +29,12 @@ const Login = () => {
       const user = await login(loginEmail, loginPassword);
       toast.success(`Welcome back, ${user.name.split(" ")[0]}`);
       const from = location.state?.from?.pathname;
-      navigate(from || roleHome[user.role] || "/", { replace: true });
+      // Only honor "return to where you were" if that path actually
+      // belongs to this role's section — otherwise a leftover redirect
+      // target from a different role (e.g. an admin-only URL visited
+      // while logged out) would bounce the user straight to a 403.
+      const target = from && from.startsWith(`/${user.role}`) ? from : roleHome[user.role] || "/";
+      navigate(target, { replace: true });
     } catch (error) {
       toast.error(getErrorMessage(error));
     } finally {

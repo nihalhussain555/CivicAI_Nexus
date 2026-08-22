@@ -55,5 +55,14 @@ class Settings:
     # --- Rate limiting ---
     RATE_LIMIT_PER_MINUTE = int(os.getenv("RATE_LIMIT_PER_MINUTE", "60"))
 
+    # --- Demo / first-run behavior ---
+    # If true (default), the backend seeds demo departments/users/grievances
+    # automatically on startup when no admin account exists yet. This makes
+    # the demo accounts (citizen@demo.com / officer@demo.com / admin@demo.com,
+    # password Demo@123) work out of the box regardless of how the backend
+    # is launched (uvicorn, Docker Compose, etc.) without a manual seed step.
+    # Set to false in real deployments.
+    AUTO_SEED_DEMO_DATA = os.getenv("AUTO_SEED_DEMO_DATA", "true").lower() == "true"
+
 
 settings = Settings()
