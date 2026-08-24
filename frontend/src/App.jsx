@@ -26,7 +26,6 @@ import CitizenGrievances from "./pages/citizen/Grievances";
 // Officer
 import OfficerDashboard from "./pages/officer/Dashboard";
 import OfficerGrievances from "./pages/officer/Grievances";
-import OfficerCopilot from "./pages/officer/Copilot";
 import OfficerAnalytics from "./pages/officer/Analytics";
 
 // Admin
@@ -45,6 +44,7 @@ import IncidentDetail from "./pages/shared/IncidentDetail";
 import Notifications from "./pages/shared/Notifications";
 import Profile from "./pages/shared/Profile";
 import Settings from "./pages/shared/Settings";
+import AIAssistant from "./pages/shared/AIAssistant";
 
 function App() {
   return (
@@ -80,6 +80,7 @@ function App() {
                 <Route path="grievances/:grievanceId" element={<GrievanceDetail />} />
                 <Route path="incidents" element={<Incidents />} />
                 <Route path="incidents/:incidentId" element={<IncidentDetail />} />
+                <Route path="assistant" element={<AIAssistant />} />
                 <Route path="notifications" element={<Notifications />} />
                 <Route path="profile" element={<Profile />} />
                 <Route path="settings" element={<Settings />} />
@@ -100,7 +101,8 @@ function App() {
                 <Route path="grievances/:grievanceId" element={<GrievanceDetail />} />
                 <Route path="incidents" element={<Incidents />} />
                 <Route path="incidents/:incidentId" element={<IncidentDetail />} />
-                <Route path="copilot" element={<OfficerCopilot />} />
+                <Route path="copilot" element={<AIAssistant />} />
+                <Route path="assistant" element={<AIAssistant />} />
                 <Route path="analytics" element={<OfficerAnalytics />} />
                 <Route path="notifications" element={<Notifications />} />
                 <Route path="profile" element={<Profile />} />
@@ -127,6 +129,7 @@ function App() {
                 <Route path="analytics" element={<AdminAnalytics />} />
                 <Route path="map" element={<AdminMap />} />
                 <Route path="ai-insights" element={<AdminAIInsights />} />
+                <Route path="assistant" element={<AIAssistant />} />
                 <Route path="notifications" element={<Notifications />} />
                 <Route path="settings" element={<Settings />} />
               </Route>
