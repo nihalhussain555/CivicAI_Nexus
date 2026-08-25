@@ -4,6 +4,7 @@ import { chatWithAssistant } from "../../services/aiService";
 import { useToast } from "../../context/ToastContext";
 import { useAuth } from "../../hooks/useAuth";
 import { getErrorMessage } from "../../utils/helpers";
+import ChatMessage from "../../components/ai/ChatMessage";
 
 const ROLE_CONTENT = {
   citizen: {
@@ -81,7 +82,7 @@ const AIAssistant = () => {
       <div className="card" style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", gap: 12, marginBottom: 14 }}>
         {messages.map((m, i) => (
           <div key={i} className={`message ${m.role === "user" ? "user-message" : "ai-message"}`}>
-            {m.text}
+            <ChatMessage text={m.text} />
           </div>
         ))}
         {loading && <div className="message ai-message"><Loader2 size={14} style={{ animation: "spin 0.8s linear infinite" }} /></div>}

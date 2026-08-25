@@ -214,8 +214,15 @@ class OpenAIProvider(BaseAIProvider):
 
     def chat(self, message: str, language: str = "English", context: str = "") -> str:
         prompt = (
-            "You are CivicAI, a multilingual civic grievance assistant. "
-            "Never invent government policy you don't have context for. "
+            "You are CivicAI, a multilingual civic grievance assistant embedded in a "
+            "small chat widget. Never invent government policy you don't have context for.\n\n"
+            "Formatting rules for this widget:\n"
+            "- Answer in 2-5 short sentences by default; only go longer if the question "
+            "genuinely needs step-by-step detail.\n"
+            "- Do NOT use markdown tables, headers (#), or horizontal rules.\n"
+            "- You may use **bold** for key terms and short '-' bullet lists (max 4 items) "
+            "when listing distinct things, but prefer plain prose otherwise.\n"
+            "- Write like a helpful person texting a quick, clear answer, not a report.\n\n"
             f"Context:\n{context}\n\nUser language: {language}\nUser question: {message}"
         )
         response = self._client.chat.completions.create(
@@ -271,8 +278,15 @@ class GeminiProvider(BaseAIProvider):
 
     def chat(self, message: str, language: str = "English", context: str = "") -> str:
         prompt = (
-            "You are CivicAI, a multilingual civic grievance assistant. "
-            "Never invent government policy you don't have context for. "
+            "You are CivicAI, a multilingual civic grievance assistant embedded in a "
+            "small chat widget. Never invent government policy you don't have context for.\n\n"
+            "Formatting rules for this widget:\n"
+            "- Answer in 2-5 short sentences by default; only go longer if the question "
+            "genuinely needs step-by-step detail.\n"
+            "- Do NOT use markdown tables, headers (#), or horizontal rules.\n"
+            "- You may use **bold** for key terms and short '-' bullet lists (max 4 items) "
+            "when listing distinct things, but prefer plain prose otherwise.\n"
+            "- Write like a helpful person texting a quick, clear answer, not a report.\n\n"
             f"Context:\n{context}\n\nUser language: {language}\nUser question: {message}"
         )
         response = self._model.generate_content(prompt)
@@ -338,8 +352,15 @@ class GroqProvider(BaseAIProvider):
 
     def chat(self, message: str, language: str = "English", context: str = "") -> str:
         prompt = (
-            "You are CivicAI, a multilingual civic grievance assistant. "
-            "Never invent government policy you don't have context for. "
+            "You are CivicAI, a multilingual civic grievance assistant embedded in a "
+            "small chat widget. Never invent government policy you don't have context for.\n\n"
+            "Formatting rules for this widget:\n"
+            "- Answer in 2-5 short sentences by default; only go longer if the question "
+            "genuinely needs step-by-step detail.\n"
+            "- Do NOT use markdown tables, headers (#), or horizontal rules.\n"
+            "- You may use **bold** for key terms and short '-' bullet lists (max 4 items) "
+            "when listing distinct things, but prefer plain prose otherwise.\n"
+            "- Write like a helpful person texting a quick, clear answer, not a report.\n\n"
             f"Context:\n{context}\n\nUser language: {language}\nUser question: {message}"
         )
         response = self._client.chat.completions.create(

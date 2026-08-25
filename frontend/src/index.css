@@ -661,6 +661,53 @@ input, select, textarea { font-family: inherit; }
 .ai-header small { display: block; margin-top: 3px; color: var(--text-muted); }
 
 .message { max-width: 88%; padding: 13px 15px; border-radius: 14px; margin-top: 18px; line-height: 1.5; font-size: 13.5px; }
+
+/* Markdown content inside chat bubbles — compact, no default browser spacing */
+.chat-markdown p { margin: 0 0 8px; }
+.chat-markdown p:last-child { margin-bottom: 0; }
+.chat-markdown strong { font-weight: 700; }
+.chat-markdown ul, .chat-markdown ol { margin: 4px 0 8px; padding-left: 18px; }
+.chat-markdown li { margin-bottom: 3px; }
+.chat-markdown li:last-child { margin-bottom: 0; }
+.chat-markdown code {
+  background: rgba(127, 127, 127, 0.16);
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-size: 12px;
+}
+.chat-markdown pre {
+  background: rgba(127, 127, 127, 0.12);
+  padding: 10px;
+  border-radius: 8px;
+  overflow-x: auto;
+  margin: 6px 0;
+}
+.chat-markdown pre code { background: none; padding: 0; }
+.chat-markdown table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 8px 0;
+  font-size: 12px;
+}
+.chat-markdown th, .chat-markdown td {
+  border: 1px solid var(--border);
+  padding: 5px 8px;
+  text-align: left;
+}
+.chat-markdown th { background: var(--surface-hover); font-weight: 700; }
+.chat-markdown a { color: inherit; text-decoration: underline; }
+.chat-markdown h1, .chat-markdown h2, .chat-markdown h3 {
+  font-size: 13.5px;
+  font-weight: 700;
+  margin: 6px 0 6px;
+}
+.chat-markdown blockquote {
+  border-left: 2px solid var(--border);
+  padding-left: 10px;
+  margin: 6px 0;
+  opacity: 0.85;
+}
+.user-message .chat-markdown th { background: rgba(255, 255, 255, 0.15); }
 .user-message { margin-left: auto; background: var(--accent); color: white; border-bottom-right-radius: 4px; }
 .ai-message { background: var(--surface-hover); border-bottom-left-radius: 4px; }
 
