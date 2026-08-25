@@ -147,7 +147,7 @@ class MockAIProvider(BaseAIProvider):
         return (
             "CivicAI assistant (offline mode): I can help you understand grievance "
             "categories, track a submitted grievance by its ID, or explain how "
-            "department routing works. Connect a real AI provider (OPENAI/GEMINI) "
+            "department routing works. Connect a real AI provider (OPENAI/GEMINI/GROQ) "
             "for open-ended conversational answers."
         )
 
@@ -279,6 +279,77 @@ class GeminiProvider(BaseAIProvider):
         return response.text
 
 
+class GroqProvider(BaseAIProvider):
+    """
+    Groq's API is OpenAI-compatible (same request/response shape), just
+    served from a different base URL with Groq-hosted open models (Llama,
+    etc). We reuse the `openai` SDK pointed at Groq's endpoint rather than
+    duplicating request-building logic.
+    """
+
+    name = "groq"
+
+    def __init__(self):
+        if not settings.GROQ_API_KEY:
+            raise RuntimeError("GROQ_API_KEY is not configured")
+        try:
+            from openai import OpenAI  # lazy import, optional dependency
+        except ImportError as error:
+            raise RuntimeError(
+                "The 'openai' package is not installed. Run `pip install openai`."
+            ) from error
+
+        self._client = OpenAI(api_key=settings.GROQ_API_KEY, base_url=settings.GROQ_BASE_URL)
+        self._model = settings.GROQ_MODEL
+
+    def analyze_grievance(self, text: str, language: str = "English") -> dict:
+        prompt = (
+            "You are CivicAI, an AI system that triages citizen civic grievances "
+            "for a government department. Analyze the grievance below and produce "
+            f"structured output. {ANALYSIS_JSON_SCHEMA_HINT}\n\n"
+            f"Language: {language}\nGrievance text:\n{text}"
+        )
+        response = self._client.chat.completions.create(
+            model=self._model,
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.2,
+        )
+        data = _extract_json(response.choices[0].message.content)
+        data["provider"] = self.name
+        return data
+
+    def generate_copilot_brief(self, grievance: dict, similar_cases: list) -> dict:
+        prompt = (
+            "You are an AI Copilot assisting a government grievance officer. "
+            "Given the case JSON and related cases, return ONLY JSON with keys "
+            "case_summary, risk_assessment, similar_cases (array of ids), "
+            "recommended_action, suggested_citizen_response.\n\n"
+            f"Case: {json.dumps(grievance, default=str)}\n"
+            f"Similar cases: {json.dumps([c.get('grievance_id') for c in similar_cases], default=str)}"
+        )
+        response = self._client.chat.completions.create(
+            model=self._model,
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.3,
+        )
+        data = _extract_json(response.choices[0].message.content)
+        data["provider"] = self.name
+        return data
+
+    def chat(self, message: str, language: str = "English", context: str = "") -> str:
+        prompt = (
+            "You are CivicAI, a multilingual civic grievance assistant. "
+            "Never invent government policy you don't have context for. "
+            f"Context:\n{context}\n\nUser language: {language}\nUser question: {message}"
+        )
+        response = self._client.chat.completions.create(
+            model=self._model,
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.4,
+        )
+        return response.choices[0].message.content
+
+
 _provider_instance = None
 
 
@@ -304,6 +375,12 @@ def get_ai_provider() -> BaseAIProvider:
             _provider_instance = GeminiProvider()
         except Exception as error:  # noqa: BLE001
             print(f"WARNING: falling back to MockAIProvider (gemini init failed: {error})")
+            _provider_instance = MockAIProvider()
+    elif provider_name == "groq":
+        try:
+            _provider_instance = GroqProvider()
+        except Exception as error:  # noqa: BLE001
+            print(f"WARNING: falling back to MockAIProvider (groq init failed: {error})")
             _provider_instance = MockAIProvider()
     else:
         _provider_instance = MockAIProvider()
