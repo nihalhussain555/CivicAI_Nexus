@@ -19,6 +19,7 @@ incidents_collection = db["incidents"]
 departments_collection = db["departments"]
 notifications_collection = db["notifications"]
 audit_logs_collection = db["audit_logs"]
+chat_sessions_collection = db["chat_sessions"]
 
 # Backward-compatible alias (older modules referred to "complaints")
 complaints_collection = grievances_collection
@@ -66,6 +67,9 @@ def create_indexes():
         audit_logs_collection.create_index("actor_id")
         audit_logs_collection.create_index("entity_id")
         audit_logs_collection.create_index("created_at")
+
+        chat_sessions_collection.create_index("user_id")
+        chat_sessions_collection.create_index([("user_id", ASCENDING), ("updated_at", DESCENDING)])
 
     except PyMongoError as error:
         print(f"WARNING: index creation failed: {error}")

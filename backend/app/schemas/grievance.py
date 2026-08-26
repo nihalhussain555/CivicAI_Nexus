@@ -58,3 +58,4 @@ class AIAnalyzeRequest(BaseModel):
 class ChatRequest(BaseModel):
     message: str = Field(..., min_length=1, max_length=3000)
     language: str = "English"
+    session_id: Optional[str] = None

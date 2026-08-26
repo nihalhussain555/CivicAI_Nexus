@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { MapPin, Loader2, Sparkles, ArrowLeft, Send } from "lucide-react";
 import { previewAnalysis, submitGrievance } from "../../services/grievanceService";
+import { reverseGeocode } from "../../services/geocodeService";
 import { LANGUAGES } from "../../utils/constants";
 import { useToast } from "../../context/ToastContext";
 import { getErrorMessage } from "../../utils/helpers";
@@ -35,13 +36,22 @@ const ReportIssue = () => {
     }
     setLocating(true);
     navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setLocation({
-          latitude: pos.coords.latitude,
-          longitude: pos.coords.longitude,
-          address: `${pos.coords.latitude.toFixed(4)}, ${pos.coords.longitude.toFixed(4)}`,
-        });
-        setLocating(false);
+      async (pos) => {
+        const { latitude, longitude } = pos.coords;
+        // Show coordinates immediately so the button doesn't look stuck,
+        // then swap in a real place name once reverse geocoding resolves.
+        setLocation({ latitude, longitude, address: `${latitude.toFixed(4)}, ${longitude.toFixed(4)}` });
+
+        try {
+          const placeName = await reverseGeocode(latitude, longitude);
+          setLocation({ latitude, longitude, address: placeName });
+        } catch {
+          // Keep the coordinate fallback already set — not a hard failure,
+          // the report can still be submitted with lat/lon alone.
+          toast.error("Couldn't resolve a place name — using coordinates instead.");
+        } finally {
+          setLocating(false);
+        }
       },
       () => {
         toast.error("Couldn't get your location. You can still submit without it.");
