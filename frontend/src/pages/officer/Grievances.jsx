@@ -6,6 +6,8 @@ import GrievanceCard from "../../components/grievances/GrievanceCard";
 import EmptyState from "../../components/common/EmptyState";
 import { SkeletonList } from "../../components/common/Skeleton";
 import Pagination from "../../components/common/Pagination";
+import ErrorState from "../../components/common/ErrorState";
+import { getErrorMessage } from "../../utils/helpers";
 
 const TABS = [
   { key: "queue", label: "Priority Queue" },
@@ -18,12 +20,18 @@ const Grievances = () => {
   const [page, setPage] = useState(1);
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
     setLoading(true);
+    setError("");
     const fetcher = tab === "queue" ? getQueue({ page, limit: 10 }) : getAssigned({ status: status || undefined, page, limit: 10 });
-    fetcher.then((res) => setData(res.data)).finally(() => setLoading(false));
-  }, [tab, status, page]);
+    fetcher
+      .then((res) => setData(res.data && Array.isArray(res.data.items) ? res.data : { items: [], page: 1, total_pages: 1 }))
+      .catch((err) => setError(getErrorMessage(err)))
+      .finally(() => setLoading(false));
+  }, [tab, status, page, refreshKey]);
 
   return (
     <div>
@@ -49,12 +57,14 @@ const Grievances = () => {
 
       {loading ? (
         <SkeletonList rows={5} />
-      ) : data.items.length === 0 ? (
+      ) : error ? (
+        <ErrorState title="Couldn’t load grievances" description={error} onRetry={() => setRefreshKey((key) => key + 1)} />
+      ) : data?.items?.length === 0 ? (
         <EmptyState icon={ListChecks} title="Nothing here" description={tab === "queue" ? "No new cases waiting in your department." : "No cases matching this filter."} />
       ) : (
         <>
           {data.items.map((g) => <GrievanceCard key={g.grievance_id} grievance={g} basePath="/officer/grievances" />)}
-          <Pagination page={data.page} totalPages={data.total_pages || Math.ceil(data.total / (data.limit || 10))} onChange={setPage} />
+          <Pagination page={data.page || 1} totalPages={data.total_pages || Math.ceil(data.total / (data.limit || 10)) || 1} onChange={setPage} />
         </>
       )}
     </div>

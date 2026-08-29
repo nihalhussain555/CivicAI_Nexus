@@ -1,5 +1,6 @@
 import { Bot, RefreshCcw } from "lucide-react";
 import LoadingSpinner from "../common/LoadingSpinner";
+import { toDisplayText } from "../../utils/helpers";
 
 const CopilotPanel = ({ brief, loading, onRefresh }) => {
   return (
@@ -16,34 +17,34 @@ const CopilotPanel = ({ brief, loading, onRefresh }) => {
 
       {loading ? (
         <div style={{ padding: "20px 0" }}><LoadingSpinner label="Generating brief..." /></div>
-      ) : brief ? (
+      ) : brief && typeof brief === "object" && !Array.isArray(brief) ? (
         <div style={{ display: "flex", flexDirection: "column", gap: 16, fontSize: 13.5 }}>
           <div>
             <div className="ai-tag" style={{ marginBottom: 6 }}>Case summary</div>
-            <p style={{ color: "var(--text-muted)", lineHeight: 1.6 }}>{brief.case_summary}</p>
+            <p style={{ color: "var(--text-muted)", lineHeight: 1.6 }}>{toDisplayText(brief.case_summary)}</p>
           </div>
           <div>
             <div className="ai-tag" style={{ marginBottom: 6 }}>Risk assessment</div>
-            <p style={{ color: "var(--text-muted)", lineHeight: 1.6 }}>{brief.risk_assessment}</p>
+            <p style={{ color: "var(--text-muted)", lineHeight: 1.6 }}>{toDisplayText(brief.risk_assessment)}</p>
           </div>
-          {brief.similar_cases?.length > 0 && (
+          {Array.isArray(brief.similar_cases) && brief.similar_cases.length > 0 && (
             <div>
               <div className="ai-tag" style={{ marginBottom: 6 }}>Similar cases</div>
               <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                 {brief.similar_cases.map((id) => (
-                  <span key={id} className="badge badge-neutral">{id}</span>
+                  <span key={String(id)} className="badge badge-neutral">{toDisplayText(id)}</span>
                 ))}
               </div>
             </div>
           )}
           <div>
             <div className="ai-tag" style={{ marginBottom: 6 }}>Recommended action</div>
-            <p style={{ color: "var(--text-muted)", lineHeight: 1.6 }}>{brief.recommended_action}</p>
+            <p style={{ color: "var(--text-muted)", lineHeight: 1.6 }}>{toDisplayText(brief.recommended_action)}</p>
           </div>
           <div>
             <div className="ai-tag" style={{ marginBottom: 6 }}>Suggested citizen response</div>
             <p style={{ color: "var(--text-muted)", lineHeight: 1.6, fontStyle: "italic" }}>
-              "{brief.suggested_citizen_response}"
+              "{toDisplayText(brief.suggested_citizen_response)}"
             </p>
           </div>
           <p style={{ fontSize: 11.5, color: "var(--text-faint)", borderTop: "1px solid var(--border)", paddingTop: 10 }}>
@@ -51,7 +52,7 @@ const CopilotPanel = ({ brief, loading, onRefresh }) => {
           </p>
         </div>
       ) : (
-        <p style={{ fontSize: 13, color: "var(--text-muted)" }}>No brief available yet.</p>
+        <div className="ai-response-empty" role="status"><p>AI description could not be generated. Please try again.</p></div>
       )}
     </div>
   );

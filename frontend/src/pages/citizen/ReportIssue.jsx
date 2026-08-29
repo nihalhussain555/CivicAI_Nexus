@@ -23,6 +23,7 @@ const ReportIssue = () => {
   const [locating, setLocating] = useState(false);
   const [analysis, setAnalysis] = useState(null);
   const [analyzing, setAnalyzing] = useState(false);
+  const [analysisError, setAnalysisError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(null);
 
@@ -66,12 +67,18 @@ const ReportIssue = () => {
       return;
     }
     setAnalyzing(true);
+    setAnalysisError("");
     try {
       const res = await previewAnalysis({ title, description, language });
+      if (!res?.data || typeof res.data !== "object" || Array.isArray(res.data)) {
+        throw new Error("AI description could not be generated. Please try again.");
+      }
       setAnalysis(res.data);
       setStep(1);
     } catch (error) {
-      toast.error(getErrorMessage(error));
+      const message = getErrorMessage(error);
+      setAnalysisError(message);
+      toast.error(message);
     } finally {
       setAnalyzing(false);
     }
@@ -163,6 +170,12 @@ const ReportIssue = () => {
               ? <><Loader2 size={16} style={{ animation: "spin 0.8s linear infinite" }} /> Analyzing with AI...</>
               : <><Sparkles size={16} /> Analyze with AI</>}
           </button>
+          {analysisError && (
+            <div className="ai-response-empty" role="alert">
+              <div><strong>AI description could not be generated.</strong><p>{analysisError}</p></div>
+              <button type="button" className="btn btn-secondary btn-sm" onClick={runAnalysis} disabled={analyzing}>Retry</button>
+            </div>
+          )}
         </div>
       )}
 

@@ -43,3 +43,29 @@ export const getErrorMessage = (error) => {
     "Something went wrong. Please try again."
   );
 };
+
+// API and AI providers can return a value in a different shape while a request
+// is in progress or when a provider falls back. Never pass those values straight
+// to React: objects are not valid React children and would otherwise crash a page.
+export const toDisplayText = (value, fallback = "Not available") => {
+  if (value === null || value === undefined) return fallback;
+  if (typeof value === "string") return value.trim() || fallback;
+  if (typeof value === "number" || typeof value === "boolean") return String(value);
+
+  if (Array.isArray(value)) {
+    const text = value.map((item) => toDisplayText(item, "")).filter(Boolean).join("\n");
+    return text || fallback;
+  }
+
+  if (typeof value === "object") {
+    const preferredText = value.description ?? value.summary ?? value.text ?? value.content ?? value.message;
+    if (preferredText !== undefined) return toDisplayText(preferredText, fallback);
+    try {
+      return JSON.stringify(value) || fallback;
+    } catch {
+      return fallback;
+    }
+  }
+
+  return fallback;
+};

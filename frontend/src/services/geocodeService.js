@@ -10,7 +10,6 @@
  */
 
 const NOMINATIM_URL = "https://nominatim.openstreetmap.org/reverse";
-
 /**
  * Builds a short, readable label from Nominatim's address breakdown —
  * prefers neighborhood/suburb + city over the full formatted address,

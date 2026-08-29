@@ -1,13 +1,16 @@
 import { CheckCircle2 } from "lucide-react";
-import { formatDateTime } from "../../utils/helpers";
+import { formatDateTime, toDisplayText } from "../../utils/helpers";
 import { STATUS_LABELS } from "../../utils/constants";
 
 const StatusTimeline = ({ history = [] }) => {
+  if (!Array.isArray(history)) return null;
   if (!history.length) return null;
 
   return (
     <div>
-      {history.map((item, index) => (
+      {history.map((item, index) => {
+        const event = item && typeof item === "object" ? item : {};
+        return (
         <div key={index} style={{ display: "flex", gap: 14 }}>
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
             <div
@@ -25,15 +28,16 @@ const StatusTimeline = ({ history = [] }) => {
           </div>
           <div style={{ paddingBottom: 20 }}>
             <div style={{ fontWeight: 700, fontSize: 13.5 }}>
-              {STATUS_LABELS[item.status] || item.status}
+              {toDisplayText(STATUS_LABELS[event.status] || event.status)}
             </div>
-            <div style={{ fontSize: 12.5, color: "var(--text-muted)", margin: "3px 0" }}>{item.message}</div>
+            <div style={{ fontSize: 12.5, color: "var(--text-muted)", margin: "3px 0" }}>{toDisplayText(event.message)}</div>
             <div style={{ fontSize: 11.5, color: "var(--text-faint)" }}>
-              {formatDateTime(item.timestamp)} · {item.actor_role}
+              {formatDateTime(event.timestamp)} · {toDisplayText(event.actor_role)}
             </div>
           </div>
         </div>
-      ))}
+      );
+      })}
     </div>
   );
 };

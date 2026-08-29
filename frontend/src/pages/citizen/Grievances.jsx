@@ -6,19 +6,25 @@ import GrievanceCard from "../../components/grievances/GrievanceCard";
 import EmptyState from "../../components/common/EmptyState";
 import { SkeletonList } from "../../components/common/Skeleton";
 import Pagination from "../../components/common/Pagination";
+import ErrorState from "../../components/common/ErrorState";
+import { getErrorMessage } from "../../utils/helpers";
 
 const Grievances = () => {
   const [status, setStatus] = useState("");
   const [page, setPage] = useState(1);
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
     setLoading(true);
+    setError("");
     getMyGrievances({ status: status || undefined, page, limit: 10 })
-      .then((res) => setData(res.data))
+      .then((res) => setData(res.data && Array.isArray(res.data.items) ? res.data : { items: [], page: 1, total_pages: 1 }))
+      .catch((err) => setError(getErrorMessage(err)))
       .finally(() => setLoading(false));
-  }, [status, page]);
+  }, [status, page, refreshKey]);
 
   return (
     <div>
@@ -37,12 +43,14 @@ const Grievances = () => {
 
       {loading ? (
         <SkeletonList rows={5} />
-      ) : data.items.length === 0 ? (
+      ) : error ? (
+        <ErrorState title="Couldn’t load your grievances" description={error} onRetry={() => setRefreshKey((key) => key + 1)} />
+      ) : data?.items?.length === 0 ? (
         <EmptyState icon={FileText} title="No grievances found" description="Try a different filter, or report a new issue." />
       ) : (
         <>
           {data.items.map((g) => <GrievanceCard key={g.grievance_id} grievance={g} basePath="/citizen/grievances" />)}
-          <Pagination page={data.page} totalPages={data.total_pages} onChange={setPage} />
+          <Pagination page={data.page || 1} totalPages={data.total_pages || 1} onChange={setPage} />
         </>
       )}
     </div>

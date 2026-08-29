@@ -550,6 +550,30 @@ input, select, textarea { font-family: inherit; }
 
 .list-row:hover { border-color: var(--accent); }
 
+.list-row {
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.list-row:hover {
+  box-shadow: var(--shadow-sm);
+  transform: translateY(-1px);
+}
+
+.ai-response-card, .ai-response-empty {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 13px 14px;
+  border-radius: var(--radius-sm);
+  background: var(--accent-soft);
+  color: var(--accent-soft-text);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.ai-response-card p, .ai-response-empty p { margin: 3px 0 0; }
+.ai-response-copy { font-size: 13px; color: var(--text-muted); line-height: 1.65; white-space: pre-wrap; }
+
 /* ---------- Auth pages ---------- */
 
 .auth-shell {

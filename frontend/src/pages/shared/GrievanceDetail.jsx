@@ -11,7 +11,7 @@ import {
 import { uploadsBaseUrl } from "../../services/api";
 import { useAuth } from "../../hooks/useAuth";
 import { useToast } from "../../context/ToastContext";
-import { getErrorMessage, formatDateTime } from "../../utils/helpers";
+import { getErrorMessage, formatDateTime, toDisplayText } from "../../utils/helpers";
 import { CATEGORY_LABELS } from "../../utils/constants";
 import PriorityBadge from "../../components/grievances/PriorityBadge";
 import StatusBadge from "../../components/grievances/StatusBadge";
@@ -81,6 +81,8 @@ const GrievanceDetail = () => {
   const isOwnerCitizen = user.role === "citizen" && grievance.citizen_id === user.id;
   const isStaff = user.role === "officer" || user.role === "admin";
   const basePath = roleBasePath[user.role];
+  const description = toDisplayText(grievance.description, "No description was provided for this grievance.");
+  const aiSummary = toDisplayText(grievance.ai_summary, "");
 
   return (
     <div>
@@ -91,7 +93,7 @@ const GrievanceDetail = () => {
       <div className="page-header">
         <div>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6, flexWrap: "wrap" }}>
-            <span style={{ fontFamily: "monospace", fontSize: 12.5, color: "var(--text-faint)" }}>{grievance.grievance_id}</span>
+            <span style={{ fontFamily: "monospace", fontSize: 12.5, color: "var(--text-faint)" }}>{toDisplayText(grievance.grievance_id, "—")}</span>
             <StatusBadge status={grievance.status} />
             <PriorityBadge priority={grievance.priority} />
             {grievance.incident_id && (
@@ -100,7 +102,7 @@ const GrievanceDetail = () => {
               </Link>
             )}
           </div>
-          <h1>{grievance.title}</h1>
+          <h1>{toDisplayText(grievance.title, "Untitled grievance")}</h1>
         </div>
       </div>
 
@@ -108,14 +110,14 @@ const GrievanceDetail = () => {
         <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
           <div className="card">
             <div className="section-title">Description</div>
-            <p style={{ fontSize: 13.5, color: "var(--text-muted)", lineHeight: 1.7 }}>{grievance.description}</p>
+            <p style={{ fontSize: 13.5, color: "var(--text-muted)", lineHeight: 1.7, whiteSpace: "pre-wrap" }}>{description}</p>
 
             {grievance.voice_transcript && (
               <div style={{ marginTop: 14, padding: 12, background: "var(--surface-hover)", borderRadius: 10 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 700, marginBottom: 4 }}>
                   <Mic size={12} /> Voice transcript
                 </div>
-                <p style={{ fontSize: 13, color: "var(--text-muted)" }}>{grievance.voice_transcript}</p>
+                <p style={{ fontSize: 13, color: "var(--text-muted)", whiteSpace: "pre-wrap" }}>{toDisplayText(grievance.voice_transcript)}</p>
               </div>
             )}
 
@@ -151,26 +153,28 @@ const GrievanceDetail = () => {
             </div>
             <div className="grid grid-2">
               <div><div style={{ fontSize: 12, color: "var(--text-muted)" }}>Category</div>
-                <strong>{CATEGORY_LABELS[grievance.category] || grievance.category}</strong></div>
+                <strong>{toDisplayText(CATEGORY_LABELS[grievance.category] || grievance.category)}</strong></div>
               <div><div style={{ fontSize: 12, color: "var(--text-muted)" }}>Severity</div>
                 <PriorityBadge priority={grievance.severity} /></div>
               <div><div style={{ fontSize: 12, color: "var(--text-muted)" }}>AI Confidence</div>
                 <strong>{Math.round((grievance.confidence || 0) * 100)}%</strong></div>
               <div><div style={{ fontSize: 12, color: "var(--text-muted)" }}>Escalation Risk</div>
-                <strong>{grievance.escalation_risk}</strong></div>
+                <strong>{toDisplayText(grievance.escalation_risk)}</strong></div>
             </div>
-            {grievance.ai_summary && (
-              <p style={{ fontSize: 13, color: "var(--text-muted)", marginTop: 14, lineHeight: 1.6 }}>{grievance.ai_summary}</p>
+            {aiSummary ? (
+              <p className="ai-response-copy" style={{ marginTop: 14 }}>{aiSummary}</p>
+            ) : (
+              <div className="ai-response-empty" role="status">AI description could not be generated. Please try again.</div>
             )}
           </div>
 
           {grievance.resolution_note && (
             <div className="card">
               <div className="section-title">Resolution</div>
-              <p style={{ fontSize: 13.5, color: "var(--text-muted)", lineHeight: 1.7 }}>{grievance.resolution_note}</p>
+              <p style={{ fontSize: 13.5, color: "var(--text-muted)", lineHeight: 1.7, whiteSpace: "pre-wrap" }}>{toDisplayText(grievance.resolution_note)}</p>
               {grievance.citizen_feedback && (
                 <p style={{ fontSize: 12.5, color: "var(--text-faint)", marginTop: 10, fontStyle: "italic" }}>
-                  Citizen feedback: "{grievance.citizen_feedback}"
+                  Citizen feedback: "{toDisplayText(grievance.citizen_feedback)}"
                 </p>
               )}
             </div>
@@ -231,10 +235,10 @@ const GrievanceDetail = () => {
             <div className="section-title">Case Info</div>
             <div style={{ display: "flex", flexDirection: "column", gap: 10, fontSize: 13 }}>
               <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <span style={{ color: "var(--text-muted)" }}>Department</span><strong>{grievance.department}</strong>
+                <span style={{ color: "var(--text-muted)" }}>Department</span><strong>{toDisplayText(grievance.department)}</strong>
               </div>
               <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <span style={{ color: "var(--text-muted)" }}>Predicted resolution</span><strong>~{grievance.predicted_resolution_hours}h</strong>
+                <span style={{ color: "var(--text-muted)" }}>Predicted resolution</span><strong>~{toDisplayText(grievance.predicted_resolution_hours)}h</strong>
               </div>
               {grievance.sla_due_at && (
                 <div style={{ display: "flex", justifyContent: "space-between" }}>

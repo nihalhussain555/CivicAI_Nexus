@@ -7,6 +7,8 @@ import GrievanceCard from "../../components/grievances/GrievanceCard";
 import EmptyState from "../../components/common/EmptyState";
 import { SkeletonList } from "../../components/common/Skeleton";
 import Pagination from "../../components/common/Pagination";
+import ErrorState from "../../components/common/ErrorState";
+import { getErrorMessage } from "../../utils/helpers";
 
 const Grievances = () => {
   const [filters, setFilters] = useState({ status: "", category: "", department: "", priority: "", search: "" });
@@ -15,14 +17,20 @@ const Grievances = () => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [departments, setDepartments] = useState([]);
+  const [error, setError] = useState("");
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => { getDepartments().then((res) => setDepartments(res.data)); }, []);
 
   useEffect(() => {
     setLoading(true);
+    setError("");
     const params = Object.fromEntries(Object.entries(filters).filter(([, v]) => v));
-    getAllGrievances({ ...params, page, limit: 12 }).then((res) => setData(res.data)).finally(() => setLoading(false));
-  }, [filters, page]);
+    getAllGrievances({ ...params, page, limit: 12 })
+      .then((res) => setData(res.data && Array.isArray(res.data.items) ? res.data : { items: [], page: 1, total_pages: 1 }))
+      .catch((err) => setError(getErrorMessage(err)))
+      .finally(() => setLoading(false));
+  }, [filters, page, refreshKey]);
 
   const updateFilter = (key) => (e) => { setFilters((f) => ({ ...f, [key]: e.target.value })); setPage(1); };
 
@@ -61,12 +69,14 @@ const Grievances = () => {
 
       {loading ? (
         <SkeletonList rows={6} />
-      ) : data.items.length === 0 ? (
+      ) : error ? (
+        <ErrorState title="Couldn’t load grievances" description={error} onRetry={() => setRefreshKey((key) => key + 1)} />
+      ) : data?.items?.length === 0 ? (
         <EmptyState icon={FileText} title="No grievances found" description="Try adjusting your filters." />
       ) : (
         <>
           {data.items.map((g) => <GrievanceCard key={g.grievance_id} grievance={g} basePath="/admin/grievances" />)}
-          <Pagination page={data.page} totalPages={data.total_pages} onChange={setPage} />
+          <Pagination page={data.page || 1} totalPages={data.total_pages || 1} onChange={setPage} />
         </>
       )}
     </div>
