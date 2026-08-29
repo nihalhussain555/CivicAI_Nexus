@@ -148,7 +148,7 @@ const GrievanceDetail = () => {
           <div className="card" style={{ borderColor: "var(--accent)" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
               <Sparkles size={15} color="var(--accent)" />
-              <strong style={{ fontSize: 14 }}>AI Analysis</strong>
+              <strong style={{ fontSize: 14 }}>CivicAI Intelligence</strong>
               <span className="ai-tag">AI generated</span>
             </div>
             <div className="grid grid-2">

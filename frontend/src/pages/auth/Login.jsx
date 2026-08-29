@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { ShieldCheck, Loader2, UserRound, ClipboardList, Shield, Zap } from "lucide-react";
+import { ShieldCheck, Loader2, UserRound, ClipboardList, Shield, Zap, Mail, LockKeyhole, Eye, EyeOff, Sparkles } from "lucide-react";
 import { useAuth } from "../../hooks/useAuth";
 import { useToast } from "../../context/ToastContext";
 import { getErrorMessage } from "../../utils/helpers";
@@ -17,6 +17,7 @@ const Login = () => {
   const [selectedRole, setSelectedRole] = useState(null);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
   const toast = useToast();
@@ -60,7 +61,11 @@ const Login = () => {
 
   return (
     <div className="auth-shell">
-      <div className="auth-card" style={{ maxWidth: 460 }}>
+      <aside className="auth-visual" aria-hidden="true">
+        <div className="auth-orb auth-orb-one" /><div className="auth-orb auth-orb-two" />
+        <div className="auth-visual-content"><span className="eyebrow"><Sparkles size={14} /> Civic intelligence, connected</span><h1>Better civic action starts with a clear signal.</h1><p>Report, route, and resolve issues with an AI-guided service platform built for every role.</p><div className="auth-visual-stat"><strong>AI-assisted triage</strong><span>Clearer reports. Faster routing.</span></div></div>
+      </aside>
+      <div className="auth-card auth-card-wide" style={{ maxWidth: 460 }}>
         <Link to="/" className="auth-logo">
           <ShieldCheck size={22} color="var(--accent)" /> CivicAI Nexus
         </Link>
@@ -75,13 +80,7 @@ const Login = () => {
               key={key}
               type="button"
               onClick={() => selectRole(key)}
-              style={{
-                display: "flex", flexDirection: "column", alignItems: "center", gap: 6,
-                padding: "14px 8px", borderRadius: "var(--radius-md)",
-                border: `1.5px solid ${selectedRole === key ? "var(--accent)" : "var(--border)"}`,
-                background: selectedRole === key ? "var(--accent-soft)" : "var(--surface)",
-                color: selectedRole === key ? "var(--accent-soft-text)" : "var(--text)",
-              }}
+              className={`role-choice ${selectedRole === key ? "selected" : ""}`}
             >
               <Icon size={20} />
               <span style={{ fontSize: 12.5, fontWeight: 700 }}>{label}</span>
@@ -111,15 +110,18 @@ const Login = () => {
         </div>
 
         <form onSubmit={handleSubmit}>
-          <div className="form-group">
+          <div className="form-group input-with-icon">
             <label className="form-label" htmlFor="email">Email</label>
+            <Mail size={16} />
             <input id="email" type="email" className="input" required value={email}
                    onChange={(e) => { setEmail(e.target.value); setSelectedRole(null); }} placeholder="you@example.com" />
           </div>
-          <div className="form-group">
+          <div className="form-group input-with-icon">
             <label className="form-label" htmlFor="password">Password</label>
-            <input id="password" type="password" className="input" required value={password}
+            <LockKeyhole size={16} />
+            <input id="password" type={showPassword ? "text" : "password"} className="input" required value={password}
                    onChange={(e) => { setPassword(e.target.value); setSelectedRole(null); }} placeholder="••••••••" />
+            <button type="button" className="password-toggle" onClick={() => setShowPassword((visible) => !visible)} aria-label={showPassword ? "Hide password" : "Show password"}>{showPassword ? <EyeOff size={16} /> : <Eye size={16} />}</button>
           </div>
           <button type="submit" className="btn btn-secondary btn-block" disabled={loading}>
             {loading ? <Loader2 size={16} style={{ animation: "spin 0.8s linear infinite" }} /> : "Log in"}

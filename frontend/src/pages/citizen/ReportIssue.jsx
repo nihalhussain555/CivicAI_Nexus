@@ -132,7 +132,7 @@ const ReportIssue = () => {
           </div>
 
           <div className="form-group">
-            <label className="form-label" htmlFor="description">Description</label>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}><label className="form-label" htmlFor="description">Description</label><span className="form-hint">{description.length}/5000</span></div>
             <textarea id="description" className="textarea" value={description}
                       onChange={(e) => setDescription(e.target.value)}
                       placeholder="Describe what's wrong, where exactly, and since when." maxLength={5000} />
@@ -181,6 +181,7 @@ const ReportIssue = () => {
 
       {step === 1 && analysis && (
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          <div className="ai-intelligence-banner"><Sparkles size={18} /><div><span>CivicAI Intelligence</span><small>Review AI-assisted routing and prioritization before submitting.</small></div></div>
           <AIAnalysisPanel analysis={analysis} />
           <div className="card">
             <div className="section-title">Your report</div>
