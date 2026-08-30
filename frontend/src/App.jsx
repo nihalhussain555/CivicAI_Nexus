@@ -33,6 +33,7 @@ import AdminDashboard from "./pages/admin/Dashboard";
 import AdminGrievances from "./pages/admin/Grievances";
 import AdminDepartments from "./pages/admin/Departments";
 import AdminOfficers from "./pages/admin/Officers";
+import AdminOfficerDetail from "./pages/admin/OfficerDetail";
 import AdminAnalytics from "./pages/admin/Analytics";
 import AdminMap from "./pages/admin/Map";
 import AdminAIInsights from "./pages/admin/AIInsights";
@@ -126,6 +127,7 @@ function App() {
                 <Route path="incidents/:incidentId" element={<IncidentDetail />} />
                 <Route path="departments" element={<AdminDepartments />} />
                 <Route path="officers" element={<AdminOfficers />} />
+                <Route path="officers/:officerId" element={<AdminOfficerDetail />} />
                 <Route path="analytics" element={<AdminAnalytics />} />
                 <Route path="map" element={<AdminMap />} />
                 <Route path="ai-insights" element={<AdminAIInsights />} />

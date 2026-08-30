@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Users, Plus } from "lucide-react";
+import { Link } from "react-router-dom";
 import { getOfficers, createOfficer } from "../../services/officerService";
 import { getDepartments } from "../../services/departmentService";
 import { useToast } from "../../context/ToastContext";
@@ -47,7 +48,7 @@ const Officers = () => {
         <SkeletonList rows={5} />
       ) : (
         officers.map((o) => (
-          <div key={o._id} className="list-row">
+          <Link key={o._id} to={`/admin/officers/${o._id}`} className="list-row">
             <div>
               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
                 <Users size={14} color="var(--accent)" />
@@ -60,7 +61,7 @@ const Officers = () => {
               <div style={{ textAlign: "center" }}><div style={{ fontWeight: 700 }}>{o.open_cases}</div><div style={{ fontSize: 10.5, color: "var(--text-faint)" }}>OPEN</div></div>
               <div style={{ textAlign: "center" }}><div style={{ fontWeight: 700 }}>{o.cases_resolved}</div><div style={{ fontSize: 10.5, color: "var(--text-faint)" }}>RESOLVED</div></div>
             </div>
-          </div>
+          </Link>
         ))
       )}
 
