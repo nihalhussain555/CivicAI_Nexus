@@ -20,7 +20,20 @@ def get_profile(current_user=Depends(get_current_user)):
 
 @router.put("/me")
 def update_profile(data: UpdateProfileRequest, current_user=Depends(get_current_user)):
-    updates = {k: v for k, v in data.model_dump().items() if v is not None}
+    payload = data.model_dump()
+    notification_prefs_update = payload.pop("notification_preferences", None)
+
+    updates = {k: v for k, v in payload.items() if v is not None}
+
+    if notification_prefs_update is not None:
+        # Merge instead of overwrite, so updating one preference doesn't
+        # blank out the other (both fields are optional in the request).
+        merged = dict(current_user.get("notification_preferences") or {})
+        for key, value in notification_prefs_update.items():
+            if value is not None:
+                merged[key] = value
+        updates["notification_preferences"] = merged
+
     if not updates:
         raise HTTPException(status_code=400, detail="No fields to update")
 

@@ -1,9 +1,11 @@
-import { useEffect, useState } from "react";
-import { Camera, Pencil, Loader2, Check, X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Camera, Pencil, Loader2, Check, X, Bell, Mail as MailIcon } from "lucide-react";
 import { useAuth } from "../../hooks/useAuth";
 import { getMe, updateProfile } from "../../services/authService";
+import { uploadImage } from "../../services/uploadService";
 import { useToast } from "../../context/ToastContext";
 import { getErrorMessage, formatDate } from "../../utils/helpers";
+import Avatar from "../../components/common/Avatar";
 
 const splitName = (fullName = "") => {
   const parts = fullName.trim().split(/\s+/);
@@ -12,20 +14,26 @@ const splitName = (fullName = "") => {
 
 const Field = ({ label, value }) => (
   <div>
-    <div style={{ fontSize: 12, color: "var(--text-muted)", marginBottom: 4 }}>{label}</div>
-    <div style={{ fontSize: 14, fontWeight: 600 }}>{value || <span style={{ color: "var(--text-faint)", fontWeight: 400 }}>Not set</span>}</div>
+    <div style={{ fontSize: 11.5, color: "var(--text-faint)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.3px", marginBottom: 5 }}>
+      {label}
+    </div>
+    <div style={{ fontSize: 14, fontWeight: 600 }}>
+      {value || <span style={{ color: "var(--text-faint)", fontWeight: 400 }}>Not set</span>}
+    </div>
   </div>
 );
 
 const Profile = () => {
   const { user: cachedUser, updateUser } = useAuth();
   const toast = useToast();
+  const fileInputRef = useRef();
 
   // Always show live data from the database, not just whatever was cached
-  // at login — if a role (or anything else) changes directly in Mongo,
+  // at login — if anything (including role) changes directly in Mongo,
   // this page reflects it as soon as it loads.
   const [profile, setProfile] = useState(cachedUser);
   const [loading, setLoading] = useState(true);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
   const [editingPersonal, setEditingPersonal] = useState(false);
   const [editingAddress, setEditingAddress] = useState(false);
@@ -49,8 +57,37 @@ const Profile = () => {
   if (!profile) return null;
 
   const { firstName, lastName } = splitName(profile.name);
-  const initials = (profile.name || "?").split(" ").map((p) => p[0]).slice(0, 2).join("").toUpperCase();
   const location = [profile.city, profile.country].filter(Boolean).join(", ");
+
+  const handlePhotoClick = () => fileInputRef.current?.click();
+
+  const handlePhotoChange = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // allow re-selecting the same file later
+    if (!file) return;
+
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+      toast.error("Please choose a JPEG, PNG, or WEBP image.");
+      return;
+    }
+    if (file.size > 8 * 1024 * 1024) {
+      toast.error("Image must be under 8MB.");
+      return;
+    }
+
+    setUploadingPhoto(true);
+    try {
+      const uploadRes = await uploadImage(file);
+      const saveRes = await updateProfile({ profile_image: uploadRes.data.url });
+      setProfile(saveRes.data);
+      updateUser(saveRes.data);
+      toast.success("Profile photo updated");
+    } catch (error) {
+      toast.error(getErrorMessage(error));
+    } finally {
+      setUploadingPhoto(false);
+    }
+  };
 
   const startEditPersonal = () => {
     setPersonalForm({
@@ -106,33 +143,63 @@ const Profile = () => {
     }
   };
 
+  const toggleNotificationPref = async (key) => {
+    const current = profile.notification_preferences?.[key] ?? true;
+    try {
+      const res = await updateProfile({ notification_preferences: { [key]: !current } });
+      setProfile(res.data);
+      updateUser(res.data);
+    } catch (error) {
+      toast.error(getErrorMessage(error));
+    }
+  };
+
   return (
-    <div style={{ maxWidth: 720 }}>
+    <div style={{ maxWidth: 760 }}>
       <div className="page-header">
         <div><h1>My Profile</h1><p>Your account details, kept in sync with the database.</p></div>
         {loading && <Loader2 size={16} style={{ animation: "spin 0.8s linear infinite", color: "var(--text-faint)" }} />}
       </div>
 
       {/* Header card */}
-      <div className="card" style={{ marginBottom: 20, display: "flex", alignItems: "center", gap: 18 }}>
+      <div
+        className="card"
+        style={{
+          marginBottom: 20, display: "flex", alignItems: "center", gap: 20,
+          background: "linear-gradient(135deg, var(--accent-soft) 0%, var(--surface) 55%)",
+        }}
+      >
         <div style={{ position: "relative", flexShrink: 0 }}>
-          <div className="avatar" style={{ width: 64, height: 64, fontSize: 22 }}>{initials}</div>
-          <div
+          <Avatar user={profile} size={84} fontSize={28} />
+          <button
+            onClick={handlePhotoClick}
+            disabled={uploadingPhoto}
+            aria-label="Change profile photo"
             style={{
-              position: "absolute", bottom: -2, right: -2, width: 22, height: 22, borderRadius: "50%",
-              background: "var(--surface)", border: "1px solid var(--border)",
-              display: "flex", alignItems: "center", justifyContent: "center", color: "var(--text-faint)",
+              position: "absolute", bottom: -2, right: -2, width: 30, height: 30, borderRadius: "50%",
+              background: "var(--accent)", color: "white", border: "3px solid var(--surface)",
+              display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer",
             }}
-            title="Profile photo isn't stored yet — you can add avatar upload later"
           >
-            <Camera size={11} />
-          </div>
+            {uploadingPhoto
+              ? <Loader2 size={13} style={{ animation: "spin 0.8s linear infinite" }} />
+              : <Camera size={13} />}
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            hidden
+            onChange={handlePhotoChange}
+          />
         </div>
         <div>
-          <div style={{ fontWeight: 800, fontSize: 18 }}>{profile.name}</div>
-          <div style={{ fontSize: 13, color: "var(--accent)", fontWeight: 600, textTransform: "capitalize" }}>{profile.role}</div>
+          <div style={{ fontWeight: 800, fontSize: 20 }}>{profile.name}</div>
+          <div style={{ fontSize: 13, color: "var(--accent)", fontWeight: 700, textTransform: "capitalize", margin: "3px 0" }}>
+            {profile.role}
+          </div>
           {location && <div style={{ fontSize: 12.5, color: "var(--text-muted)" }}>{location}</div>}
-          {profile.department && <span className="badge badge-status" style={{ marginTop: 6 }}>{profile.department}</span>}
+          {profile.department && <span className="badge badge-status" style={{ marginTop: 8 }}>{profile.department}</span>}
         </div>
       </div>
 
@@ -200,7 +267,7 @@ const Profile = () => {
       </div>
 
       {/* Address */}
-      <div className="card">
+      <div className="card" style={{ marginBottom: 20 }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
           <div className="section-title" style={{ marginBottom: 0 }}>Address</div>
           {!editingAddress && (
@@ -245,6 +312,35 @@ const Profile = () => {
             <Field label="Postal Code" value={profile.postal_code} />
           </div>
         )}
+      </div>
+
+      {/* Notification preferences */}
+      <div className="card">
+        <div className="section-title">Notification Preferences</div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+          <label style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 0", cursor: "pointer" }}>
+            <span style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13.5 }}>
+              <MailIcon size={15} color="var(--text-faint)" /> Email notifications
+            </span>
+            <input
+              type="checkbox"
+              checked={profile.notification_preferences?.email ?? true}
+              onChange={() => toggleNotificationPref("email")}
+              style={{ width: 18, height: 18, accentColor: "var(--accent)" }}
+            />
+          </label>
+          <label style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 0", cursor: "pointer" }}>
+            <span style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13.5 }}>
+              <Bell size={15} color="var(--text-faint)" /> In-app notifications
+            </span>
+            <input
+              type="checkbox"
+              checked={profile.notification_preferences?.in_app ?? true}
+              onChange={() => toggleNotificationPref("in_app")}
+              style={{ width: 18, height: 18, accentColor: "var(--accent)" }}
+            />
+          </label>
+        </div>
       </div>
     </div>
   );

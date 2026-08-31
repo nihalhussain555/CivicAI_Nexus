@@ -15,11 +15,22 @@ class LoginRequest(BaseModel):
     password: str = Field(..., min_length=1, max_length=128)
 
 
+class NotificationPreferences(BaseModel):
+    email: Optional[bool] = None
+    in_app: Optional[bool] = None
+
+
 class UpdateProfileRequest(BaseModel):
     name: Optional[str] = None
     phone: Optional[str] = None
     address: Optional[str] = None
     language: Optional[str] = None
+    date_of_birth: Optional[str] = None
+    country: Optional[str] = None
+    city: Optional[str] = None
+    postal_code: Optional[str] = None
+    profile_image: Optional[str] = None
+    notification_preferences: Optional[NotificationPreferences] = None
 
 
 class ChangePasswordRequest(BaseModel):
