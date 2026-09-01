@@ -38,11 +38,13 @@ def create_indexes():
         users_collection.create_index("email", unique=True)
         users_collection.create_index("role")
         users_collection.create_index("department")
+        users_collection.create_index("district")
 
         grievances_collection.create_index("grievance_id", unique=True)
         grievances_collection.create_index("citizen_id")
         grievances_collection.create_index("status")
         grievances_collection.create_index("department")
+        grievances_collection.create_index("district")
         grievances_collection.create_index("assigned_officer")
         grievances_collection.create_index("category")
         grievances_collection.create_index("priority")

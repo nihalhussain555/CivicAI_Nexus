@@ -21,5 +21,6 @@ class OfficerCreateRequest(BaseModel):
     email: str
     password: str = Field(..., min_length=6, max_length=128)
     department: str
+    district: str = Field(..., min_length=2, max_length=80)
     specialization: Optional[str] = None
     phone: Optional[str] = None

@@ -15,10 +15,12 @@ router = APIRouter(prefix="/api/officers", tags=["Officers"])
 
 
 @router.get("/")
-def list_officers(department: str = None, admin=Depends(require_admin)):
+def list_officers(department: str = None, district: str = None, admin=Depends(require_admin)):
     query = {"role": "officer"}
     if department:
         query["department"] = department
+    if district:
+        query["district"] = district
 
     officers = list(users_collection.find(query, {"password_hash": 0}).sort("name", 1))
 
@@ -41,6 +43,15 @@ def create_officer(data: OfficerCreateRequest, admin=Depends(require_admin)):
     if not department:
         raise HTTPException(status_code=400, detail="Unknown department. Create the department first.")
 
+    # Admins with a home district can only create officers in that same
+    # district. Admins with no district set (district=None) are treated as
+    # unrestricted "super admins" — e.g. the seeded demo admin account.
+    if admin.get("district") and data.district != admin["district"]:
+        raise HTTPException(
+            status_code=403,
+            detail=f"You can only add officers within your own district ({admin['district']}).",
+        )
+
     officer = user_document(
         name=data.name,
         email=email,
@@ -49,6 +60,7 @@ def create_officer(data: OfficerCreateRequest, admin=Depends(require_admin)):
         department=data.department,
         specialization=data.specialization,
         phone=data.phone,
+        district=data.district,
     )
     result = users_collection.insert_one(officer)
     officer["_id"] = result.inserted_id
@@ -135,6 +147,7 @@ def officer_performance(officer_id: str, current_user=Depends(get_current_user))
             "phone": officer.get("phone"),
             "department": officer.get("department"),
             "specialization": officer.get("specialization"),
+            "district": officer.get("district"),
             "badge_id": officer.get("badge_id"),
             "created_at": officer.get("created_at"),
             "total_assigned": total_assigned,

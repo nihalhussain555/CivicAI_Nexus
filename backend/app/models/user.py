@@ -9,6 +9,7 @@ def user_document(
     department=None,
     specialization=None,
     phone=None,
+    district=None,
 ):
     now = datetime.utcnow()
 
@@ -23,6 +24,16 @@ def user_document(
         "phone": phone,
         "address": None,
         "profile_image": None,
+        "date_of_birth": None,
+        "country": None,
+        "city": None,
+        "postal_code": None,
+
+        # officer/admin jurisdiction — the district they're responsible for.
+        # Admins with a district set can only create officers in that same
+        # district; admins with district=None are treated as unrestricted
+        # ("super admin"), e.g. for the seeded demo admin account.
+        "district": district,
 
         # officer-only fields
         "department": department,

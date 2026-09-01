@@ -35,6 +35,8 @@ from app.utils.security import hash_password
 DEMO_PASSWORD = "Demo@123"
 CHENNAI_CENTER = (13.0827, 80.2707)
 
+DISTRICTS = ["Chennai", "Coimbatore", "Madurai", "Salem", "Erode", "Tiruchirappalli"]
+
 DEPARTMENTS = [
     ("Sanitation Department", "SAN", ["WASTE"]),
     ("Water Supply Department", "WAT", ["WATER"]),
@@ -116,11 +118,25 @@ def seed_users(dept_docs):
     demo_officer = user_document(
         "Demo Officer", "officer@demo.com", hash_password(DEMO_PASSWORD),
         role="officer", department="Sanitation Department", specialization="Waste Management",
+        district="Chennai",
     )
+    # Unrestricted "super admin" (district=None) — can create officers in
+    # any district. Kept as the primary demo admin so existing flows and
+    # docs referencing admin@demo.com aren't affected by the new rule.
     demo_admin = user_document("Demo Admin", "admin@demo.com", hash_password(DEMO_PASSWORD), role="admin")
 
+    # A second, district-restricted admin — demonstrates the actual rule:
+    # this account can only create officers within Chennai.
+    demo_district_admin = user_document(
+        "Chennai District Admin", "chennai.admin@demo.com", hash_password(DEMO_PASSWORD),
+        role="admin", district="Chennai",
+    )
+
     demo_ids = {}
-    for key, doc in (("citizen", demo_citizen), ("officer", demo_officer), ("admin", demo_admin)):
+    for key, doc in (
+        ("citizen", demo_citizen), ("officer", demo_officer),
+        ("admin", demo_admin), ("district_admin", demo_district_admin),
+    ):
         result = users_collection.insert_one(doc)
         doc["_id"] = result.inserted_id
         demo_ids[key] = doc
@@ -133,6 +149,9 @@ def seed_users(dept_docs):
         doc["_id"] = result.inserted_id
         citizens.append(doc)
 
+    # All seeded officers are based in Chennai, matching the seeded
+    # grievances' locations (all jittered around CHENNAI_CENTER) — so
+    # department+district matching works correctly out of the box.
     officers = [demo_ids["officer"]]
     for i, name in enumerate(OFFICER_NAMES):
         dept = dept_docs[i % len(dept_docs)]
@@ -140,6 +159,7 @@ def seed_users(dept_docs):
         doc = user_document(
             name, email, hash_password(DEMO_PASSWORD), role="officer",
             department=dept["name"], specialization=dept["categories"][0] if dept["categories"] else None,
+            district="Chennai",
         )
         result = users_collection.insert_one(doc)
         doc["_id"] = result.inserted_id
@@ -185,6 +205,7 @@ def seed_grievances(citizens, officers, dept_docs, count=24):
             description=description,
             language="English",
             location=make_point(lat, lon, street),
+            district="Chennai",  # matches seeded officers' district
         )
 
         predicted_hours = predict_resolution_hours(category, severity)
@@ -324,8 +345,9 @@ def run(reset=False):
     print("\nSeed complete.")
     print("Demo accounts (password: Demo@123):")
     print("  citizen@demo.com")
-    print("  officer@demo.com")
-    print("  admin@demo.com")
+    print("  officer@demo.com  (Chennai district)")
+    print("  admin@demo.com    (unrestricted — can add officers in any district)")
+    print("  chennai.admin@demo.com  (Chennai district — can only add officers in Chennai)")
 
 
 if __name__ == "__main__":

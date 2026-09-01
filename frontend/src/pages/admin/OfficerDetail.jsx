@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import {
   ArrowLeft, Mail, Phone, Building2, Briefcase, Calendar, ListChecks,
-  CheckCircle2, AlertTriangle, Clock,
+  CheckCircle2, AlertTriangle, Clock, MapPin,
 } from "lucide-react";
 import { getOfficer, getOfficerPerformance } from "../../services/officerService";
 import { getErrorMessage, formatDate, formatRelative } from "../../utils/helpers";
@@ -76,6 +76,11 @@ const OfficerDetail = () => {
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                 <Building2 size={14} color="var(--text-faint)" /><span>{officer.department}</span>
               </div>
+              {officer.district && (
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <MapPin size={14} color="var(--text-faint)" /><span>{officer.district} district</span>
+                </div>
+              )}
               {officer.badge_id && (
                 <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                   <Briefcase size={14} color="var(--text-faint)" /><span>Badge #{officer.badge_id}</span>

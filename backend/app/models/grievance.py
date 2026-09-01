@@ -38,6 +38,7 @@ def grievance_document(
     description,
     language="English",
     location=None,
+    district=None,
 ):
     now = datetime.utcnow()
 
@@ -73,6 +74,7 @@ def grievance_document(
         # --- routing ---
         "department": "General Administration",
         "assigned_officer": None,
+        "district": district,  # jurisdiction, derived from reverse-geocoded location
 
         # --- prediction ---
         "predicted_resolution_hours": None,

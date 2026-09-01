@@ -20,8 +20,10 @@ def create_grievance(current_user: dict, data) -> dict:
     grievance_id = make_grievance_id()
 
     location = None
+    district = None
     if data.location:
         location = make_point(data.location.latitude, data.location.longitude, data.location.address)
+        district = data.location.district
 
     grievance = grievance_document(
         grievance_id=grievance_id,
@@ -30,6 +32,7 @@ def create_grievance(current_user: dict, data) -> dict:
         description=data.description.strip(),
         language=data.language,
         location=location,
+        district=district,
     )
 
     if data.attachments:

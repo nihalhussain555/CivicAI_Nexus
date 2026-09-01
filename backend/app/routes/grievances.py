@@ -70,10 +70,18 @@ def my_grievances(
 @router.get("/queue")
 def priority_queue(page: int = 1, limit: int = 20, current_user=Depends(require_staff)):
     """Officer priority queue: AI-triaged cases awaiting acceptance in the
-    officer's department, sorted by priority then SLA urgency."""
+    officer's department AND district, sorted by priority then SLA urgency.
+
+    A grievance with no resolvable district (e.g. citizen didn't share a
+    location) stays visible to every officer in the matching department —
+    we never want a case to become invisible to everyone just because we
+    couldn't pin down where it happened.
+    """
     query = {"status": "DEPARTMENT_ASSIGNED"}
     if current_user["role"] == "officer":
         query["department"] = current_user.get("department")
+        if current_user.get("district"):
+            query["district"] = {"$in": [current_user["district"], None]}
 
     items = list(
         grievances_collection.find(query)
@@ -137,8 +145,15 @@ def get_copilot_brief(grievance_id: str, current_user=Depends(require_staff)):
 def accept_case(grievance_id: str, current_user=Depends(require_staff)):
     grievance = get_grievance_or_404(grievance_id)
 
-    if current_user["role"] == "officer" and grievance["department"] != current_user.get("department"):
-        raise HTTPException(status_code=403, detail="This case belongs to a different department")
+    if current_user["role"] == "officer":
+        if grievance["department"] != current_user.get("department"):
+            raise HTTPException(status_code=403, detail="This case belongs to a different department")
+        if (
+            current_user.get("district")
+            and grievance.get("district")
+            and grievance["district"] != current_user["district"]
+        ):
+            raise HTTPException(status_code=403, detail="This case belongs to a different district")
 
     updated = transition_status(
         grievance, "OFFICER_ACCEPTED", current_user,

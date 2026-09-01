@@ -10,6 +10,7 @@
  */
 
 const NOMINATIM_URL = "https://nominatim.openstreetmap.org/reverse";
+
 /**
  * Builds a short, readable label from Nominatim's address breakdown —
  * prefers neighborhood/suburb + city over the full formatted address,
@@ -30,6 +31,18 @@ const buildShortLabel = (address, fallbackDisplayName) => {
   return unique.length ? unique.join(", ") : fallbackDisplayName;
 };
 
+/**
+ * Extracts the administrative district from Nominatim's address breakdown.
+ * Indian districts typically show up as "state_district" (or "county" as
+ * a fallback in some regions/OSM data). Used to auto-tag a citizen's
+ * report with its jurisdiction, so it routes to officers based in that
+ * district — independent of the citizen's own home address.
+ */
+const extractDistrict = (address) => {
+  if (!address) return null;
+  return address.state_district || address.county || address.city || null;
+};
+
 export const reverseGeocode = async (latitude, longitude) => {
   const params = new URLSearchParams({
     format: "jsonv2",
@@ -48,5 +61,8 @@ export const reverseGeocode = async (latitude, longitude) => {
   }
 
   const data = await response.json();
-  return buildShortLabel(data.address, data.display_name);
+  return {
+    label: buildShortLabel(data.address, data.display_name),
+    district: extractDistrict(data.address),
+  };
 };

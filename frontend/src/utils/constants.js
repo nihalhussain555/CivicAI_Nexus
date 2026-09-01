@@ -38,6 +38,8 @@ export const PRIORITIES = ["LOW", "MEDIUM", "HIGH", "CRITICAL"];
 
 export const LANGUAGES = ["English", "Hindi", "Tamil"];
 
+export const DISTRICTS = ["Chennai", "Coimbatore", "Madurai", "Salem", "Erode", "Tiruchirappalli"];
+
 export const ROLES = {
   CITIZEN: "citizen",
   OFFICER: "officer",

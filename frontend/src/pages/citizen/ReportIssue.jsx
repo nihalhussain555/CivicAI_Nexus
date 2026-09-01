@@ -23,7 +23,6 @@ const ReportIssue = () => {
   const [locating, setLocating] = useState(false);
   const [analysis, setAnalysis] = useState(null);
   const [analyzing, setAnalyzing] = useState(false);
-  const [analysisError, setAnalysisError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(null);
 
@@ -44,8 +43,8 @@ const ReportIssue = () => {
         setLocation({ latitude, longitude, address: `${latitude.toFixed(4)}, ${longitude.toFixed(4)}` });
 
         try {
-          const placeName = await reverseGeocode(latitude, longitude);
-          setLocation({ latitude, longitude, address: placeName });
+          const { label, district } = await reverseGeocode(latitude, longitude);
+          setLocation({ latitude, longitude, address: label, district });
         } catch {
           // Keep the coordinate fallback already set — not a hard failure,
           // the report can still be submitted with lat/lon alone.
@@ -67,18 +66,12 @@ const ReportIssue = () => {
       return;
     }
     setAnalyzing(true);
-    setAnalysisError("");
     try {
       const res = await previewAnalysis({ title, description, language });
-      if (!res?.data || typeof res.data !== "object" || Array.isArray(res.data)) {
-        throw new Error("AI description could not be generated. Please try again.");
-      }
       setAnalysis(res.data);
       setStep(1);
     } catch (error) {
-      const message = getErrorMessage(error);
-      setAnalysisError(message);
-      toast.error(message);
+      toast.error(getErrorMessage(error));
     } finally {
       setAnalyzing(false);
     }
@@ -132,7 +125,7 @@ const ReportIssue = () => {
           </div>
 
           <div className="form-group">
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}><label className="form-label" htmlFor="description">Description</label><span className="form-hint">{description.length}/5000</span></div>
+            <label className="form-label" htmlFor="description">Description</label>
             <textarea id="description" className="textarea" value={description}
                       onChange={(e) => setDescription(e.target.value)}
                       placeholder="Describe what's wrong, where exactly, and since when." maxLength={5000} />
@@ -170,18 +163,11 @@ const ReportIssue = () => {
               ? <><Loader2 size={16} style={{ animation: "spin 0.8s linear infinite" }} /> Analyzing with AI...</>
               : <><Sparkles size={16} /> Analyze with AI</>}
           </button>
-          {analysisError && (
-            <div className="ai-response-empty" role="alert">
-              <div><strong>AI description could not be generated.</strong><p>{analysisError}</p></div>
-              <button type="button" className="btn btn-secondary btn-sm" onClick={runAnalysis} disabled={analyzing}>Retry</button>
-            </div>
-          )}
         </div>
       )}
 
       {step === 1 && analysis && (
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          <div className="ai-intelligence-banner"><Sparkles size={18} /><div><span>CivicAI Intelligence</span><small>Review AI-assisted routing and prioritization before submitting.</small></div></div>
           <AIAnalysisPanel analysis={analysis} />
           <div className="card">
             <div className="section-title">Your report</div>

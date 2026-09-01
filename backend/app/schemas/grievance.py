@@ -6,6 +6,7 @@ class LocationInput(BaseModel):
     latitude: float
     longitude: float
     address: Optional[str] = None
+    district: Optional[str] = None
 
 
 class AttachmentInput(BaseModel):

@@ -1,312 +1,188 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import {
-  MapPin, Clock, Sparkles, ArrowLeft, CheckCircle2, XCircle, PlayCircle,
-  Send, AlertTriangle, ImageIcon, Mic,
+  ArrowLeft, Mail, Phone, Building2, Briefcase, Calendar, ListChecks,
+  CheckCircle2, AlertTriangle, Clock, MapPin,
 } from "lucide-react";
-import {
-  getGrievance, acceptCase, startProgress, submitResolution,
-  escalateCase, verifyResolution, getCopilotBrief,
-} from "../../services/grievanceService";
-import { uploadsBaseUrl } from "../../services/api";
-import { useAuth } from "../../hooks/useAuth";
-import { useToast } from "../../context/ToastContext";
-import { getErrorMessage, formatDateTime, toDisplayText } from "../../utils/helpers";
+import { getOfficer, getOfficerPerformance } from "../../services/officerService";
+import { getErrorMessage, formatDate, formatRelative } from "../../utils/helpers";
 import { CATEGORY_LABELS } from "../../utils/constants";
-import PriorityBadge from "../../components/grievances/PriorityBadge";
-import StatusBadge from "../../components/grievances/StatusBadge";
-import StatusTimeline from "../../components/grievances/StatusTimeline";
-import CopilotPanel from "../../components/ai/CopilotPanel";
 import LoadingSpinner from "../../components/common/LoadingSpinner";
 import ErrorState from "../../components/common/ErrorState";
-import Modal from "../../components/common/Modal";
+import StatusBadge from "../../components/grievances/StatusBadge";
+import PriorityBadge from "../../components/grievances/PriorityBadge";
+import LineChartCard from "../../components/charts/LineChartCard";
 
-const roleBasePath = { citizen: "/citizen/grievances", officer: "/officer/grievances", admin: "/admin/grievances" };
-
-const GrievanceDetail = () => {
-  const { grievanceId } = useParams();
-  const { user } = useAuth();
-  const toast = useToast();
+const OfficerDetail = () => {
+  const { officerId } = useParams();
   const navigate = useNavigate();
 
-  const [grievance, setGrievance] = useState(null);
+  const [officer, setOfficer] = useState(null);
+  const [performance, setPerformance] = useState(null);
   const [error, setError] = useState(null);
-  const [actionLoading, setActionLoading] = useState(false);
 
-  const [copilotBrief, setCopilotBrief] = useState(null);
-  const [copilotLoading, setCopilotLoading] = useState(false);
-
-  const [resolveOpen, setResolveOpen] = useState(false);
-  const [resolutionNote, setResolutionNote] = useState("");
-
-  const [verifyOpen, setVerifyOpen] = useState(null); // true/false
-  const [feedback, setFeedback] = useState("");
-
-  const load = useCallback(() => {
-    getGrievance(grievanceId)
-      .then((res) => setGrievance(res.data))
+  useEffect(() => {
+    Promise.all([getOfficer(officerId), getOfficerPerformance(officerId)])
+      .then(([officerRes, perfRes]) => {
+        setOfficer(officerRes.data);
+        setPerformance(perfRes.data);
+      })
       .catch((err) => setError(getErrorMessage(err)));
-  }, [grievanceId]);
+  }, [officerId]);
 
-  useEffect(() => { load(); }, [load]);
+  if (error) return <ErrorState description={error} />;
+  if (!officer || !performance) {
+    return <div className="page-loading"><LoadingSpinner label="Loading officer profile..." /></div>;
+  }
 
-  const loadCopilot = useCallback(() => {
-    if (user?.role === "citizen") return;
-    setCopilotLoading(true);
-    getCopilotBrief(grievanceId)
-      .then((res) => setCopilotBrief(res.data))
-      .catch(() => {})
-      .finally(() => setCopilotLoading(false));
-  }, [grievanceId, user?.role]);
-
-  useEffect(() => { loadCopilot(); }, [loadCopilot]);
-
-  const runAction = async (fn, successMsg) => {
-    setActionLoading(true);
-    try {
-      await fn();
-      toast.success(successMsg);
-      load();
-      loadCopilot();
-    } catch (err) {
-      toast.error(getErrorMessage(err));
-    } finally {
-      setActionLoading(false);
-    }
-  };
-
-  if (error) return <ErrorState description={error} onRetry={load} />;
-  if (!grievance) return <div className="page-loading"><LoadingSpinner label="Loading grievance..." /></div>;
-
-  const isOwnerCitizen = user.role === "citizen" && grievance.citizen_id === user.id;
-  const isStaff = user.role === "officer" || user.role === "admin";
-  const basePath = roleBasePath[user.role];
-  const description = toDisplayText(grievance.description, "No description was provided for this grievance.");
-  const aiSummary = toDisplayText(grievance.ai_summary, "");
+  const initials = officer.name.split(" ").map((p) => p[0]).slice(0, 2).join("").toUpperCase();
+  const trendData = performance.trend.map((t) => ({ month: t.month, resolved: t.resolved }));
 
   return (
     <div>
-      <button className="btn btn-ghost btn-sm" onClick={() => navigate(basePath)} style={{ marginBottom: 14 }}>
-        <ArrowLeft size={14} /> Back
+      <button className="btn btn-ghost btn-sm" onClick={() => navigate("/admin/officers")} style={{ marginBottom: 14 }}>
+        <ArrowLeft size={14} /> Back to Officers
       </button>
 
       <div className="page-header">
-        <div>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6, flexWrap: "wrap" }}>
-            <span style={{ fontFamily: "monospace", fontSize: 12.5, color: "var(--text-faint)" }}>{toDisplayText(grievance.grievance_id, "—")}</span>
-            <StatusBadge status={grievance.status} />
-            <PriorityBadge priority={grievance.priority} />
-            {grievance.incident_id && (
-              <Link to={`/${user.role}/incidents/${grievance.incident_id}`} className="badge badge-status">
-                <AlertTriangle size={11} /> Part of community incident
-              </Link>
-            )}
-          </div>
-          <h1>{toDisplayText(grievance.title, "Untitled grievance")}</h1>
-        </div>
+        <div><h1>Officer Profile</h1><p>Case load, performance, and recent activity.</p></div>
       </div>
 
-      <div className="grid" style={{ gridTemplateColumns: "1.6fr 1fr", gap: 20, alignItems: "start" }}>
+      <div className="grid" style={{ gridTemplateColumns: "320px 1fr", gap: 20, alignItems: "start" }}>
+        {/* Left: profile card */}
         <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
-          <div className="card">
-            <div className="section-title">Description</div>
-            <p style={{ fontSize: 13.5, color: "var(--text-muted)", lineHeight: 1.7, whiteSpace: "pre-wrap" }}>{description}</p>
+          <div className="card" style={{ textAlign: "center" }}>
+            <div
+              className="avatar"
+              style={{ width: 72, height: 72, fontSize: 24, margin: "0 auto 14px" }}
+            >
+              {initials}
+            </div>
+            <div style={{ fontWeight: 800, fontSize: 17 }}>{officer.name}</div>
+            <div style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 14 }}>
+              {officer.specialization || "Field Officer"}
+            </div>
 
-            {grievance.voice_transcript && (
-              <div style={{ marginTop: 14, padding: 12, background: "var(--surface-hover)", borderRadius: 10 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 700, marginBottom: 4 }}>
-                  <Mic size={12} /> Voice transcript
-                </div>
-                <p style={{ fontSize: 13, color: "var(--text-muted)", whiteSpace: "pre-wrap" }}>{toDisplayText(grievance.voice_transcript)}</p>
+            <div style={{ textAlign: "left", display: "flex", flexDirection: "column", gap: 12, fontSize: 13 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <Mail size={14} color="var(--text-faint)" />
+                <span style={{ overflow: "hidden", textOverflow: "ellipsis" }}>{officer.email}</span>
               </div>
-            )}
-
-            {grievance.attachments?.length > 0 && (
-              <div style={{ marginTop: 14 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 700, marginBottom: 8 }}>
-                  <ImageIcon size={12} /> Attachments
+              {officer.phone && (
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <Phone size={14} color="var(--text-faint)" /><span>{officer.phone}</span>
                 </div>
-                <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                  {grievance.attachments.map((a, i) => (
-                    <img key={i} src={`${uploadsBaseUrl}${a.url}`} alt={a.filename || "attachment"}
-                         style={{ width: 100, height: 100, objectFit: "cover", borderRadius: 10, border: "1px solid var(--border)" }} />
-                  ))}
-                </div>
+              )}
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <Building2 size={14} color="var(--text-faint)" /><span>{officer.department}</span>
               </div>
-            )}
-
-            <div style={{ display: "flex", gap: 18, marginTop: 16, fontSize: 12.5, color: "var(--text-muted)", flexWrap: "wrap" }}>
-              <span style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                <MapPin size={13} /> {grievance.location?.address || "No location provided"}
-              </span>
-              <span style={{ display: "flex", alignItems: "center", gap: 5 }}>
-                <Clock size={13} /> Reported {formatDateTime(grievance.created_at)}
-              </span>
+              {officer.district && (
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <MapPin size={14} color="var(--text-faint)" /><span>{officer.district} district</span>
+                </div>
+              )}
+              {officer.badge_id && (
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <Briefcase size={14} color="var(--text-faint)" /><span>Badge #{officer.badge_id}</span>
+                </div>
+              )}
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <Calendar size={14} color="var(--text-faint)" />
+                <span>Joined {formatDate(officer.created_at)}</span>
+              </div>
             </div>
           </div>
 
-          <div className="card" style={{ borderColor: "var(--accent)" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
-              <Sparkles size={15} color="var(--accent)" />
-              <strong style={{ fontSize: 14 }}>CivicAI Intelligence</strong>
-              <span className="ai-tag">AI generated</span>
+          <div className="card">
+            <div className="section-title">About Officer</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 12, fontSize: 13 }}>
+              <div style={{ display: "flex", justifyContent: "space-between" }}>
+                <span style={{ color: "var(--text-muted)" }}>Department</span>
+                <strong>{officer.department}</strong>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between" }}>
+                <span style={{ color: "var(--text-muted)" }}>Specialization</span>
+                <strong>{officer.specialization || "—"}</strong>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between" }}>
+                <span style={{ color: "var(--text-muted)" }}>Avg. resolution time</span>
+                <strong>{performance.avg_resolution_hours ? `${performance.avg_resolution_hours}h` : "—"}</strong>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between" }}>
+                <span style={{ color: "var(--text-muted)" }}>Status</span>
+                <span className={`badge ${officer.active ? "badge-success" : "badge-danger"}`}>
+                  {officer.active ? "Active" : "Inactive"}
+                </span>
+              </div>
             </div>
-            <div className="grid grid-2">
-              <div><div style={{ fontSize: 12, color: "var(--text-muted)" }}>Category</div>
-                <strong>{toDisplayText(CATEGORY_LABELS[grievance.category] || grievance.category)}</strong></div>
-              <div><div style={{ fontSize: 12, color: "var(--text-muted)" }}>Severity</div>
-                <PriorityBadge priority={grievance.severity} /></div>
-              <div><div style={{ fontSize: 12, color: "var(--text-muted)" }}>AI Confidence</div>
-                <strong>{Math.round((grievance.confidence || 0) * 100)}%</strong></div>
-              <div><div style={{ fontSize: 12, color: "var(--text-muted)" }}>Escalation Risk</div>
-                <strong>{toDisplayText(grievance.escalation_risk)}</strong></div>
+          </div>
+        </div>
+
+        {/* Right: stats, chart, case history */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+          <div className="grid grid-4">
+            <div className="stat-card">
+              <span className="stat-label"><ListChecks size={13} /> Total assigned</span>
+              <span className="stat-value">{performance.total_assigned}</span>
             </div>
-            {aiSummary ? (
-              <p className="ai-response-copy" style={{ marginTop: 14 }}>{aiSummary}</p>
+            <div className="stat-card">
+              <span className="stat-label"><Clock size={13} /> Open cases</span>
+              <span className="stat-value">{performance.open_cases}</span>
+            </div>
+            <div className="stat-card">
+              <span className="stat-label"><CheckCircle2 size={13} /> Resolved</span>
+              <span className="stat-value">{performance.resolved}</span>
+              <span className="stat-sub">{performance.resolution_rate}% resolution rate</span>
+            </div>
+            <div className="stat-card">
+              <span className="stat-label"><AlertTriangle size={13} /> Escalated</span>
+              <span className="stat-value">{performance.escalated}</span>
+            </div>
+          </div>
+
+          <LineChartCard
+            title="Resolutions per month (last 6 months)"
+            data={trendData}
+            nameKey="month"
+            dataKey="resolved"
+            height={220}
+          />
+
+          <div className="card">
+            <div className="section-title">Recent Cases</div>
+            {performance.recent_cases.length === 0 ? (
+              <p style={{ fontSize: 13, color: "var(--text-muted)" }}>No cases assigned yet.</p>
             ) : (
-              <div className="ai-response-empty" role="status">AI description could not be generated. Please try again.</div>
+              performance.recent_cases.map((c) => (
+                <Link
+                  key={c.grievance_id}
+                  to={`/admin/grievances/${c.grievance_id}`}
+                  className="list-row"
+                >
+                  <div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+                      <span style={{ fontFamily: "monospace", fontSize: 11.5, color: "var(--text-faint)" }}>
+                        {c.grievance_id}
+                      </span>
+                      <span className="badge badge-neutral">{CATEGORY_LABELS[c.category] || c.category}</span>
+                    </div>
+                    <div style={{ fontWeight: 600, fontSize: 13.5 }}>{c.title}</div>
+                    <div style={{ fontSize: 11.5, color: "var(--text-faint)", marginTop: 4 }}>
+                      Updated {formatRelative(c.updated_at)}
+                    </div>
+                  </div>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8, alignItems: "flex-end" }}>
+                    <PriorityBadge priority={c.priority} />
+                    <StatusBadge status={c.status} />
+                  </div>
+                </Link>
+              ))
             )}
-          </div>
-
-          {grievance.resolution_note && (
-            <div className="card">
-              <div className="section-title">Resolution</div>
-              <p style={{ fontSize: 13.5, color: "var(--text-muted)", lineHeight: 1.7, whiteSpace: "pre-wrap" }}>{toDisplayText(grievance.resolution_note)}</p>
-              {grievance.citizen_feedback && (
-                <p style={{ fontSize: 12.5, color: "var(--text-faint)", marginTop: 10, fontStyle: "italic" }}>
-                  Citizen feedback: "{toDisplayText(grievance.citizen_feedback)}"
-                </p>
-              )}
-            </div>
-          )}
-
-          {isStaff && <CopilotPanel brief={copilotBrief} loading={copilotLoading} onRefresh={loadCopilot} />}
-        </div>
-
-        <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
-          <div className="card">
-            <div className="section-title">Actions</div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              {isStaff && grievance.status === "DEPARTMENT_ASSIGNED" && (
-                <button className="btn btn-primary btn-block" disabled={actionLoading}
-                        onClick={() => runAction(() => acceptCase(grievanceId), "Case accepted")}>
-                  <CheckCircle2 size={15} /> Accept case
-                </button>
-              )}
-              {isStaff && grievance.status === "OFFICER_ACCEPTED" && (
-                <button className="btn btn-primary btn-block" disabled={actionLoading}
-                        onClick={() => runAction(() => startProgress(grievanceId), "Marked in progress")}>
-                  <PlayCircle size={15} /> Start work
-                </button>
-              )}
-              {isStaff && grievance.status === "IN_PROGRESS" && (
-                <button className="btn btn-primary btn-block" onClick={() => setResolveOpen(true)}>
-                  <Send size={15} /> Submit resolution
-                </button>
-              )}
-              {isStaff && ["DEPARTMENT_ASSIGNED", "OFFICER_ACCEPTED", "IN_PROGRESS"].includes(grievance.status) && (
-                <button className="btn btn-secondary btn-block" disabled={actionLoading}
-                        onClick={() => runAction(() => escalateCase(grievanceId), "Case escalated")}>
-                  <AlertTriangle size={15} /> Escalate
-                </button>
-              )}
-              {isOwnerCitizen && grievance.status === "CITIZEN_VERIFICATION" && (
-                <>
-                  <button className="btn btn-primary btn-block" onClick={() => setVerifyOpen(true)}>
-                    <CheckCircle2 size={15} /> Confirm resolved
-                  </button>
-                  <button className="btn btn-secondary btn-block" onClick={() => setVerifyOpen(false)}>
-                    <XCircle size={15} /> Not resolved — reopen
-                  </button>
-                </>
-              )}
-              {!isStaff && !isOwnerCitizen && grievance.status === "CLOSED" && (
-                <p style={{ fontSize: 13, color: "var(--text-muted)" }}>This grievance has been closed.</p>
-              )}
-              {isStaff && ["CLOSED", "CITIZEN_VERIFICATION", "RESOLUTION_SUBMITTED"].includes(grievance.status) && (
-                <p style={{ fontSize: 13, color: "var(--text-muted)" }}>
-                  {grievance.status === "CLOSED" ? "Case closed." : "Awaiting citizen verification."}
-                </p>
-              )}
-            </div>
-          </div>
-
-          <div className="card">
-            <div className="section-title">Case Info</div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 10, fontSize: 13 }}>
-              <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <span style={{ color: "var(--text-muted)" }}>Department</span><strong>{toDisplayText(grievance.department)}</strong>
-              </div>
-              <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <span style={{ color: "var(--text-muted)" }}>Predicted resolution</span><strong>~{toDisplayText(grievance.predicted_resolution_hours)}h</strong>
-              </div>
-              {grievance.sla_due_at && (
-                <div style={{ display: "flex", justifyContent: "space-between" }}>
-                  <span style={{ color: "var(--text-muted)" }}>SLA due</span><strong>{formatDateTime(grievance.sla_due_at)}</strong>
-                </div>
-              )}
-              {grievance.reopen_count > 0 && (
-                <div style={{ display: "flex", justifyContent: "space-between" }}>
-                  <span style={{ color: "var(--text-muted)" }}>Reopened</span><strong>{grievance.reopen_count}×</strong>
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className="card">
-            <div className="section-title">Timeline</div>
-            <StatusTimeline history={grievance.history} />
           </div>
         </div>
       </div>
-
-      <Modal
-        open={resolveOpen}
-        title="Submit resolution"
-        onClose={() => setResolveOpen(false)}
-        footer={
-          <>
-            <button className="btn btn-secondary" onClick={() => setResolveOpen(false)}>Cancel</button>
-            <button className="btn btn-primary" disabled={actionLoading || resolutionNote.trim().length < 5}
-                    onClick={() => runAction(
-                      () => submitResolution(grievanceId, { resolution_note: resolutionNote }),
-                      "Resolution submitted"
-                    ).then(() => setResolveOpen(false))}>
-              Submit
-            </button>
-          </>
-        }
-      >
-        <label className="form-label">What was done to resolve this?</label>
-        <textarea className="textarea" value={resolutionNote} onChange={(e) => setResolutionNote(e.target.value)}
-                  placeholder="Describe the action taken..." />
-      </Modal>
-
-      <Modal
-        open={verifyOpen !== null}
-        title={verifyOpen ? "Confirm resolution" : "Reopen grievance"}
-        onClose={() => setVerifyOpen(null)}
-        footer={
-          <>
-            <button className="btn btn-secondary" onClick={() => setVerifyOpen(null)}>Cancel</button>
-            <button className={`btn ${verifyOpen ? "btn-primary" : "btn-danger"}`} disabled={actionLoading}
-                    onClick={() => runAction(
-                      () => verifyResolution(grievanceId, { verified: !!verifyOpen, feedback }),
-                      verifyOpen ? "Grievance closed — thanks for confirming!" : "Grievance reopened"
-                    ).then(() => setVerifyOpen(null))}>
-              {verifyOpen ? "Confirm & close" : "Reopen"}
-            </button>
-          </>
-        }
-      >
-        <label className="form-label">
-          {verifyOpen ? "Anything to add? (optional)" : "What's still wrong?"}
-        </label>
-        <textarea className="textarea" value={feedback} onChange={(e) => setFeedback(e.target.value)}
-                  placeholder={verifyOpen ? "All good, thanks!" : "Describe what's still not fixed..."} />
-      </Modal>
     </div>
   );
 };
 
-export default GrievanceDetail;
+export default OfficerDetail;
