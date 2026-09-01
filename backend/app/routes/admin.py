@@ -1,11 +1,46 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 
 from app.config.database import users_collection, grievances_collection
-from app.utils.dependencies import require_admin
-from app.utils.helpers import serialize_documents
+from app.models.user import user_document
+from app.schemas.admin import AdminCreateRequest
+from app.utils.dependencies import require_admin, require_super_admin
+from app.utils.helpers import serialize_document, serialize_documents
+from app.utils.security import hash_password
 
 
 router = APIRouter(prefix="/api/admin", tags=["Administration"])
+
+
+@router.get("/admins")
+def list_admins(super_admin=Depends(require_super_admin)):
+    """All admin accounts and their district scope — visible only to
+    unrestricted super-admins."""
+    admins = list(
+        users_collection.find({"role": "admin"}, {"password_hash": 0}).sort("name", 1)
+    )
+    return {"success": True, "data": serialize_documents(admins)}
+
+
+@router.post("/admins")
+def create_admin(data: AdminCreateRequest, super_admin=Depends(require_super_admin)):
+    email = data.email.lower().strip()
+
+    if users_collection.find_one({"email": email}):
+        raise HTTPException(status_code=400, detail="Email is already registered")
+
+    admin = user_document(
+        name=data.name,
+        email=email,
+        password_hash=hash_password(data.password),
+        role="admin",
+        phone=data.phone,
+        district=data.district,
+    )
+    result = users_collection.insert_one(admin)
+    admin["_id"] = result.inserted_id
+
+    admin.pop("password_hash")
+    return {"success": True, "message": "Admin created", "data": serialize_document(admin)}
 
 
 @router.get("/users")

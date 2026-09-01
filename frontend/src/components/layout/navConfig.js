@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, FilePlus2, FileText, AlertTriangle, Bell, User, Settings,
-  ListChecks, Bot, BarChart3, Building2, Users, Map, Sparkles,
+  ListChecks, Bot, BarChart3, Building2, Users, Map, Sparkles, ShieldCheck,
 } from "lucide-react";
 
 export const NAV_BY_ROLE = {
@@ -29,6 +29,7 @@ export const NAV_BY_ROLE = {
     { to: "/admin/incidents", label: "Incidents", icon: AlertTriangle },
     { to: "/admin/departments", label: "Departments", icon: Building2 },
     { to: "/admin/officers", label: "Officers", icon: Users },
+    { to: "/admin/admins", label: "Admins", icon: ShieldCheck },
     { to: "/admin/analytics", label: "Analytics", icon: BarChart3 },
     { to: "/admin/map", label: "Map", icon: Map },
     { to: "/admin/ai-insights", label: "AI Insights", icon: Sparkles },

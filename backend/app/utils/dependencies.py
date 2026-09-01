@@ -78,6 +78,22 @@ def require_admin(current_user=Depends(get_current_user)):
     return current_user
 
 
+def require_super_admin(current_user=Depends(get_current_user)):
+    """Unrestricted admins only (district=None) — used for actions that
+    outrank district-scoped admins, like creating other admin accounts."""
+    if current_user["role"] != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin access required",
+        )
+    if current_user.get("district"):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only unrestricted super-admins can manage admin accounts.",
+        )
+    return current_user
+
+
 def require_officer(current_user=Depends(get_current_user)):
     if current_user["role"] not in ("officer", "admin"):
         raise HTTPException(

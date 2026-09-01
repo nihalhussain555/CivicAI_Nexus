@@ -24,3 +24,14 @@ class OfficerCreateRequest(BaseModel):
     district: str = Field(..., min_length=2, max_length=80)
     specialization: Optional[str] = None
     phone: Optional[str] = None
+
+
+class AdminCreateRequest(BaseModel):
+    name: str = Field(..., min_length=2, max_length=120)
+    email: str
+    password: str = Field(..., min_length=6, max_length=128)
+    phone: Optional[str] = None
+    # Leave unset to create another unrestricted super-admin; set it to
+    # create a district-scoped admin who can only manage that district's
+    # officers.
+    district: Optional[str] = None
