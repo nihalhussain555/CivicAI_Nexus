@@ -133,6 +133,7 @@ function App() {
                 <Route path="ai-insights" element={<AdminAIInsights />} />
                 <Route path="assistant" element={<AIAssistant />} />
                 <Route path="notifications" element={<Notifications />} />
+                <Route path="profile" element={<Profile />} />
                 <Route path="settings" element={<Settings />} />
               </Route>
 

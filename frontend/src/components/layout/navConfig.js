@@ -33,6 +33,7 @@ export const NAV_BY_ROLE = {
     { to: "/admin/map", label: "Map", icon: Map },
     { to: "/admin/ai-insights", label: "AI Insights", icon: Sparkles },
     { to: "/admin/assistant", label: "AI Assistant", icon: Bot },
+    { to: "/admin/profile", label: "Profile", icon: User },
     { to: "/admin/settings", label: "Settings", icon: Settings },
   ],
 };

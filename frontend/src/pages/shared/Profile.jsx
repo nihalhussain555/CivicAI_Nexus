@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Camera, Pencil, Loader2, Check, X, Bell, Mail as MailIcon } from "lucide-react";
+import { Camera, Pencil, Loader2, Check, X } from "lucide-react";
 import { useAuth } from "../../hooks/useAuth";
 import { getMe, updateProfile } from "../../services/authService";
 import { uploadImage } from "../../services/uploadService";
@@ -14,12 +14,23 @@ const splitName = (fullName = "") => {
 
 const Field = ({ label, value }) => (
   <div>
-    <div style={{ fontSize: 11.5, color: "var(--text-faint)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.3px", marginBottom: 5 }}>
+    <div style={{ fontSize: 11.5, color: "var(--text-faint)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.3px", marginBottom: 4 }}>
       {label}
     </div>
     <div style={{ fontSize: 14, fontWeight: 600 }}>
       {value || <span style={{ color: "var(--text-faint)", fontWeight: 400 }}>Not set</span>}
     </div>
+  </div>
+);
+
+const SectionHeader = ({ title, editing, onEdit }) => (
+  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+    <div style={{ fontSize: 15, fontWeight: 700, color: "var(--accent)" }}>{title}</div>
+    {!editing && (
+      <button className="btn btn-primary btn-sm" onClick={onEdit}>
+        <Pencil size={13} /> Edit
+      </button>
+    )}
   </div>
 );
 
@@ -143,47 +154,30 @@ const Profile = () => {
     }
   };
 
-  const toggleNotificationPref = async (key) => {
-    const current = profile.notification_preferences?.[key] ?? true;
-    try {
-      const res = await updateProfile({ notification_preferences: { [key]: !current } });
-      setProfile(res.data);
-      updateUser(res.data);
-    } catch (error) {
-      toast.error(getErrorMessage(error));
-    }
-  };
-
   return (
-    <div style={{ maxWidth: 760 }}>
-      <div className="page-header">
+    <div style={{ maxWidth: 760, display: "flex", flexDirection: "column", gap: 16 }}>
+      <div className="page-header" style={{ marginBottom: 0 }}>
         <div><h1>My Profile</h1><p>Your account details, kept in sync with the database.</p></div>
         {loading && <Loader2 size={16} style={{ animation: "spin 0.8s linear infinite", color: "var(--text-faint)" }} />}
       </div>
 
       {/* Header card */}
-      <div
-        className="card"
-        style={{
-          marginBottom: 20, display: "flex", alignItems: "center", gap: 20,
-          background: "linear-gradient(135deg, var(--accent-soft) 0%, var(--surface) 55%)",
-        }}
-      >
+      <div className="card" style={{ display: "flex", alignItems: "center", gap: 18 }}>
         <div style={{ position: "relative", flexShrink: 0 }}>
-          <Avatar user={profile} size={84} fontSize={28} />
+          <Avatar user={profile} size={76} fontSize={26} />
           <button
             onClick={handlePhotoClick}
             disabled={uploadingPhoto}
             aria-label="Change profile photo"
             style={{
-              position: "absolute", bottom: -2, right: -2, width: 30, height: 30, borderRadius: "50%",
+              position: "absolute", bottom: -2, right: -2, width: 26, height: 26, borderRadius: "50%",
               background: "var(--accent)", color: "white", border: "3px solid var(--surface)",
               display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer",
             }}
           >
             {uploadingPhoto
-              ? <Loader2 size={13} style={{ animation: "spin 0.8s linear infinite" }} />
-              : <Camera size={13} />}
+              ? <Loader2 size={12} style={{ animation: "spin 0.8s linear infinite" }} />
+              : <Camera size={12} />}
           </button>
           <input
             ref={fileInputRef}
@@ -194,25 +188,17 @@ const Profile = () => {
           />
         </div>
         <div>
-          <div style={{ fontWeight: 800, fontSize: 20 }}>{profile.name}</div>
-          <div style={{ fontSize: 13, color: "var(--accent)", fontWeight: 700, textTransform: "capitalize", margin: "3px 0" }}>
-            {profile.role}
+          <div style={{ fontWeight: 800, fontSize: 18 }}>{profile.name}</div>
+          <div style={{ fontSize: 13, color: "var(--accent)", fontWeight: 700, margin: "2px 0" }}>
+            <span style={{ textTransform: "capitalize" }}>{profile.role}</span>
           </div>
           {location && <div style={{ fontSize: 12.5, color: "var(--text-muted)" }}>{location}</div>}
-          {profile.department && <span className="badge badge-status" style={{ marginTop: 8 }}>{profile.department}</span>}
         </div>
       </div>
 
       {/* Personal information */}
-      <div className="card" style={{ marginBottom: 20 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
-          <div className="section-title" style={{ marginBottom: 0 }}>Personal Information</div>
-          {!editingPersonal && (
-            <button className="btn btn-secondary btn-sm" onClick={startEditPersonal}>
-              <Pencil size={13} /> Edit
-            </button>
-          )}
-        </div>
+      <div className="card">
+        <SectionHeader title="Personal Information" editing={editingPersonal} onEdit={startEditPersonal} />
 
         {editingPersonal ? (
           <form onSubmit={savePersonal}>
@@ -255,7 +241,7 @@ const Profile = () => {
             </div>
           </form>
         ) : (
-          <div className="grid grid-3">
+          <div className="grid grid-3" style={{ rowGap: 16 }}>
             <Field label="First Name" value={firstName} />
             <Field label="Last Name" value={lastName} />
             <Field label="Date of Birth" value={profile.date_of_birth ? formatDate(profile.date_of_birth) : null} />
@@ -267,15 +253,8 @@ const Profile = () => {
       </div>
 
       {/* Address */}
-      <div className="card" style={{ marginBottom: 20 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
-          <div className="section-title" style={{ marginBottom: 0 }}>Address</div>
-          {!editingAddress && (
-            <button className="btn btn-secondary btn-sm" onClick={startEditAddress}>
-              <Pencil size={13} /> Edit
-            </button>
-          )}
-        </div>
+      <div className="card">
+        <SectionHeader title="Address" editing={editingAddress} onEdit={startEditAddress} />
 
         {editingAddress ? (
           <form onSubmit={saveAddress}>
@@ -306,41 +285,12 @@ const Profile = () => {
             </div>
           </form>
         ) : (
-          <div className="grid grid-3">
+          <div className="grid grid-3" style={{ rowGap: 16 }}>
             <Field label="Country" value={profile.country} />
             <Field label="City" value={profile.city} />
             <Field label="Postal Code" value={profile.postal_code} />
           </div>
         )}
-      </div>
-
-      {/* Notification preferences */}
-      <div className="card">
-        <div className="section-title">Notification Preferences</div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-          <label style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 0", cursor: "pointer" }}>
-            <span style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13.5 }}>
-              <MailIcon size={15} color="var(--text-faint)" /> Email notifications
-            </span>
-            <input
-              type="checkbox"
-              checked={profile.notification_preferences?.email ?? true}
-              onChange={() => toggleNotificationPref("email")}
-              style={{ width: 18, height: 18, accentColor: "var(--accent)" }}
-            />
-          </label>
-          <label style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 0", cursor: "pointer" }}>
-            <span style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 13.5 }}>
-              <Bell size={15} color="var(--text-faint)" /> In-app notifications
-            </span>
-            <input
-              type="checkbox"
-              checked={profile.notification_preferences?.in_app ?? true}
-              onChange={() => toggleNotificationPref("in_app")}
-              style={{ width: 18, height: 18, accentColor: "var(--accent)" }}
-            />
-          </label>
-        </div>
       </div>
     </div>
   );
