@@ -963,3 +963,16 @@ body { background: radial-gradient(circle at 72% -20%, rgba(99,102,241,.11), tra
   width: 44px;
   padding: 10px;
 }
+
+/* ---------- Logout button (red) ---------- */
+/* Append to the end of frontend/src/index.css */
+
+.sidebar-logout-btn {
+  background: transparent;
+  color: var(--danger);
+}
+
+.sidebar-logout-btn:hover {
+  background: var(--danger-soft);
+  color: var(--danger);
+}

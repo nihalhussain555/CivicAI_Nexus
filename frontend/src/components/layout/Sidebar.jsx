@@ -58,7 +58,7 @@ const Sidebar = ({ open, onNavigate }) => {
 
       <div className="sidebar-footer">
         <button
-          className="btn btn-ghost btn-block"
+          className="btn btn-block sidebar-logout-btn"
           onClick={handleLogout}
           title={collapsed ? "Log out" : undefined}
           style={{ justifyContent: collapsed ? "center" : "flex-start" }}
