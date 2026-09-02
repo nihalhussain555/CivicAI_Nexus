@@ -14,6 +14,7 @@ export const NAV_BY_ROLE = {
     { to: "/citizen/profile", label: "Profile", icon: User },
     { to: "/citizen/settings", label: "Settings", icon: Settings },
   ],
+
   officer: [
     { to: "/officer/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { to: "/officer/grievances", label: "Grievances", icon: ListChecks },
@@ -23,6 +24,7 @@ export const NAV_BY_ROLE = {
     { to: "/officer/profile", label: "Profile", icon: User },
     { to: "/officer/settings", label: "Settings", icon: Settings },
   ],
+
   admin: [
     { to: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { to: "/admin/grievances", label: "Grievances", icon: FileText },
