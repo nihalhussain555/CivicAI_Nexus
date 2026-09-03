@@ -4,6 +4,7 @@ import { ShieldCheck, Loader2, UserRound, ClipboardList, Shield, Zap, Mail, Lock
 import { useAuth } from "../../hooks/useAuth";
 import { useToast } from "../../context/ToastContext";
 import { getErrorMessage } from "../../utils/helpers";
+import SocialLoginButtons from "../../pages/auth/SocialLoginButtons";
 
 const roleHome = { citizen: "/citizen/dashboard", officer: "/officer/dashboard", admin: "/admin/dashboard" };
 
@@ -122,10 +123,9 @@ const Login = () => {
           </button>
         </form>
 
-        <div className="demo-hint">
-          Demo password for every role: <strong>Demo@123</strong>. Selecting a role above fills the
-          form automatically — you can still edit it before submitting.
-        </div>
+        <div className="auth-divider"><span>or continue with</span></div>
+
+        <SocialLoginButtons />
         </div>
         <AuthShowcase />
       </section>

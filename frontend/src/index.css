@@ -976,3 +976,11 @@ body { background: radial-gradient(circle at 72% -20%, rgba(99,102,241,.11), tra
   background: var(--danger-soft);
   color: var(--danger);
 }
+
+/* ---------- Location picker pin (removes Leaflet's default icon chrome) ---------- */
+/* Append to the end of frontend/src/index.css */
+
+.location-pin-icon {
+  background: transparent !important;
+  border: none !important;
+}
