@@ -6,26 +6,27 @@
  *
  * Usage note: Nominatim's public instance is rate-limited (~1 req/sec) and
  * intended for light use — fine for this app's "use my current location"
- * button, which is an occasional, user-triggered action, not a bulk lookup.
+ * button and map-pin dragging, which are occasional, user-triggered
+ * actions, not bulk lookups.
  */
 
 const NOMINATIM_URL = "https://nominatim.openstreetmap.org/reverse";
 
 /**
- * Builds a short, readable label from Nominatim's address breakdown —
- * prefers neighborhood/suburb + city over the full formatted address,
- * which tends to be long (includes postcode, country, etc).
+ * Builds a precise, readable label — prefers house number + road (the
+ * most "exact" description Nominatim can give) and falls back to
+ * neighborhood/city as those get less specific.
  */
 const buildShortLabel = (address, fallbackDisplayName) => {
   if (!address) return fallbackDisplayName;
 
+  const streetLevel = [address.house_number, address.road].filter(Boolean).join(" ");
   const locality =
     address.suburb || address.neighbourhood || address.village ||
-    address.town || address.city_district || address.road;
-
+    address.town || address.city_district;
   const city = address.city || address.town || address.municipality || address.county;
 
-  const parts = [locality, city].filter(Boolean);
+  const parts = [streetLevel || locality, city].filter(Boolean);
   const unique = [...new Set(parts)];
 
   return unique.length ? unique.join(", ") : fallbackDisplayName;
@@ -48,7 +49,7 @@ export const reverseGeocode = async (latitude, longitude) => {
     format: "jsonv2",
     lat: latitude,
     lon: longitude,
-    zoom: "16",
+    zoom: "18", // building/street level, not just neighborhood
     addressdetails: "1",
   });
 
@@ -63,6 +64,7 @@ export const reverseGeocode = async (latitude, longitude) => {
   const data = await response.json();
   return {
     label: buildShortLabel(data.address, data.display_name),
+    fullAddress: data.display_name,
     district: extractDistrict(data.address),
   };
 };

@@ -9,6 +9,7 @@ import { getErrorMessage } from "../../utils/helpers";
 import AIAnalysisPanel from "../../components/ai/AIAnalysisPanel";
 import VoiceRecorder from "../../components/grievances/VoiceRecorder";
 import ImageUploader from "../../components/grievances/ImageUploader";
+import LocationPicker from "../../components/grievances/LocationPicker";
 
 const STEPS = ["Describe", "AI Review", "Submitted"];
 
@@ -21,6 +22,7 @@ const ReportIssue = () => {
   const [attachments, setAttachments] = useState([]);
   const [location, setLocation] = useState(null);
   const [locating, setLocating] = useState(false);
+  const [resolvingPin, setResolvingPin] = useState(false);
   const [analysis, setAnalysis] = useState(null);
   const [analyzing, setAnalyzing] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -38,16 +40,12 @@ const ReportIssue = () => {
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
         const { latitude, longitude } = pos.coords;
-        // Show coordinates immediately so the button doesn't look stuck,
-        // then swap in a real place name once reverse geocoding resolves.
         setLocation({ latitude, longitude, address: `${latitude.toFixed(4)}, ${longitude.toFixed(4)}` });
 
         try {
           const { label, district } = await reverseGeocode(latitude, longitude);
           setLocation({ latitude, longitude, address: label, district });
         } catch {
-          // Keep the coordinate fallback already set — not a hard failure,
-          // the report can still be submitted with lat/lon alone.
           toast.error("Couldn't resolve a place name — using coordinates instead.");
         } finally {
           setLocating(false);
@@ -56,8 +54,24 @@ const ReportIssue = () => {
       () => {
         toast.error("Couldn't get your location. You can still submit without it.");
         setLocating(false);
-      }
+      },
+      { enableHighAccuracy: true }
     );
+  };
+
+  // Fires when the citizen drags the pin or taps elsewhere on the map to
+  // correct GPS drift — re-resolves the address/district for the new spot.
+  const handlePinMove = async (lat, lng) => {
+    setLocation((prev) => ({ ...prev, latitude: lat, longitude: lng }));
+    setResolvingPin(true);
+    try {
+      const { label, district } = await reverseGeocode(lat, lng);
+      setLocation({ latitude: lat, longitude: lng, address: label, district });
+    } catch {
+      // keep the coordinates even if the address lookup fails
+    } finally {
+      setResolvingPin(false);
+    }
   };
 
   const runAnalysis = async () => {
@@ -147,6 +161,19 @@ const ReportIssue = () => {
               </button>
             </div>
           </div>
+
+          {location && (
+            <div className="form-group">
+              <label className="form-label" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                Exact location
+                {resolvingPin && <Loader2 size={12} style={{ animation: "spin 0.8s linear infinite", color: "var(--text-faint)" }} />}
+              </label>
+              <LocationPicker
+                center={[location.latitude, location.longitude]}
+                onMove={handlePinMove}
+              />
+            </div>
+          )}
 
           <div className="form-group">
             <label className="form-label">Voice note (optional)</label>
