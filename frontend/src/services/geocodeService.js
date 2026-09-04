@@ -1,3 +1,5 @@
+import { DISTRICTS } from "../utils/constants";
+
 /**
  * Reverse geocoding via OpenStreetMap's free Nominatim API — converts
  * GPS coordinates into a human-readable place name. No API key required.
@@ -33,15 +35,32 @@ const buildShortLabel = (address, fallbackDisplayName) => {
 };
 
 /**
- * Extracts the administrative district from Nominatim's address breakdown.
- * Indian districts typically show up as "state_district" (or "county" as
- * a fallback in some regions/OSM data). Used to auto-tag a citizen's
- * report with its jurisdiction, so it routes to officers based in that
- * district — independent of the citizen's own home address.
+ * Nominatim's free-text address breakdown (state_district / county / city
+ * / etc — field presence varies a lot by region) is NOT guaranteed to
+ * exactly match our fixed DISTRICTS list used for officer routing. This
+ * scans every candidate address field and returns the first one that
+ * matches (case-insensitively, substring-tolerant) a canonical district
+ * name — or null if nothing lines up, so the UI can ask the citizen to
+ * confirm manually instead of silently sending an unroutable value.
  */
-const extractDistrict = (address) => {
+export const guessDistrict = (address) => {
   if (!address) return null;
-  return address.state_district || address.county || address.city || null;
+
+  const candidates = [
+    address.state_district, address.county, address.city_district,
+    address.city, address.town, address.municipality,
+  ].filter(Boolean);
+
+  for (const candidate of candidates) {
+    const normalized = candidate.toLowerCase();
+    const match = DISTRICTS.find(
+      (district) =>
+        normalized.includes(district.toLowerCase()) || district.toLowerCase().includes(normalized)
+    );
+    if (match) return match;
+  }
+
+  return null;
 };
 
 export const reverseGeocode = async (latitude, longitude) => {
@@ -65,6 +84,6 @@ export const reverseGeocode = async (latitude, longitude) => {
   return {
     label: buildShortLabel(data.address, data.display_name),
     fullAddress: data.display_name,
-    district: extractDistrict(data.address),
+    district: guessDistrict(data.address), // canonical DISTRICTS value, or null
   };
 };

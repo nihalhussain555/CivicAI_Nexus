@@ -38,6 +38,10 @@ export const PRIORITIES = ["LOW", "MEDIUM", "HIGH", "CRITICAL"];
 
 export const LANGUAGES = ["English", "Hindi", "Tamil"];
 
+// This exact list must stay in sync with backend/app/utils/constants.py —
+// district values are validated server-side against the same set, so a
+// citizen's report and an officer's assigned district always match
+// exactly (no free-text drift between geocoding output and this list).
 export const DISTRICTS = ["Chennai", "Coimbatore", "Madurai", "Salem", "Erode", "Tiruchirappalli"];
 
 export const ROLES = {
