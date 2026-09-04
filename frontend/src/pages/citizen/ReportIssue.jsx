@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { MapPin, Loader2, Sparkles, ArrowLeft, Send } from "lucide-react";
+import { MapPin, Loader2, Sparkles, ArrowLeft, Send, AlertCircle } from "lucide-react";
 import { previewAnalysis, submitGrievance } from "../../services/grievanceService";
 import { reverseGeocode } from "../../services/geocodeService";
-import { LANGUAGES } from "../../utils/constants";
+import { LANGUAGES, DISTRICTS } from "../../utils/constants";
 import { useToast } from "../../context/ToastContext";
 import { getErrorMessage } from "../../utils/helpers";
 import AIAnalysisPanel from "../../components/ai/AIAnalysisPanel";
@@ -20,9 +20,10 @@ const ReportIssue = () => {
   const [language, setLanguage] = useState("English");
   const [voiceTranscript, setVoiceTranscript] = useState("");
   const [attachments, setAttachments] = useState([]);
-  const [location, setLocation] = useState(null);
+  const [location, setLocation] = useState(null); // { latitude, longitude, address, district }
   const [locating, setLocating] = useState(false);
   const [resolvingPin, setResolvingPin] = useState(false);
+  const [districtWasGuessed, setDistrictWasGuessed] = useState(false);
   const [analysis, setAnalysis] = useState(null);
   const [analyzing, setAnalyzing] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -30,6 +31,11 @@ const ReportIssue = () => {
 
   const toast = useToast();
   const navigate = useNavigate();
+
+  // Location is mandatory: an officer can only be matched to a report
+  // through its district, so we can't let one through without both a
+  // pinned point and a confirmed, canonical district.
+  const isLocationComplete = !!(location?.latitude && location?.district);
 
   const useCurrentLocation = () => {
     if (!navigator.geolocation) {
@@ -40,19 +46,23 @@ const ReportIssue = () => {
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
         const { latitude, longitude } = pos.coords;
-        setLocation({ latitude, longitude, address: `${latitude.toFixed(4)}, ${longitude.toFixed(4)}` });
+        setLocation({ latitude, longitude, address: `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`, district: null });
 
         try {
           const { label, district } = await reverseGeocode(latitude, longitude);
-          setLocation({ latitude, longitude, address: label, district });
+          setLocation({ latitude, longitude, address: label, district: district || "" });
+          setDistrictWasGuessed(!!district);
+          if (!district) {
+            toast.error("Couldn't confidently detect your district — please select it below.");
+          }
         } catch {
-          toast.error("Couldn't resolve a place name — using coordinates instead.");
+          toast.error("Couldn't resolve an address — please select your district manually.");
         } finally {
           setLocating(false);
         }
       },
       () => {
-        toast.error("Couldn't get your location. You can still submit without it.");
+        toast.error("Couldn't get your location. Please allow location access to report an issue.");
         setLocating(false);
       },
       { enableHighAccuracy: true }
@@ -66,7 +76,8 @@ const ReportIssue = () => {
     setResolvingPin(true);
     try {
       const { label, district } = await reverseGeocode(lat, lng);
-      setLocation({ latitude: lat, longitude: lng, address: label, district });
+      setLocation((prev) => ({ ...prev, latitude: lat, longitude: lng, address: label, district: district || prev?.district || "" }));
+      setDistrictWasGuessed(!!district);
     } catch {
       // keep the coordinates even if the address lookup fails
     } finally {
@@ -74,9 +85,18 @@ const ReportIssue = () => {
     }
   };
 
+  const handleDistrictChange = (value) => {
+    setLocation((prev) => ({ ...prev, district: value }));
+    setDistrictWasGuessed(false); // citizen took over — no longer just a guess
+  };
+
   const runAnalysis = async () => {
     if (title.trim().length < 3 || description.trim().length < 5) {
       toast.error("Please add a short title and a description of at least 5 characters.");
+      return;
+    }
+    if (!isLocationComplete) {
+      toast.error("Please share your location and confirm the district before continuing.");
       return;
     }
     setAnalyzing(true);
@@ -92,6 +112,11 @@ const ReportIssue = () => {
   };
 
   const handleSubmit = async () => {
+    if (!isLocationComplete) {
+      toast.error("Please share your location and confirm the district before submitting.");
+      setStep(0);
+      return;
+    }
     setSubmitting(true);
     try {
       const payload = {
@@ -100,7 +125,12 @@ const ReportIssue = () => {
         attachments: attachments.map((a) => ({
           url: a.url, type: a.type, filename: a.filename, ai_description: a.ai_description,
         })),
-        location: location || undefined,
+        location: {
+          latitude: location.latitude,
+          longitude: location.longitude,
+          address: location.address,
+          district: location.district,
+        },
       };
       const res = await submitGrievance(payload);
       setSubmitted(res.data);
@@ -154,25 +184,51 @@ const ReportIssue = () => {
               </select>
             </div>
             <div className="form-group">
-              <label className="form-label">Location</label>
+              <label className="form-label">
+                Location <span style={{ color: "var(--danger)" }}>*</span>
+              </label>
               <button type="button" className="btn btn-secondary btn-block" onClick={useCurrentLocation} disabled={locating}>
                 {locating ? <Loader2 size={14} style={{ animation: "spin 0.8s linear infinite" }} /> : <MapPin size={14} />}
-                {location ? location.address : "Use current location"}
+                {location ? location.address : "Use current location (required)"}
               </button>
             </div>
           </div>
 
           {location && (
-            <div className="form-group">
-              <label className="form-label" style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                Exact location
-                {resolvingPin && <Loader2 size={12} style={{ animation: "spin 0.8s linear infinite", color: "var(--text-faint)" }} />}
-              </label>
-              <LocationPicker
-                center={[location.latitude, location.longitude]}
-                onMove={handlePinMove}
-              />
-            </div>
+            <>
+              <div className="form-group">
+                <label className="form-label" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  Exact location
+                  {resolvingPin && <Loader2 size={12} style={{ animation: "spin 0.8s linear infinite", color: "var(--text-faint)" }} />}
+                </label>
+                <LocationPicker
+                  center={[location.latitude, location.longitude]}
+                  onMove={handlePinMove}
+                />
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">
+                  District <span style={{ color: "var(--danger)" }}>*</span>
+                </label>
+                <select
+                  className="select"
+                  value={location.district || ""}
+                  onChange={(e) => handleDistrictChange(e.target.value)}
+                >
+                  <option value="">Select your district</option>
+                  {DISTRICTS.map((d) => <option key={d} value={d}>{d}</option>)}
+                </select>
+                {location.district && districtWasGuessed && (
+                  <p className="form-hint">Auto-detected from your location — change it if this isn't right.</p>
+                )}
+                {!location.district && (
+                  <p className="form-hint" style={{ color: "var(--danger)", display: "flex", alignItems: "center", gap: 5 }}>
+                    <AlertCircle size={12} /> Required — this determines which officer your report reaches.
+                  </p>
+                )}
+              </div>
+            </>
           )}
 
           <div className="form-group">
@@ -185,11 +241,16 @@ const ReportIssue = () => {
             <ImageUploader attachments={attachments} onChange={setAttachments} />
           </div>
 
-          <button className="btn btn-primary btn-block" onClick={runAnalysis} disabled={analyzing}>
+          <button className="btn btn-primary btn-block" onClick={runAnalysis} disabled={analyzing || !isLocationComplete}>
             {analyzing
               ? <><Loader2 size={16} style={{ animation: "spin 0.8s linear infinite" }} /> Analyzing with AI...</>
               : <><Sparkles size={16} /> Analyze with AI</>}
           </button>
+          {!isLocationComplete && (
+            <p className="form-hint" style={{ textAlign: "center", marginTop: 6 }}>
+              Add your location and confirm the district to continue.
+            </p>
+          )}
         </div>
       )}
 
@@ -202,7 +263,7 @@ const ReportIssue = () => {
             <p style={{ fontSize: 13.5, color: "var(--text-muted)" }}>{description}</p>
             {location && (
               <p style={{ fontSize: 12.5, color: "var(--text-faint)", marginTop: 10, display: "flex", alignItems: "center", gap: 5 }}>
-                <MapPin size={12} /> {location.address}
+                <MapPin size={12} /> {location.address} · {location.district}
               </p>
             )}
           </div>
@@ -233,7 +294,7 @@ const ReportIssue = () => {
             Reference ID: <strong style={{ fontFamily: "monospace" }}>{submitted.grievance_id}</strong>
           </p>
           <p style={{ color: "var(--text-muted)", fontSize: 13.5, marginBottom: 24 }}>
-            Routed to <strong>{submitted.department}</strong>. You'll be notified as it progresses.
+            Routed to <strong>{submitted.department}</strong> ({submitted.district}). You'll be notified as it progresses.
           </p>
           <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
             <button className="btn btn-secondary" onClick={() => navigate(`/citizen/grievances/${submitted.grievance_id}`)}>
@@ -242,6 +303,7 @@ const ReportIssue = () => {
             <button className="btn btn-primary" onClick={() => {
               setStep(0); setTitle(""); setDescription(""); setAnalysis(null);
               setSubmitted(null); setAttachments([]); setVoiceTranscript(""); setLocation(null);
+              setDistrictWasGuessed(false);
             }}>
               Report another issue
             </button>
