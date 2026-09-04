@@ -19,11 +19,11 @@ def make_grievance_id():
 def create_grievance(current_user: dict, data) -> dict:
     grievance_id = make_grievance_id()
 
-    location = None
-    district = None
-    if data.location:
-        location = make_point(data.location.latitude, data.location.longitude, data.location.address)
-        district = data.location.district
+    # `data.location` is a required field on GrievanceCreateRequest (with a
+    # validated, non-optional `district`), so this is always present by
+    # the time we get here — Pydantic rejects the request otherwise.
+    location = make_point(data.location.latitude, data.location.longitude, data.location.address)
+    district = data.location.district
 
     grievance = grievance_document(
         grievance_id=grievance_id,
@@ -86,7 +86,7 @@ def create_grievance(current_user: dict, data) -> dict:
         {"status": "AI_ANALYZED", "message": "AI analysis completed", "actor_role": "system", "timestamp": now},
         {
             "status": "DEPARTMENT_ASSIGNED",
-            "message": f"Routed to {ai_result['department']} (AI-recommended)",
+            "message": f"Routed to {ai_result['department']} ({district}) — AI-recommended",
             "actor_role": "system",
             "timestamp": now,
         },
@@ -102,7 +102,7 @@ def create_grievance(current_user: dict, data) -> dict:
     notify(
         current_user["_id"],
         "Grievance Submitted",
-        f"Your grievance {grievance_id} was submitted and routed to {ai_result['department']}.",
+        f"Your grievance {grievance_id} was submitted and routed to {ai_result['department']} ({district}).",
         notification_type="SUCCESS",
         related_grievance_id=grievance_id,
     )
