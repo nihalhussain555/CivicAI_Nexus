@@ -3,6 +3,7 @@ import { CheckCircle2, XCircle, Info, X } from "lucide-react";
 
 const ToastContext = createContext(null);
 
+const TOAST_DURATION_MS = 5000;
 let idCounter = 0;
 
 export const ToastProvider = ({ children }) => {
@@ -15,7 +16,7 @@ export const ToastProvider = ({ children }) => {
   const push = useCallback((message, type = "info") => {
     const id = ++idCounter;
     setToasts((prev) => [...prev, { id, message, type }]);
-    setTimeout(() => remove(id), 5000);
+    setTimeout(() => remove(id), TOAST_DURATION_MS);
   }, [remove]);
 
   const toast = {
@@ -34,11 +35,14 @@ export const ToastProvider = ({ children }) => {
           const Icon = icons[t.type];
           return (
             <div key={t.id} className={`toast toast-${t.type}`}>
-              <Icon size={18} />
-              <span>{t.message}</span>
-              <button onClick={() => remove(t.id)} aria-label="Dismiss notification">
-                <X size={14} />
+              <div className="toast-icon-wrap">
+                <Icon size={16} />
+              </div>
+              <span className="toast-message">{t.message}</span>
+              <button className="toast-close" onClick={() => remove(t.id)} aria-label="Dismiss notification">
+                <X size={13} />
               </button>
+              <div className="toast-progress" style={{ animationDuration: `${TOAST_DURATION_MS}ms` }} />
             </div>
           );
         })}
