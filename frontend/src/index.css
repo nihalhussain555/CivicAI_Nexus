@@ -416,42 +416,99 @@ input, select, textarea { font-family: inherit; }
   letter-spacing: 0.4px;
 }
 
-/* ---------- Toast ---------- */
+/* ---------- Toast (top-right) ---------- */
 
 .toast-container {
   position: fixed;
-  bottom: 24px;
-  right: 24px;
+  top: 20px;
+  right: 20px;
   display: flex;
   flex-direction: column;
   gap: 10px;
   z-index: 1000;
-  max-width: 360px;
+  max-width: 380px;
 }
 
 .toast {
+  position: relative;
   display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 12px 14px;
-  border-radius: var(--radius-sm);
+  align-items: flex-start;
+  gap: 11px;
+  padding: 13px 14px 15px;
+  border-radius: var(--radius-md);
   background: var(--surface);
   border: 1px solid var(--border);
-  box-shadow: var(--shadow-md);
+  border-left: 3px solid var(--border);
+  box-shadow: var(--shadow-lg);
   font-size: 13.5px;
-  animation: toast-in 0.15s ease;
+  overflow: hidden;
+  animation: toast-in 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 @keyframes toast-in {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; transform: translateX(-14px); }
+  to { opacity: 1; transform: translateX(0); }
 }
 
-.toast span { flex: 1; }
-.toast button { background: none; border: none; color: var(--text-faint); display: flex; }
-.toast-success svg { color: var(--success); }
-.toast-error svg { color: var(--danger); }
-.toast-info svg { color: var(--info); }
+.toast-icon-wrap {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.toast-message {
+  flex: 1;
+  line-height: 1.45;
+  padding-top: 3px;
+}
+
+.toast-close {
+  background: none;
+  border: none;
+  color: var(--text-faint);
+  display: flex;
+  flex-shrink: 0;
+  padding: 3px;
+  border-radius: 4px;
+}
+
+.toast-close:hover {
+  background: var(--surface-hover);
+  color: var(--text);
+}
+
+.toast-progress {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 3px;
+  width: 100%;
+  animation-name: toast-shrink;
+  animation-timing-function: linear;
+  animation-fill-mode: forwards;
+}
+
+@keyframes toast-shrink {
+  from { width: 100%; }
+  to { width: 0%; }
+}
+
+.toast-success { border-left-color: var(--success); }
+.toast-success .toast-icon-wrap { background: var(--success-soft); color: var(--success); }
+.toast-success .toast-progress { background: var(--success); }
+
+.toast-error { border-left-color: var(--danger); }
+.toast-error .toast-icon-wrap { background: var(--danger-soft); color: var(--danger); }
+.toast-error .toast-progress { background: var(--danger); }
+
+.toast-info { border-left-color: var(--info); }
+.toast-info .toast-icon-wrap { background: var(--info-soft); color: var(--info); }
+.toast-info .toast-progress { background: var(--info); }
 
 /* ---------- Empty / error states ---------- */
 
@@ -984,4 +1041,3 @@ body { background: radial-gradient(circle at 72% -20%, rgba(99,102,241,.11), tra
   background: transparent !important;
   border: none !important;
 }
-
