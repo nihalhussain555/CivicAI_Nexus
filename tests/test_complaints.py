@@ -41,6 +41,17 @@ def register_citizen(email):
     return _login(email)
 
 
+# Location (with a valid, canonical district) is now a required field on
+# grievance creation — see backend/app/schemas/grievance.py. Every test
+# below that files a grievance needs to include one.
+SAMPLE_LOCATION = {
+    "latitude": 13.08,
+    "longitude": 80.27,
+    "address": "Test Street, Chennai",
+    "district": "Chennai",
+}
+
+
 def test_citizen_can_submit_grievance():
     setup_department_and_staff("Sanitation Department", "SANA")
     token = register_citizen("gcitizen1@test.com")
@@ -48,6 +59,7 @@ def test_citizen_can_submit_grievance():
     r = client.post("/api/grievances/", json={
         "title": "Garbage pile near school",
         "description": "A large pile of garbage has accumulated near the school gate for days.",
+        "location": SAMPLE_LOCATION,
     }, headers=_auth_headers(token))
 
     assert r.status_code == 200
@@ -64,6 +76,7 @@ def test_full_lifecycle_citizen_officer_verification():
     r = client.post("/api/grievances/", json={
         "title": "Overflowing bins on main road",
         "description": "Bins near the main road are overflowing and have not been cleared in over a week.",
+        "location": SAMPLE_LOCATION,
     }, headers=_auth_headers(citizen_token))
     grievance_id = r.json()["data"]["grievance_id"]
 
@@ -95,6 +108,7 @@ def test_reopen_sends_case_back_for_retriage():
     r = client.post("/api/grievances/", json={
         "title": "Waste not cleared near park",
         "description": "Waste collection has been missed near the community park entrance repeatedly.",
+        "location": SAMPLE_LOCATION,
     }, headers=_auth_headers(citizen_token))
     grievance_id = r.json()["data"]["grievance_id"]
 
@@ -120,6 +134,7 @@ def test_invalid_status_transition_rejected():
     r = client.post("/api/grievances/", json={
         "title": "Broken bin lid",
         "description": "A community waste bin has a broken lid attracting pests near the residential block.",
+        "location": SAMPLE_LOCATION,
     }, headers=_auth_headers(citizen_token))
     grievance_id = r.json()["data"]["grievance_id"]
 
@@ -139,6 +154,7 @@ def test_citizen_cannot_view_others_grievance():
     r = client.post("/api/grievances/", json={
         "title": "Private grievance test",
         "description": "This grievance should only be visible to the citizen who filed it.",
+        "location": SAMPLE_LOCATION,
     }, headers=_auth_headers(citizen_token))
     grievance_id = r.json()["data"]["grievance_id"]
 
@@ -153,6 +169,7 @@ def test_officer_queue_reflects_department_assigned_cases():
     client.post("/api/grievances/", json={
         "title": "Queue test grievance",
         "description": "Testing that newly submitted grievances appear in the officer priority queue.",
+        "location": SAMPLE_LOCATION,
     }, headers=_auth_headers(citizen_token))
 
     officer_token = _login("officer_sanf@test.com")
