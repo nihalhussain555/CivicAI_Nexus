@@ -33,13 +33,14 @@ import AdminDashboard from "./pages/admin/Dashboard";
 import AdminGrievances from "./pages/admin/Grievances";
 import AdminDepartments from "./pages/admin/Departments";
 import AdminOfficers from "./pages/admin/Officers";
-import AdminAdmins from "./pages/admin/Admins";
 import AdminOfficerDetail from "./pages/admin/OfficerDetail";
+import AdminAdmins from "./pages/admin/Admins";
 import AdminAnalytics from "./pages/admin/Analytics";
 import AdminMap from "./pages/admin/Map";
 import AdminAIInsights from "./pages/admin/AIInsights";
 
-// Shared (reused across roles)
+// Shared (reused across roles — same component, rendered under each
+// role's own route tree so ProtectedRoute's role check still applies)
 import GrievanceDetail from "./pages/shared/GrievanceDetail";
 import Incidents from "./pages/shared/Incidents";
 import IncidentDetail from "./pages/shared/IncidentDetail";
@@ -128,8 +129,8 @@ function App() {
                 <Route path="incidents/:incidentId" element={<IncidentDetail />} />
                 <Route path="departments" element={<AdminDepartments />} />
                 <Route path="officers" element={<AdminOfficers />} />
-                <Route path="admins" element={<AdminAdmins />} />
                 <Route path="officers/:officerId" element={<AdminOfficerDetail />} />
+                <Route path="admins" element={<AdminAdmins />} />
                 <Route path="analytics" element={<AdminAnalytics />} />
                 <Route path="map" element={<AdminMap />} />
                 <Route path="ai-insights" element={<AdminAIInsights />} />
