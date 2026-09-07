@@ -83,7 +83,9 @@ def test_upload_image_endpoint_returns_ai_caption(tmp_path, monkeypatch):
     monkeypatch.setattr(settings, "UPLOAD_DIR", str(tmp_path))
     client = TestClient(app)
 
-    client.post("/api/auth/register", json={"name": "Upload Tester", "email": "uploader@test.com", "password": "Demo@123"})
+    r = client.post("/api/auth/register", json={"name": "Upload Tester", "email": "uploader@test.com", "password": "Demo@123"})
+    dev_otp = r.json()["data"]["dev_otp"]
+    client.post("/api/auth/verify-otp", json={"email": "uploader@test.com", "otp_code": dev_otp})
     r = client.post("/api/auth/login", json={"email": "uploader@test.com", "password": "Demo@123"})
     token = r.json()["data"]["access_token"]
 

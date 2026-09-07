@@ -15,6 +15,15 @@ class LoginRequest(BaseModel):
     password: str = Field(..., min_length=1, max_length=128)
 
 
+class VerifyOtpRequest(BaseModel):
+    email: EmailStr
+    otp_code: str = Field(..., min_length=4, max_length=8)
+
+
+class ResendOtpRequest(BaseModel):
+    email: EmailStr
+
+
 class NotificationPreferences(BaseModel):
     email: Optional[bool] = None
     in_app: Optional[bool] = None

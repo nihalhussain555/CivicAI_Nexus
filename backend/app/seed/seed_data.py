@@ -115,6 +115,7 @@ def seed_departments():
 
 def seed_users(dept_docs):
     demo_citizen = user_document("Demo Citizen", "citizen@demo.com", hash_password(DEMO_PASSWORD), role="citizen")
+    demo_citizen["email_verified"] = True  # seeded/demo accounts skip OTP verification
     demo_officer = user_document(
         "Demo Officer", "officer@demo.com", hash_password(DEMO_PASSWORD),
         role="officer", department="Sanitation Department", specialization="Waste Management",
@@ -145,6 +146,7 @@ def seed_users(dept_docs):
     for name in CITIZEN_NAMES:
         email = name.lower().replace(" ", ".") + "@example.com"
         doc = user_document(name, email, hash_password(DEMO_PASSWORD), role="citizen")
+        doc["email_verified"] = True  # seeded accounts skip OTP verification
         result = users_collection.insert_one(doc)
         doc["_id"] = result.inserted_id
         citizens.append(doc)

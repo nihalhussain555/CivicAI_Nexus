@@ -37,7 +37,9 @@ def setup_department_and_staff(dept_name="Sanitation Department", code="SAN"):
 
 
 def register_citizen(email):
-    client.post("/api/auth/register", json={"name": "Grievance Citizen", "email": email, "password": "Demo@123"})
+    r = client.post("/api/auth/register", json={"name": "Grievance Citizen", "email": email, "password": "Demo@123"})
+    dev_otp = r.json()["data"]["dev_otp"]
+    client.post("/api/auth/verify-otp", json={"email": email, "otp_code": dev_otp})
     return _login(email)
 
 

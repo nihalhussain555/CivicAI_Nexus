@@ -68,5 +68,23 @@ class Settings:
     # Set to false in real deployments.
     AUTO_SEED_DEMO_DATA = os.getenv("AUTO_SEED_DEMO_DATA", "true").lower() == "true"
 
+    # --- Email / OTP verification ---
+    # "mock" (default, no email actually sent — the OTP is returned in the
+    # API response and printed to the server console, so signup can be
+    # tested end-to-end without any email account) or "smtp" for real
+    # delivery via any SMTP provider (Gmail, SendGrid, Mailgun, etc).
+    EMAIL_PROVIDER = os.getenv("EMAIL_PROVIDER", "mock").lower()
+
+    SMTP_HOST = os.getenv("SMTP_HOST", "")
+    SMTP_PORT = int(os.getenv("SMTP_PORT", "587"))
+    SMTP_USER = os.getenv("SMTP_USER", "")
+    SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "")
+    EMAIL_FROM = os.getenv("EMAIL_FROM", "CivicAI Nexus <no-reply@civicai.local>")
+    EMAIL_USE_TLS = os.getenv("EMAIL_USE_TLS", "true").lower() == "true"
+
+    OTP_LENGTH = int(os.getenv("OTP_LENGTH", "6"))
+    OTP_EXPIRE_MINUTES = int(os.getenv("OTP_EXPIRE_MINUTES", "10"))
+    OTP_MAX_ATTEMPTS = int(os.getenv("OTP_MAX_ATTEMPTS", "5"))
+
 
 settings = Settings()

@@ -49,6 +49,14 @@ def user_document(
         },
 
         "active": True,
+        # Citizens must verify their email via OTP before they can log in.
+        # Officer/admin accounts are created directly by an admin and are
+        # trusted immediately (email_verified=True), since they were never
+        # self-registered through the public signup form.
+        "email_verified": role != "citizen",
+        "otp_code_hash": None,
+        "otp_expires_at": None,
+        "otp_attempts": 0,
 
         "created_at": now,
         "updated_at": now,

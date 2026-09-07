@@ -416,7 +416,7 @@ input, select, textarea { font-family: inherit; }
   letter-spacing: 0.4px;
 }
 
-/* ---------- Toast (top-right) ---------- */
+/* ---------- Toast (top-left) ---------- */
 
 .toast-container {
   position: fixed;
