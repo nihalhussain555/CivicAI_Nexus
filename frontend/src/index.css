@@ -1364,3 +1364,24 @@ body { background: radial-gradient(circle at 72% -20%, rgba(99,102,241,.11), tra
     gap: 15px;
   }
 }
+
+/* Form validation */
+
+.input.input-error {
+  border-color: #ef4444 !important;
+  box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.15);
+}
+
+.input.input-error:focus {
+  border-color: #ef4444 !important;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.12);
+}
+
+.field-error {
+  width: 100%;
+  margin-top: 6px;
+  color: #ef4444;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.4;
+}
