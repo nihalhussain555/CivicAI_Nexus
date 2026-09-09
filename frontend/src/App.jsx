@@ -19,6 +19,9 @@ import About from "./pages/public/About";
 import HowItWorks from "./pages/public/HowItWorks";
 import NotFound from "./pages/public/NotFound";
 import Forbidden from "./pages/public/Forbidden";
+import PrivacyPolicy from "./pages/public/PrivacyPolicy";
+import Terms from "./pages/public/Terms";
+import CookiePolicy from "./pages/public/CookiePolicy";
 
 // Auth
 import Login from "./pages/auth/Login";
@@ -92,6 +95,10 @@ function App() {
                   element={<HowItWorks />}
                 />
 
+                <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+                <Route path="/terms" element={<Terms />} />
+                <Route path="/cookie-policy" element={<CookiePolicy />} />
+                
               </Route>
 
 
