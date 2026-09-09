@@ -17,6 +17,7 @@ import secrets
 import smtplib
 from datetime import datetime, timedelta
 from email.mime.text import MIMEText
+from email.utils import parseaddr
 
 from app.config.settings import settings
 
@@ -40,14 +41,27 @@ def make_otp_expiry() -> datetime:
     return datetime.utcnow() + timedelta(minutes=settings.OTP_EXPIRE_MINUTES)
 
 
+def email_config_status() -> dict:
+    """Cheap, no-network summary of the current email configuration —
+    surfaced on /health so misconfiguration is visible without digging
+    through server logs."""
+    if settings.EMAIL_PROVIDER == "smtp":
+        configured = bool(settings.SMTP_HOST and settings.SMTP_USER and settings.SMTP_PASSWORD)
+        return {
+            "provider": "smtp",
+            "configured": configured,
+            "host": settings.SMTP_HOST or None,
+            "missing_fields": [] if configured else [
+                f for f in ("SMTP_HOST", "SMTP_USER", "SMTP_PASSWORD")
+                if not getattr(settings, f)
+            ],
+        }
+    return {"provider": "mock", "configured": True, "note": "No real email is sent in mock mode."}
+
+
 def send_otp_email(to_email: str, name: str, otp: str) -> dict:
-    """
-    Returns a dict describing what happened, e.g.
-    {"sent": True, "provider": "mock", "dev_otp": "482913"} — the frontend
-    only ever sees `dev_otp` when running in mock mode, never in real SMTP
-    mode, so this can't leak a real code in production.
-    """
     subject = "Your CivicAI Nexus verification code"
+
     body = (
         f"Hi {name},\n\n"
         f"Your CivicAI Nexus verification code is: {otp}\n"
@@ -55,17 +69,60 @@ def send_otp_email(to_email: str, name: str, otp: str) -> dict:
         "If you didn't request this, you can safely ignore this email."
     )
 
-    if settings.EMAIL_PROVIDER == "smtp" and settings.SMTP_HOST:
-        try:
-            _send_via_smtp(to_email, subject, body)
-            return {"sent": True, "provider": "smtp"}
-        except Exception as error:  # noqa: BLE001
-            print(f"WARNING: SMTP send failed, falling back to mock/console: {error}")
+    if settings.EMAIL_PROVIDER != "smtp":
+        print(
+            f"\n--- MOCK EMAIL ---\n"
+            f"To: {to_email}\n"
+            f"Subject: {subject}\n"
+            f"{body}\n"
+            f"------------------\n"
+        )
+        return {
+            "sent": False,
+            "provider": "mock",
+            "dev_otp": otp,
+        }
 
-    # Mock mode (default) — no real email account needed to demo signup.
-    print(f"\n--- MOCK EMAIL (EMAIL_PROVIDER=mock) ---\nTo: {to_email}\nSubject: {subject}\n{body}\n-----------------------------------------\n")
-    return {"sent": False, "provider": "mock", "dev_otp": otp}
+    if not (
+        settings.SMTP_HOST
+        and settings.SMTP_USER
+        and settings.SMTP_PASSWORD
+    ):
+        print("ERROR: SMTP configuration is incomplete.")
 
+        return {
+            "sent": False,
+            "provider": "smtp",
+            "error": "SMTP configuration is incomplete",
+        }
+
+    try:
+        _send_via_smtp(to_email, subject, body)
+
+        print(f"SUCCESS: Email sent via SMTP to {to_email}")
+
+        return {
+            "sent": True,
+            "provider": "smtp",
+        }
+
+    except smtplib.SMTPAuthenticationError as error:
+        print(f"ERROR: Gmail SMTP authentication failed: {error}")
+
+        return {
+            "sent": False,
+            "provider": "smtp",
+            "error": "Gmail SMTP authentication failed",
+        }
+
+    except Exception as error:
+        print(f"ERROR: SMTP send failed: {type(error).__name__}: {error}")
+
+        return {
+            "sent": False,
+            "provider": "smtp",
+            "error": str(error),
+        }
 
 def _send_via_smtp(to_email: str, subject: str, body: str):
     message = MIMEText(body)
@@ -73,9 +130,19 @@ def _send_via_smtp(to_email: str, subject: str, body: str):
     message["From"] = settings.EMAIL_FROM
     message["To"] = to_email
 
-    with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT, timeout=10) as server:
+    # The SMTP *envelope* sender (sendmail's from_addr) must be a bare
+    # address — "Display Name <addr>" is only valid inside the MIME "From"
+    # header above, not here. Passing the display-name form as the
+    # envelope sender is rejected or silently mishandled by many servers,
+    # including some Gmail configurations. parseaddr() extracts just the
+    # address half of "CivicAI Nexus <you@gmail.com>" -> "you@gmail.com".
+    _, envelope_from = parseaddr(settings.EMAIL_FROM)
+    envelope_from = envelope_from or settings.SMTP_USER
+
+    with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT, timeout=15) as server:
+        server.ehlo()
         if settings.EMAIL_USE_TLS:
             server.starttls()
-        if settings.SMTP_USER:
-            server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
-        server.sendmail(settings.EMAIL_FROM, [to_email], message.as_string())
+            server.ehlo()
+        server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
+        server.sendmail(envelope_from, [to_email], message.as_string())

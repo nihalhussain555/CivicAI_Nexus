@@ -11,6 +11,7 @@ import os
 
 from app.config.database import check_database_connection, create_indexes
 from app.config.settings import settings
+from app.services.email_service import email_config_status
 
 from app.routes.auth import router as auth_router
 from app.routes.users import router as users_router
@@ -118,5 +119,14 @@ def root():
 @app.get("/health")
 def health():
     database_status = "connected" if check_database_connection() else "disconnected"
-    return {"success": True, "data": {"status": "healthy", "database": database_status,
-                                       "ai_provider": settings.AI_PROVIDER}}
+    return {
+        "success": True,
+        "data": {
+            "status": "healthy",
+            "database": database_status,
+            "ai_provider": settings.AI_PROVIDER,
+            # Lets you confirm from the browser (no server-log digging)
+            # whether real email sending is actually configured.
+            "email": email_config_status(),
+        },
+    }

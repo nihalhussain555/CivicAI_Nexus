@@ -35,10 +35,13 @@ const Register = () => {
       const res = await register(form);
       // Mock EMAIL_PROVIDER (the default, no SMTP configured) returns the
       // code directly so signup can be tried without a real email account.
-      if (res.data?.dev_otp) {
-        toast.info(`Demo mode: your verification code is ${res.data.dev_otp}`);
+      // Never surface the OTP itself in the UI — it must actually arrive
+      // by email. If email sending failed silently server-side, at least
+      // tell the person clearly instead of pretending it worked.
+      if (res.data?.email_sent) {
+        toast.success("Verification code sent — check your email.");
       } else {
-        toast.success("Verification code sent to your email.");
+        toast.error("We couldn't send the verification email right now. Please try 'Resend code' in a moment, or contact support.");
       }
       setStep("otp");
       setTimeout(() => otpRefs.current[0]?.focus(), 50);
@@ -105,10 +108,10 @@ const Register = () => {
     setResending(true);
     try {
       const res = await resendOtp(form.email);
-      if (res.data?.dev_otp) {
-        toast.info(`Demo mode: your new code is ${res.data.dev_otp}`);
-      } else {
+      if (res.data?.email_sent) {
         toast.success("A new code has been sent to your email.");
+      } else {
+        toast.error("We couldn't send the verification email right now. Please try again in a moment.");
       }
       setOtpDigits(Array(OTP_LENGTH).fill(""));
       otpRefs.current[0]?.focus();

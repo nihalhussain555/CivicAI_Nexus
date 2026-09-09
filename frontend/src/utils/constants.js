@@ -42,7 +42,17 @@ export const LANGUAGES = ["English", "Hindi", "Tamil"];
 // district values are validated server-side against the same set, so a
 // citizen's report and an officer's assigned district always match
 // exactly (no free-text drift between geocoding output and this list).
-export const DISTRICTS = ["Chennai", "Coimbatore", "Madurai", "Salem", "Erode", "Tiruchirappalli"];
+// All 38 Tamil Nadu districts, alphabetical.
+export const DISTRICTS = [
+  "Ariyalur", "Chengalpattu", "Chennai", "Coimbatore", "Cuddalore",
+  "Dharmapuri", "Dindigul", "Erode", "Kallakurichi", "Kanchipuram",
+  "Kanyakumari", "Karur", "Krishnagiri", "Madurai", "Mayiladuthurai",
+  "Nagapattinam", "Namakkal", "Nilgiris", "Perambalur", "Pudukkottai",
+  "Ramanathapuram", "Ranipet", "Salem", "Sivaganga", "Tenkasi",
+  "Thanjavur", "Theni", "Thoothukudi", "Tiruchirappalli", "Tirunelveli",
+  "Tirupathur", "Tiruppur", "Tiruvallur", "Tiruvannamalai", "Tiruvarur",
+  "Vellore", "Viluppuram", "Virudhunagar",
+];
 
 export const ROLES = {
   CITIZEN: "citizen",
