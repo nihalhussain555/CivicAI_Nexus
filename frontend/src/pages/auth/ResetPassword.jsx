@@ -16,7 +16,7 @@ import {
   Sparkles,
 } from "lucide-react";
 
-import api from "../../utils/api";
+import api from "../../services/api";
 import { getErrorMessage } from "../../utils/helpers";
 
 
