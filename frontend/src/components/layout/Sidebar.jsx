@@ -1,6 +1,12 @@
 import { useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
-import { ShieldCheck, LogOut, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import {
+  ShieldCheck,
+  LogOut,
+  PanelLeftClose,
+  PanelLeftOpen,
+} from "lucide-react";
+
 import { NAV_BY_ROLE } from "./navConfig";
 import { useAuth } from "../../hooks/useAuth";
 
@@ -9,38 +15,62 @@ const STORAGE_KEY = "civicai_sidebar_collapsed";
 const Sidebar = ({ open, onNavigate }) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+
   const items = NAV_BY_ROLE[user?.role] || [];
 
-  const [collapsed, setCollapsed] = useState(() => localStorage.getItem(STORAGE_KEY) === "true");
+  const [collapsed, setCollapsed] = useState(() => {
+    return localStorage.getItem(STORAGE_KEY) === "true";
+  });
 
   const toggleCollapsed = () => {
-    setCollapsed((prev) => {
-      const next = !prev;
+    setCollapsed((previous) => {
+      const next = !previous;
+
       localStorage.setItem(STORAGE_KEY, String(next));
+
       return next;
     });
   };
 
   const handleLogout = () => {
     logout();
-    navigate("/login", { replace: true });
+    navigate("/login", {
+      replace: true,
+    });
   };
 
   return (
-    <aside className={`sidebar ${open ? "open" : ""} ${collapsed ? "collapsed" : ""}`}>
+    <aside
+      className={`sidebar ${open ? "open" : ""} ${
+        collapsed ? "collapsed" : ""
+      }`}
+    >
+      {/* Sidebar Brand */}
       <div className="sidebar-brand">
-        <div className="sidebar-brand-icon"><ShieldCheck size={18} /></div>
+        <div className="sidebar-brand-icon">
+          <ShieldCheck size={18} />
+        </div>
+
         {!collapsed && <span>CivicAI Nexus</span>}
+
         <button
+          type="button"
           className="sidebar-collapse-btn"
           onClick={toggleCollapsed}
-          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          aria-label={
+            collapsed ? "Expand sidebar" : "Collapse sidebar"
+          }
           title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
         >
-          {collapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
+          {collapsed ? (
+            <PanelLeftOpen size={16} />
+          ) : (
+            <PanelLeftClose size={16} />
+          )}
         </button>
       </div>
 
+      {/* Sidebar Navigation */}
       <nav className="sidebar-nav">
         {items.map(({ to, label, icon: Icon }) => (
           <NavLink
@@ -48,23 +78,31 @@ const Sidebar = ({ open, onNavigate }) => {
             to={to}
             onClick={onNavigate}
             title={collapsed ? label : undefined}
-            className={({ isActive }) => `sidebar-link ${isActive ? "active" : ""}`}
+            className={({ isActive }) =>
+              `sidebar-link ${isActive ? "active" : ""}`
+            }
           >
             <Icon size={17} />
+
             {!collapsed && <span>{label}</span>}
           </NavLink>
         ))}
       </nav>
 
+      {/* Sidebar Footer */}
       <div className="sidebar-footer">
         <button
+          type="button"
           className="btn btn-block sidebar-logout-btn"
           onClick={handleLogout}
           title={collapsed ? "Log out" : undefined}
-          style={{ justifyContent: collapsed ? "center" : "flex-start" }}
+          style={{
+            justifyContent: collapsed ? "center" : "flex-start",
+          }}
         >
           <LogOut size={16} />
-          {!collapsed && "Log out"}
+
+          {!collapsed && <span>Log out</span>}
         </button>
       </div>
     </aside>

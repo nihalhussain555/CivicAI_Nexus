@@ -12,7 +12,7 @@ export const NAV_BY_ROLE = {
     { to: "/citizen/assistant", label: "Ask CivicAI", icon: Bot },
     { to: "/citizen/notifications", label: "Notifications", icon: Bell },
     { to: "/citizen/profile", label: "Profile", icon: User },
-    { to: "/citizen/settings", label: "Settings", icon: Settings },
+    { to: "/citizen/settings", label: "Settings", icon: Settings }, 
   ],
 
   officer: [
