@@ -36,7 +36,7 @@ export const STATUS_LABELS = {
 
 export const PRIORITIES = ["LOW", "MEDIUM", "HIGH", "CRITICAL"];
 
-export const LANGUAGES = ["English", "Hindi", "Tamil"];
+export const LANGUAGES = ["English", "Hindi", "Tamil" , "Malayalam", "Telugu", "Kannada", "Bengali", "Marathi", "Gujarati", "Punjabi", "Odia", "Assamese", "Urdu"];
 
 // This exact list must stay in sync with backend/app/utils/constants.py —
 // district values are validated server-side against the same set, so a

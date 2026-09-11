@@ -1332,57 +1332,114 @@ endings = {
 # ============================================================
 
 def choose_priority(text, department):
+    text_lower = text.lower()
 
-    urgent_words = [
+    critical_words = [
+        "life threatening",
+        "life-threatening",
+        "death",
+        "fire emergency",
+        "electric shock",
+        "major accident",
 
-        # English
+        "உயிருக்கு ஆபத்து",
+        "மரணம்",
+        "தீ விபத்து",
+
+        "जान का खतरा",
+        "मौत",
+        "आग",
+
+        "ജീവന് ഭീഷണി",
+        "മരണം",
+    ]
+
+    high_words = [
         "emergency",
         "dangerous",
-        "threat",
+        "accident",
+        "fire",
         "stolen",
+        "threat",
         "no electricity",
         "no water",
-        "no medicines",
-        "fire",
-        "accident",
-        "collapse",
         "sewage",
+        "collapse",
 
-        # Tamil
         "அவசரம்",
         "ஆபத்து",
-        "திருட",
+        "விபத்து",
+        "திருட்டு",
+        "மிரட்டல்",
         "மின்சாரம் இல்லை",
         "தண்ணீர் இல்லை",
 
-        # Hindi
         "आपातकाल",
         "खतरनाक",
-        "धमकी",
+        "दुर्घटना",
         "चोरी",
+        "धमकी",
         "बिजली नहीं",
         "पानी नहीं",
 
-        # Malayalam
         "അടിയന്തര",
-        "അപകടകരം",
-        "ഭീഷണി",
+        "അപകടം",
         "മോഷണം",
+        "ഭീഷണി",
         "വൈദ്യുതി ഇല്ല",
         "വെള്ളം ഇല്ല",
     ]
 
-    text_lower = text.lower()
+    medium_words = [
+        "urgent",
+        "blocked",
+        "overflow",
+        "broken",
+        "leak",
+        "damaged",
+        "not working",
+        "delay",
+        "flood",
 
-    if any(word.lower() in text_lower for word in urgent_words):
-        return random.choice(["High", "Critical"])
+        "அடைப்பு",
+        "கசிவு",
+        "சேதம்",
+        "வேலை செய்யவில்லை",
+        "தாமதம்",
 
-    return random.choice([
-        "Low",
-        "Medium",
-        "Medium",
-        "High",
-    ])
+        "बंद",
+        "रिसाव",
+        "खराब",
+        "देरी",
+
+        "അടഞ്ഞ",
+        "ചോർച്ച",
+        "കേടായി",
+        "വൈകി",
+    ]
+
+    if any(
+        word.lower()
+        in text_lower
+        for word in critical_words
+    ):
+        return "Critical"
+
+    if any(
+        word.lower()
+        in text_lower
+        for word in high_words
+    ):
+        return "High"
+
+    if any(
+        word.lower()
+        in text_lower
+        for word in medium_words
+    ):
+        return "Medium"
+
+    return "Low"
 
 
 # ============================================================
