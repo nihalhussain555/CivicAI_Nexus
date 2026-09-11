@@ -1,13 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import {
-  MapPin, Clock, Sparkles, ArrowLeft, CheckCircle2, XCircle, PlayCircle,
-  Send, AlertTriangle, ImageIcon, Mic,
-} from "lucide-react";
-import {
-  getGrievance, acceptCase, startProgress, submitResolution,
-  escalateCase, verifyResolution, getCopilotBrief,
-} from "../../services/grievanceService";
+import { MapPin, Clock, Sparkles, ArrowLeft, CheckCircle2, XCircle, PlayCircle, Send, AlertTriangle, ImageIcon, Mic,} from "lucide-react";
+import { getGrievance, acceptCase, startProgress, submitResolution, escalateCase, verifyResolution, getCopilotBrief,} from "../../services/grievanceService";
 import { uploadsBaseUrl } from "../../services/api";
 import { useAuth } from "../../hooks/useAuth";
 import { useToast } from "../../context/ToastContext";

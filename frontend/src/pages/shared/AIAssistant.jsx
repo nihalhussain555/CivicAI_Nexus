@@ -1,8 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Bot, Send, Sparkles, Loader2, Plus, MessageSquare, Trash2 } from "lucide-react";
-import {
-  chatWithAssistant, listChatSessions, getChatSession, deleteChatSession,
-} from "../../services/aiService";
+import { chatWithAssistant, listChatSessions, getChatSession, deleteChatSession, } from "../../services/aiService";
 import { useToast } from "../../context/ToastContext";
 import { useAuth } from "../../hooks/useAuth";
 import { getErrorMessage, formatRelative } from "../../utils/helpers";

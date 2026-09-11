@@ -233,9 +233,7 @@ const Terms = () => {
               platform team.
             </p>
 
-            <p>
-              <strong>Email:</strong> support@civicai-nexus.com
-            </p>
+            <p> <strong>Email:</strong> support@civicai-nexus.com </p>
           </section>
 
           <section className="legal-notice">

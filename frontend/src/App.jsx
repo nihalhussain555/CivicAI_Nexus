@@ -1,9 +1,4 @@
-import {
-  BrowserRouter,
-  Routes,
-  Route,
-  Navigate,
-} from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, } from "react-router-dom";
 
 import { AuthProvider } from "./context/AuthContext";
 import { ThemeProvider } from "./context/ThemeContext";
@@ -59,19 +54,13 @@ import Profile from "./pages/shared/Profile";
 import Settings from "./pages/shared/Settings";
 import AIAssistant from "./pages/shared/AIAssistant";
 
-
 function App() {
 
   return (
-
     <ThemeProvider>
-
       <ToastProvider>
-
         <AuthProvider>
-
           <BrowserRouter>
-
             <Routes>
 
               {/* ================================================= */}
@@ -79,351 +68,111 @@ function App() {
               {/* ================================================= */}
 
               <Route element={<PublicLayout />}>
-
-                <Route
-                  path="/"
-                  element={<Landing />}
-                />
-
-                <Route
-                  path="/about"
-                  element={<About />}
-                />
-
-                <Route
-                  path="/how-it-works"
-                  element={<HowItWorks />}
-                />
-
+                <Route path="/" element={<Landing />}/>
+                <Route path="/about" element={<About />}/>
+                <Route path="/how-it-works" element={<HowItWorks />}/>
                 <Route path="/privacy-policy" element={<PrivacyPolicy />} />
                 <Route path="/terms" element={<Terms />} />
                 <Route path="/cookie-policy" element={<CookiePolicy />} />
-                
               </Route>
-
 
               {/* ================================================= */}
               {/* Authentication */}
               {/* ================================================= */}
 
-              <Route
-                path="/login"
-                element={<Login />}
-              />
-
-              <Route
-                path="/register"
-                element={<Register />}
-              />
-
-              <Route
-                path="/forgot-password"
-                element={<ForgotPassword />}
-              />
-
-              <Route
-                path="/reset-password"
-                element={<ResetPassword />}
-              />
-
-              <Route
-                path="/403"
-                element={<Forbidden />}
-              />
-
+              <Route path="/login" element={<Login />}/>
+              <Route path="/register" element={<Register />}/>
+              <Route path="/forgot-password" element={<ForgotPassword />}/>
+              <Route path="/reset-password" element={<ResetPassword />}/>
+              <Route path="/403" element={<Forbidden />}/>
 
               {/* ================================================= */}
               {/* Citizen */}
               {/* ================================================= */}
 
-              <Route
-                path="/citizen"
-                element={
-                  <ProtectedRoute
-                    allowedRoles={["citizen"]}
-                  >
+              <Route path="/citizen" element={
+
+                  <ProtectedRoute allowedRoles={["citizen"]}>
                     <DashboardLayout />
-                  </ProtectedRoute>
-                }
-              >
+                  </ProtectedRoute> }>
 
-                <Route
-                  index
-                  element={
-                    <Navigate
-                      to="dashboard"
-                      replace
-                    />
-                  }
-                />
+                <Route index element={ <Navigate to="dashboard" replace /> }/>
 
-                <Route
-                  path="dashboard"
-                  element={<CitizenDashboard />}
-                />
-
-                <Route
-                  path="report"
-                  element={<ReportIssue />}
-                />
-
-                <Route
-                  path="grievances"
-                  element={<CitizenGrievances />}
-                />
-
-                <Route
-                  path="grievances/:grievanceId"
-                  element={<GrievanceDetail />}
-                />
-
-                <Route
-                  path="incidents"
-                  element={<Incidents />}
-                />
-
-                <Route
-                  path="incidents/:incidentId"
-                  element={<IncidentDetail />}
-                />
-
-                <Route
-                  path="assistant"
-                  element={<AIAssistant />}
-                />
-
-                <Route
-                  path="notifications"
-                  element={<Notifications />}
-                />
-
-                <Route
-                  path="profile"
-                  element={<Profile />}
-                />
-
-                <Route
-                  path="settings"
-                  element={<Settings />}
-                />
-
+                <Route path="dashboard" element={<CitizenDashboard />}/>
+                <Route path="report" element={<ReportIssue />}/>
+                <Route path="grievances" element={<CitizenGrievances />}/>
+                <Route path="grievances/:grievanceId" element={<GrievanceDetail />} />
+                <Route path="incidents" element={<Incidents />} />
+                <Route path="incidents/:incidentId" element={<IncidentDetail />}/>
+                <Route path="assistant" element={<AIAssistant />}/>
+                <Route path="notifications" element={<Notifications />}/>
+                <Route path="profile" element={<Profile />}/>
+                <Route path="settings" element={<Settings />}/>
               </Route>
-
 
               {/* ================================================= */}
               {/* Officer */}
               {/* ================================================= */}
 
-              <Route
-                path="/officer"
-                element={
-                  <ProtectedRoute
-                    allowedRoles={[
-                      "officer",
-                      "admin",
-                    ]}
-                  >
-                    <DashboardLayout />
-                  </ProtectedRoute>
-                }
-              >
+              <Route path="/officer" element={
 
-                <Route
-                  index
-                  element={
-                    <Navigate
-                      to="dashboard"
-                      replace
-                    />
-                  }
-                />
+                <ProtectedRoute allowedRoles={[ "officer", "admin",]}>
+                  <DashboardLayout />
+                </ProtectedRoute>}>
 
-                <Route
-                  path="dashboard"
-                  element={<OfficerDashboard />}
-                />
-
-                <Route
-                  path="grievances"
-                  element={<OfficerGrievances />}
-                />
-
-                <Route
-                  path="grievances/:grievanceId"
-                  element={<GrievanceDetail />}
-                />
-
-                <Route
-                  path="incidents"
-                  element={<Incidents />}
-                />
-
-                <Route
-                  path="incidents/:incidentId"
-                  element={<IncidentDetail />}
-                />
-
-                <Route
-                  path="copilot"
-                  element={<AIAssistant />}
-                />
-
-                <Route
-                  path="assistant"
-                  element={<AIAssistant />}
-                />
-
-                <Route
-                  path="analytics"
-                  element={<OfficerAnalytics />}
-                />
-
-                <Route
-                  path="notifications"
-                  element={<Notifications />}
-                />
-
-                <Route
-                  path="profile"
-                  element={<Profile />}
-                />
-
-                <Route
-                  path="settings"
-                  element={<Settings />}
-                />
-
+                <Route index element={ <Navigate to="dashboard" replace/>}/>
+                <Route path="dashboard" element={<OfficerDashboard />}/>
+                <Route path="grievances" element={<OfficerGrievances />}/>
+                <Route path="grievances/:grievanceId" element={<GrievanceDetail />}/>
+                <Route path="incidents" element={<Incidents />}/>
+                <Route path="incidents/:incidentId" element={<IncidentDetail />}/>
+                <Route path="copilot" element={<AIAssistant />}/>
+                <Route path="assistant" element={<AIAssistant />}/>
+                <Route path="analytics" element={<OfficerAnalytics />}/>
+                <Route path="notifications" element={<Notifications />}/>
+                <Route path="profile" element={<Profile />}/>
+                <Route path="settings" element={<Settings />}/>
               </Route>
-
 
               {/* ================================================= */}
               {/* Admin */}
               {/* ================================================= */}
 
-              <Route
-                path="/admin"
-                element={
-                  <ProtectedRoute
-                    allowedRoles={["admin"]}
-                  >
+              <Route path="/admin" element={
+                  <ProtectedRoute allowedRoles={["admin"]}>
                     <DashboardLayout />
-                  </ProtectedRoute>
-                }
-              >
+                  </ProtectedRoute>}>
 
-                <Route
-                  index
-                  element={
-                    <Navigate
-                      to="dashboard"
-                      replace
-                    />
-                  }
-                />
-
-                <Route
-                  path="dashboard"
-                  element={<AdminDashboard />}
-                />
-
-                <Route
-                  path="grievances"
-                  element={<AdminGrievances />}
-                />
-
-                <Route
-                  path="grievances/:grievanceId"
-                  element={<GrievanceDetail />}
-                />
-
-                <Route
-                  path="incidents"
-                  element={<Incidents />}
-                />
-
-                <Route
-                  path="incidents/:incidentId"
-                  element={<IncidentDetail />}
-                />
-
-                <Route
-                  path="departments"
-                  element={<AdminDepartments />}
-                />
-
-                <Route
-                  path="officers"
-                  element={<AdminOfficers />}
-                />
-
-                <Route
-                  path="officers/:officerId"
-                  element={<AdminOfficerDetail />}
-                />
-
-                <Route
-                  path="admins"
-                  element={<AdminAdmins />}
-                />
-
-                <Route
-                  path="analytics"
-                  element={<AdminAnalytics />}
-                />
-
-                <Route
-                  path="map"
-                  element={<AdminMap />}
-                />
-
-                <Route
-                  path="ai-insights"
-                  element={<AdminAIInsights />}
-                />
-
-                <Route
-                  path="assistant"
-                  element={<AIAssistant />}
-                />
-
-                <Route
-                  path="notifications"
-                  element={<Notifications />}
-                />
-
-                <Route
-                  path="profile"
-                  element={<Profile />}
-                />
-
-                <Route
-                  path="settings"
-                  element={<Settings />}
-                />
-
+                <Route index element={ <Navigate to="dashboard" replace/> }/>
+                <Route path="dashboard" element={<AdminDashboard />}/>
+                <Route path="grievances" element={<AdminGrievances />}/>
+                <Route path="grievances/:grievanceId" element={<GrievanceDetail />}/>
+                <Route path="incidents" element={<Incidents />}/>
+                <Route path="incidents/:incidentId" element={<IncidentDetail />}/>
+                <Route path="departments" element={<AdminDepartments />}/>
+                <Route path="officers" element={<AdminOfficers />}/>
+                <Route path="officers/:officerId" element={<AdminOfficerDetail />}/>
+                <Route path="admins" element={<AdminAdmins />}/>
+                <Route path="analytics" element={<AdminAnalytics />}/>
+                <Route path="map" element={<AdminMap />}/>
+                <Route path="ai-insights" element={<AdminAIInsights />}/>
+                <Route path="assistant" element={<AIAssistant />}/>
+                <Route path="notifications" element={<Notifications />}/>
+                <Route path="profile" element={<Profile />}/>
+                <Route path="settings" element={<Settings />}/>
               </Route>
-
 
               {/* ================================================= */}
               {/* 404 */}
               {/* ================================================= */}
 
-              <Route
-                path="*"
-                element={<NotFound />}
-              />
-
+              <Route path="*" element={<NotFound />}/>
             </Routes>
-
           </BrowserRouter>
-
         </AuthProvider>
-
       </ToastProvider>
-
     </ThemeProvider>
   );
 }
-
 
 export default App;

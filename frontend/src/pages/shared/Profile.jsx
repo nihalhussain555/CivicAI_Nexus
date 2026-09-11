@@ -617,19 +617,10 @@ const Profile = () => {
         <div className="profile-header">
           <div>
             <h1>My Profile</h1>
-            <p>
-              Manage your personal information and account details.
-            </p>
+            <p> Manage your personal information and account details. </p>
           </div>
-
-          {loading && (
-            <Loader2
-              size={20}
-              style={{
-                color: "#6d28d9",
-                animation: "spin 0.8s linear infinite",
-              }}
-            />
+          {loading && ( 
+            <Loader2 size={20} style={{ color: "#6d28d9", animation: "spin 0.8s linear infinite", }}/>
           )}
         </div>
 
@@ -641,18 +632,12 @@ const Profile = () => {
 
           <div className="profile-avatar-wrapper">
 
-            <Avatar
-              user={profile}
-              size={96}
-            />
-
-            <button
-              type="button"
-              className="profile-photo-button"
-              onClick={openPhotoPicker}
-              disabled={uploadingPhoto}
-              title="Change profile photo"
-            >
+            <Avatar user={profile} size={96} />
+            <button type="button"
+                className="profile-photo-button"
+                onClick={openPhotoPicker}
+                disabled={uploadingPhoto}
+                title="Change profile photo" >
               {uploadingPhoto ? (
                 <Loader2
                   size={16}
@@ -672,7 +657,6 @@ const Profile = () => {
               hidden
               onChange={handlePhotoChange}
             />
-
           </div>
 
           <div style={{ minWidth: 0 }}>
@@ -696,7 +680,6 @@ const Profile = () => {
                 {locationText}
               </div>
             )}
-
           </div>
         </div>
 

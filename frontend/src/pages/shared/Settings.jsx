@@ -330,20 +330,13 @@ const Settings = () => {
           </div>
 
           <div>
-            <span>
-              LANGUAGE
-            </span>
+            <span> LANGUAGE </span>
 
-            <strong>
-              {accountLanguage}
-            </strong>
+            <strong> {accountLanguage} </strong>
           </div>
 
           <div>
-            <span>
-              PHONE
-            </span>
-
+            <span> PHONE </span>
             <strong>
               {accountPhone}
             </strong>
@@ -363,13 +356,9 @@ const Settings = () => {
         <div className="settings-section-heading">
 
           <div>
-            <h2>
-              Account information
-            </h2>
+            <h2> Account information </h2>
 
-            <p>
-              Your basic CivicAI Nexus account details.
-            </p>
+            <p> Your basic CivicAI Nexus account details.  </p>
           </div>
 
         </div>
@@ -377,29 +366,10 @@ const Settings = () => {
 
         <div className="settings-grid">
 
-          <InfoCard
-            icon={<User size={20} />}
-            title="Full name"
-            value={accountName}
-          />
-
-          <InfoCard
-            icon={<Mail size={20} />}
-            title="Email address"
-            value={accountEmail}
-          />
-
-          <InfoCard
-            icon={<Phone size={20} />}
-            title="Phone number"
-            value={accountPhone}
-          />
-
-          <InfoCard
-            icon={<CalendarDays size={20} />}
-            title="Account status"
-            value="Active"
-          />
+          <InfoCard icon={<User size={20} />} title="Full name" value={accountName}/>
+          <InfoCard icon={<Mail size={20} />} title="Email address" value={accountEmail}/>
+          <InfoCard icon={<Phone size={20} />} title="Phone number" value={accountPhone}/>
+          <InfoCard icon={<CalendarDays size={20} />} title="Account status"  value="Active"/>
 
         </div>
 
@@ -428,18 +398,13 @@ const Settings = () => {
               </div>
 
               <div>
-                <h3>
-                  Theme
-                </h3>
-
-                <p>
-                  Current theme:{" "}
+                <h3> Theme </h3>
+                <p> Current theme:{" "}
                   <strong className="capitalize">
                     {mode}
                   </strong>
                 </p>
               </div>
-
             </div>
 
             <div className="settings-theme-control">
