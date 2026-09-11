@@ -1,12 +1,16 @@
 from pathlib import Path
-import pandas as pd
 import joblib
+import pandas as pd
 
 from sklearn.model_selection import train_test_split
-from sklearn.pipeline import Pipeline
+from sklearn.pipeline import Pipeline, FeatureUnion
 from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import accuracy_score, classification_report
+from sklearn.svm import LinearSVC
+from sklearn.metrics import (
+    accuracy_score,
+    classification_report,
+    confusion_matrix
+)
 
 
 # ============================================================
@@ -15,171 +19,184 @@ from sklearn.metrics import accuracy_score, classification_report
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-DATA_PATH = BASE_DIR / "datasets" / "complaints.csv"
-MODEL_PATH = BASE_DIR / "models" / "complaint_classifier.pkl"
+DATASET_PATH = BASE_DIR / "datasets" / "complaints.csv"
+MODEL_DIR = BASE_DIR / "models"
+MODEL_PATH = MODEL_DIR / "complaint_classifier.pkl"
+
+MODEL_DIR.mkdir(parents=True, exist_ok=True)
 
 
-print("=" * 70)
-print("CIVICAI NEXUS - DEPARTMENT CLASSIFIER")
-print("=" * 70)
+# ============================================================
+# EXPECTED DEPARTMENTS
+# ============================================================
 
-print("\nLoading dataset...")
-print(f"Dataset: {DATA_PATH}")
+EXPECTED_DEPARTMENTS = [
+    "Municipal Corporation",
+    "Police",
+    "Health",
+    "Education",
+    "Electricity",
+    "Water Services",
+    "Roads & Highways",
+    "Waste Management",
+    "Agriculture",
+    "Housing",
+    "Revenue & Land Records",
+    "Food & Civil Supplies",
+    "Transport",
+    "Labour & Employment",
+    "Women & Child Welfare",
+    "Environment & Forest",
+    "Social Welfare",
+    "Public Works",
+    "Rural Development / Panchayat",
+    "e-Governance",
+    "Drainage & Sewerage"
+]
 
 
 # ============================================================
 # LOAD DATASET
 # ============================================================
 
-df = pd.read_csv(DATA_PATH)
+print("=" * 80)
+print("CIVICAI NEXUS - DEPARTMENT MODEL TRAINING")
+print("=" * 80)
 
-print("\nColumns found in CSV:")
-print(list(df.columns))
+if not DATASET_PATH.exists():
+    raise FileNotFoundError(
+        f"Dataset not found:\n{DATASET_PATH}"
+    )
+
+df = pd.read_csv(DATASET_PATH)
+
+print(f"\nDataset loaded: {DATASET_PATH}")
+print(f"Total rows: {len(df)}")
 
 
 # ============================================================
-# AUTOMATICALLY FIND COMPLAINT COLUMN
+# COLUMN VALIDATION
 # ============================================================
 
-text_column_candidates = [
-    "text",
-    "complaint",
-    "complaint_text",
-    "grievance",
-    "grievance_text",
-    "description",
-    "complaint_description",
-    "issue",
-    "message"
-]
+required_columns = {"text", "department"}
 
-text_column = None
+missing = required_columns - set(df.columns)
 
-for column in text_column_candidates:
-
-    if column in df.columns:
-        text_column = column
-        break
-
-
-if text_column is None:
-
+if missing:
     raise ValueError(
-        "\nCould not find complaint text column.\n\n"
-        f"Available columns: {list(df.columns)}\n\n"
-        "Expected one of:\n"
-        "text, complaint, complaint_text, grievance, "
-        "grievance_text, description, issue, message"
+        f"Missing required columns: {missing}"
     )
 
 
-# ============================================================
-# FIND DEPARTMENT COLUMN
-# ============================================================
-
-department_column_candidates = [
-    "department",
-    "department_name",
-    "dept",
-    "category",
-    "department_category"
-]
-
-department_column = None
-
-for column in department_column_candidates:
-
-    if column in df.columns:
-        department_column = column
-        break
-
-
-if department_column is None:
-
-    raise ValueError(
-        "\nCould not find department column.\n\n"
-        f"Available columns: {list(df.columns)}"
-    )
-
-
-print("\nDetected columns:")
-print(f"Complaint : {text_column}")
-print(f"Department: {department_column}")
-
-
-# ============================================================
-# RENAME TO STANDARD NAMES
-# ============================================================
-
-df = df.rename(
-    columns={
-        text_column: "text",
-        department_column: "department"
-    }
-)
+df = df[["text", "department"]].copy()
 
 
 # ============================================================
 # CLEAN DATA
 # ============================================================
 
-df = df.dropna(
-    subset=[
-        "text",
-        "department"
-    ]
-)
-
 df["text"] = (
     df["text"]
+    .fillna("")
     .astype(str)
     .str.strip()
 )
 
 df["department"] = (
     df["department"]
+    .fillna("")
     .astype(str)
     .str.strip()
 )
 
-
 # Remove empty rows
-df = df[df["text"] != ""]
-df = df[df["department"] != ""]
+df = df[
+    (df["text"] != "") &
+    (df["department"] != "")
+]
 
-
-# Remove duplicate complaints
+# Remove exact duplicate complaints
 df = df.drop_duplicates(
     subset=["text", "department"]
 )
 
+print(f"Rows after cleaning: {len(df)}")
+
 
 # ============================================================
-# DATASET INFORMATION
+# CHECK DEPARTMENTS
 # ============================================================
 
-print("\n" + "=" * 70)
-print("DATASET INFORMATION")
-print("=" * 70)
-
-print(f"\nTotal complaints: {len(df)}")
-
-print(
-    f"Departments: "
-    f"{df['department'].nunique()}"
+actual_departments = sorted(
+    df["department"].unique().tolist()
 )
 
-print("\nDepartment distribution:")
-print("-" * 70)
+print("\nDepartments found:")
+for department in actual_departments:
+    print(f"  - {department}")
 
-print(
+# Check for invalid / old departments
+invalid_departments = set(actual_departments) - set(
+    EXPECTED_DEPARTMENTS
+)
+
+if invalid_departments:
+
+    print("\nERROR: Unexpected department labels found:")
+
+    for department in sorted(invalid_departments):
+        print(f"  ❌ {department}")
+
+    print("\nExpected only:")
+    for department in EXPECTED_DEPARTMENTS:
+        print(f"  ✓ {department}")
+
+    raise ValueError(
+        "\nDataset contains old or invalid department labels. "
+        "Fix the dataset generator before training."
+    )
+
+
+# ============================================================
+# CHECK ALL 21 DEPARTMENTS
+# ============================================================
+
+missing_departments = set(
+    EXPECTED_DEPARTMENTS
+) - set(actual_departments)
+
+if missing_departments:
+
+    print("\nERROR: Missing departments:")
+
+    for department in sorted(missing_departments):
+        print(f"  ❌ {department}")
+
+    raise ValueError(
+        "All 21 departments must exist in the dataset."
+    )
+
+
+# ============================================================
+# DATASET DISTRIBUTION
+# ============================================================
+
+print("\n" + "=" * 80)
+print("DATASET DISTRIBUTION")
+print("=" * 80)
+
+distribution = (
     df["department"]
     .value_counts()
+    .sort_index()
 )
+
+for department, count in distribution.items():
+    print(f"{department:<35} {count}")
 
 
 # ============================================================
-# FEATURES / LABELS
+# LANGUAGE-AGNOSTIC TEXT FEATURES
 # ============================================================
 
 X = df["text"]
@@ -193,7 +210,7 @@ y = df["department"]
 X_train, X_test, y_train, y_test = train_test_split(
     X,
     y,
-    test_size=0.40,
+    test_size=0.20,
     random_state=42,
     stratify=y
 )
@@ -203,40 +220,68 @@ print("Testing samples :", len(X_test))
 
 
 # ============================================================
-# MODEL
+# MULTILINGUAL FEATURE ENGINEERING
+# ============================================================
+
+word_features = TfidfVectorizer(
+    analyzer="word",
+
+    lowercase=True,
+
+    ngram_range=(1, 2),
+
+    sublinear_tf=True,
+
+    min_df=1,
+
+    max_df=0.98,
+
+    max_features=100000,
+
+    strip_accents="unicode"
+)
+
+
+char_features = TfidfVectorizer(
+    analyzer="char",
+
+    ngram_range=(2, 5),
+
+    min_df=1,
+
+    max_df=0.99,
+
+    max_features=150000,
+
+    sublinear_tf=True
+)
+
+
+features = FeatureUnion([
+    ("word_tfidf", word_features),
+    ("char_tfidf", char_features)
+])
+
+
+# ============================================================
+# CLASSIFIER
+# ============================================================
+
+classifier = LinearSVC(
+    C=2.0,
+    class_weight="balanced",
+    max_iter=10000,
+    random_state=42
+)
+
+
+# ============================================================
+# COMPLETE PIPELINE
 # ============================================================
 
 model = Pipeline([
-
-    (
-        "tfidf",
-
-        TfidfVectorizer(
-
-            lowercase=True,
-
-            ngram_range=(1, 2),
-
-            sublinear_tf=True,
-
-            min_df=1,
-
-            max_df=0.95,
-
-            strip_accents="unicode"
-        )
-    ),
-
-    (
-        "classifier",
-
-        LogisticRegression(
-
-            max_iter=3000,
-
-            class_weight="balanced"
-        )
-    )
+    ("features", features),
+    ("classifier", classifier)
 ])
 
 
@@ -244,47 +289,79 @@ model = Pipeline([
 # TRAIN
 # ============================================================
 
-print("\n" + "=" * 70)
-print("TRAINING DEPARTMENT CLASSIFIER")
-print("=" * 70)
+print("\n" + "=" * 80)
+print("TRAINING MODEL")
+print("=" * 80)
 
 model.fit(
     X_train,
     y_train
 )
 
-print("\nTraining completed!")
+print("Training completed.")
 
 
 # ============================================================
 # EVALUATION
 # ============================================================
 
-predictions = model.predict(
-    X_test
-)
+print("\n" + "=" * 80)
+print("MODEL EVALUATION")
+print("=" * 80)
+
+predictions = model.predict(X_test)
 
 accuracy = accuracy_score(
     y_test,
     predictions
 )
 
-
-print("\n" + "=" * 70)
-print("MODEL PERFORMANCE")
-print("=" * 70)
-
 print(
-    f"\nAccuracy: {accuracy * 100:.2f}%"
+    f"\nOverall Accuracy: "
+    f"{accuracy * 100:.2f}%"
 )
 
-print("\nClassification Report:")
+
+# ============================================================
+# CLASSIFICATION REPORT
+# ============================================================
+
+print("\nClassification Report:\n")
 
 print(
     classification_report(
         y_test,
         predictions,
+        labels=EXPECTED_DEPARTMENTS,
         zero_division=0
+    )
+)
+
+
+# ============================================================
+# CONFUSION MATRIX
+# ============================================================
+
+cm = confusion_matrix(
+    y_test,
+    predictions,
+    labels=EXPECTED_DEPARTMENTS
+)
+
+print("\n" + "=" * 80)
+print("CONFUSION MATRIX")
+print("=" * 80)
+
+print(
+    "\nRows = Actual Department"
+    "\nColumns = Predicted Department\n"
+)
+
+print(
+    pd.DataFrame(
+        cm,
+        index=EXPECTED_DEPARTMENTS,
+        columns=EXPECTED_DEPARTMENTS
     )
 )
 
@@ -293,19 +370,17 @@ print(
 # SAVE MODEL
 # ============================================================
 
-MODEL_PATH.parent.mkdir(
-    parents=True,
-    exist_ok=True
-)
-
 joblib.dump(
     model,
     MODEL_PATH
 )
 
+print("\n" + "=" * 80)
+print("MODEL SAVED")
+print("=" * 80)
 
-print("\n" + "=" * 70)
-print("MODEL SAVED SUCCESSFULLY")
-print("=" * 70)
+print(
+    f"\nModel path:\n{MODEL_PATH}"
+)
 
-print(f"\nModel: {MODEL_PATH}")
+print("\nTraining finished successfully.")

@@ -1,70 +1,121 @@
 from pathlib import Path
 import joblib
 
+
 # ============================================================
-# LOAD MODEL
+# PATH
 # ============================================================
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-MODEL_PATH = BASE_DIR / "models" / "complaint_classifier.pkl"
-
-print("Loading CivicAI Department Model...")
-
-model = joblib.load(MODEL_PATH)
-
-print("Model loaded successfully!\n")
+MODEL_PATH = (
+    BASE_DIR /
+    "models" /
+    "complaint_classifier.pkl"
+)
 
 
 # ============================================================
-# PREDICT FUNCTION
+# LOAD MODEL
+# ============================================================
+
+if not MODEL_PATH.exists():
+    raise FileNotFoundError(
+        f"Model not found:\n{MODEL_PATH}"
+    )
+
+model = joblib.load(MODEL_PATH)
+
+print("=" * 70)
+print("CIVICAI NEXUS - DEPARTMENT CLASSIFIER")
+print("=" * 70)
+
+print("\nModel loaded successfully.")
+
+
+# ============================================================
+# PREDICTION
 # ============================================================
 
 def predict_department(text):
 
-    probabilities = model.predict_proba([text])[0]
+    prediction = model.predict([text])[0]
 
-    classes = model.classes_
+    return prediction
 
-    top_indices = probabilities.argsort()[-3:][::-1]
+
+# ============================================================
+# TEST COMPLAINTS
+# ============================================================
+
+test_complaints = [
+
+    # Tamil
+    "எங்கள் பகுதியில் குடிநீர் வரவில்லை",
+
+    # Hindi
+    "हमारे इलाके में पीने का पानी नहीं आ रहा है",
+
+    # Malayalam
+    "ഞങ്ങളുടെ പ്രദേശത്ത് കുടിവെള്ളം ലഭിക്കുന്നില്ല",
+
+    # English
+    "There is no drinking water supply in my area",
+
+    # Tanglish
+    "Enga area la drinking water varala"
+]
+
+
+print("\n" + "=" * 70)
+print("MULTILINGUAL TEST")
+print("=" * 70)
+
+
+for complaint in test_complaints:
+
+    department = predict_department(
+        complaint
+    )
 
     print("\nComplaint:")
-    print(text)
+    print(complaint)
 
-    print("\nTop Predictions:")
-    print("-" * 40)
+    print("\nPredicted Department:")
+    print(department)
 
-    for index in top_indices:
-
-        department = classes[index]
-        confidence = probabilities[index] * 100
-
-        print(f"{department:<35} {confidence:.2f}%")
-
-    best = top_indices[0]
-
-    print("-" * 40)
-    print("Final Department:", classes[best])
-    print(f"Confidence: {probabilities[best]*100:.2f}%")
+    print("-" * 70)
 
 
 # ============================================================
-# INTERACTIVE LOOP
+# INTERACTIVE TEST
 # ============================================================
+
+print("\n")
+print("=" * 70)
+print("INTERACTIVE TEST")
+print("=" * 70)
+
+print("\nEnter a grievance complaint")
+print("Type 'exit' to stop.\n")
+
 
 while True:
 
-    print("\nEnter a grievance complaint")
-    print("Type 'exit' to stop.\n")
-
-    complaint = input("Complaint: ")
+    complaint = input("Complaint: ").strip()
 
     if complaint.lower() == "exit":
-        print("\nExiting...")
+        print("\nTesting stopped.")
         break
 
-    if complaint.strip() == "":
-        print("Complaint cannot be empty.")
+    if not complaint:
         continue
 
-    predict_department(complaint)
+    department = predict_department(
+        complaint
+    )
+
+    print("\nPredicted Department:")
+    print(department)
+
+    print("-" * 70)

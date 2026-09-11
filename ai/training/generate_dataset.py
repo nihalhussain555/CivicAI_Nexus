@@ -11,409 +11,1331 @@ TARGET_PER_DEPARTMENT = 300
 
 
 # ============================================================
-# DEPARTMENT DATA
+# CIVICAI NEXUS - 21 DEPARTMENTS
+# Languages:
+# English, Tamil, Hindi, Malayalam
 # ============================================================
 
 DATA = {
 
-"Municipal Corporation": {
-
-"English": [
-    "The street lights in my neighborhood are not working",
-    "The drainage near my house is blocked",
-    "Our locality needs regular street cleaning",
-    "The public park in our area is poorly maintained",
-    "The municipal workers have not cleaned our street",
-    "The footpath near the market is damaged",
-    "The public toilet in our locality is not maintained",
-    "The road drainage is overflowing after rain",
-    "Our residential area needs better municipal services",
-    "The community park has become unusable",
-    "The street cleaning schedule is not being followed",
-    "The drain beside our street is completely blocked",
-    "The municipal water tanker is not arriving on time",
-    "The streetlight pole near my house is damaged",
-    "The public facility in our ward requires maintenance",
-],
-
-"Tamil": [
-    "எங்கள் பகுதியில் தெருவிளக்குகள் வேலை செய்யவில்லை",
-    "எங்கள் வீட்டின் அருகே கழிவுநீர் கால்வாய் அடைந்துள்ளது",
-    "எங்கள் பகுதியில் தெருக்களை முறையாக சுத்தம் செய்ய வேண்டும்",
-    "எங்கள் பகுதியில் உள்ள பூங்கா சரியாக பராமரிக்கப்படவில்லை",
-    "எங்கள் தெருவை நகராட்சி ஊழியர்கள் சுத்தம் செய்யவில்லை",
-    "சந்தைக்கு அருகிலுள்ள நடைபாதை சேதமடைந்துள்ளது",
-    "எங்கள் பகுதியில் உள்ள பொது கழிப்பிடம் பராமரிக்கப்படவில்லை",
-    "மழைக்குப் பிறகு சாலை கால்வாயில் நீர் நிரம்புகிறது",
-    "எங்கள் குடியிருப்பு பகுதியில் நகராட்சி சேவைகள் மேம்பட வேண்டும்",
-    "எங்கள் பகுதியில் உள்ள பூங்கா பயன்படுத்த முடியாத நிலையில் உள்ளது",
-    "தெரு சுத்தம் செய்யும் அட்டவணை பின்பற்றப்படவில்லை",
-    "எங்கள் தெருவின் அருகிலுள்ள கால்வாய் அடைத்துள்ளது",
-    "நகராட்சி தண்ணீர் வாகனம் சரியான நேரத்தில் வரவில்லை",
-    "எங்கள் வீட்டருகே உள்ள தெருவிளக்கு கம்பம் சேதமடைந்துள்ளது",
-    "எங்கள் வார்டில் உள்ள பொது வசதிக்கு பராமரிப்பு தேவை",
-],
-
-"Tanglish": [
-    "Enga area la street lights work aagala",
-    "Enga veetu pakkathula drainage block aayiduchu",
-    "Enga locality la street cleaning proper ah nadakala",
-    "Enga area park proper ah maintain pannala",
-    "Municipality workers enga street ah clean pannala",
-    "Market pakkathula footpath damage aayiduchu",
-    "Enga area public toilet maintain pannala",
-    "Rain vandha apram road drainage overflow aagudhu",
-    "Enga residential area ku better municipal service venum",
-    "Enga area park use panna mudiyala",
-    "Street cleaning schedule follow pannala",
-    "Enga street pakkathula drain block aayiduchu",
-    "Municipal water tanker correct time ku varala",
-    "Enga veetu pakkathula street light pole damage aayiduchu",
-    "Enga ward public facility ku maintenance venum",
-]
-},
+    # ========================================================
+    # 1. MUNICIPAL CORPORATION
+    # ========================================================
+    "Municipal Corporation": {
+        "English": [
+            "The street lights in my neighborhood are not working",
+            "The public park in our area is poorly maintained",
+            "The municipal workers have not cleaned our street",
+            "The public toilet in our locality is not maintained",
+            "The streetlight pole near my house is damaged",
+            "The public facility in our ward requires maintenance",
+            "Our residential area needs better municipal services",
+            "The community park has become unusable",
+            "The street cleaning schedule is not being followed",
+            "The municipal office has not responded to our complaint",
+        ],
+        "Tamil": [
+            "எங்கள் பகுதியில் தெருவிளக்குகள் வேலை செய்யவில்லை",
+            "எங்கள் பகுதியில் உள்ள பூங்கா சரியாக பராமரிக்கப்படவில்லை",
+            "எங்கள் தெருவை நகராட்சி ஊழியர்கள் சுத்தம் செய்யவில்லை",
+            "எங்கள் பகுதியில் உள்ள பொது கழிப்பிடம் பராமரிக்கப்படவில்லை",
+            "எங்கள் வீட்டருகே உள்ள தெருவிளக்கு கம்பம் சேதமடைந்துள்ளது",
+            "எங்கள் வார்டில் உள்ள பொது வசதிக்கு பராமரிப்பு தேவை",
+            "எங்கள் குடியிருப்பு பகுதியில் நகராட்சி சேவைகள் மேம்பட வேண்டும்",
+            "எங்கள் பகுதியில் உள்ள பூங்கா பயன்படுத்த முடியாத நிலையில் உள்ளது",
+            "தெரு சுத்தம் செய்யும் அட்டவணை பின்பற்றப்படவில்லை",
+            "நகராட்சி அலுவலகம் எங்கள் புகாருக்கு பதிலளிக்கவில்லை",
+        ],
+        "Hindi": [
+            "हमारे इलाके की स्ट्रीट लाइटें काम नहीं कर रही हैं",
+            "हमारे क्षेत्र का सार्वजनिक पार्क ठीक से साफ नहीं किया जाता",
+            "नगर निगम के कर्मचारी हमारी सड़क की सफाई नहीं कर रहे हैं",
+            "हमारे इलाके का सार्वजनिक शौचालय ठीक से maintained नहीं है",
+            "मेरे घर के पास स्ट्रीट लाइट का खंभा खराब है",
+            "हमारे वार्ड की सार्वजनिक सुविधा की मरम्मत की जरूरत है",
+            "हमारे आवासीय क्षेत्र में बेहतर नगर निगम सेवाओं की जरूरत है",
+            "हमारे क्षेत्र का सामुदायिक पार्क उपयोग के लायक नहीं है",
+            "सड़क की सफाई का समय निर्धारित तरीके से नहीं हो रहा है",
+            "नगर निगम कार्यालय ने हमारी शिकायत का जवाब नहीं दिया",
+        ],
+        "Malayalam": [
+            "ഞങ്ങളുടെ പ്രദേശത്തെ തെരുവ് വിളക്കുകൾ പ്രവർത്തിക്കുന്നില്ല",
+            "ഞങ്ങളുടെ പ്രദേശത്തെ പൊതു പാർക്ക് ശരിയായി പരിപാലിക്കുന്നില്ല",
+            "മുനിസിപ്പൽ ജീവനക്കാർ ഞങ്ങളുടെ തെരുവ് വൃത്തിയാക്കുന്നില്ല",
+            "ഞങ്ങളുടെ പ്രദേശത്തെ പൊതു ശൗചാലയം പരിപാലിക്കുന്നില്ല",
+            "എന്റെ വീടിന് സമീപമുള്ള തെരുവ് വിളക്ക് തൂൺ കേടായിട്ടുണ്ട്",
+            "ഞങ്ങളുടെ വാർഡിലെ പൊതു സൗകര്യത്തിന് അറ്റകുറ്റപ്പണി ആവശ്യമാണ്",
+            "ഞങ്ങളുടെ താമസ പ്രദേശത്ത് മികച്ച മുനിസിപ്പൽ സേവനങ്ങൾ ആവശ്യമാണ്",
+            "ഞങ്ങളുടെ പ്രദേശത്തെ കമ്മ്യൂണിറ്റി പാർക്ക് ഉപയോഗിക്കാൻ കഴിയുന്നില്ല",
+            "തെരുവ് ശുചീകരണ സമയക്രമം പാലിക്കുന്നില്ല",
+            "മുനിസിപ്പൽ ഓഫീസ് ഞങ്ങളുടെ പരാതിക്ക് മറുപടി നൽകിയിട്ടില്ല",
+        ],
+    },
 
 
-"Electricity": {
-
-"English": [
-    "There has been no power supply in our area since yesterday",
-    "The transformer near our street is making unusual sounds",
-    "Our electricity connection keeps getting interrupted",
-    "The power pole outside my house is damaged",
-    "There is frequent voltage fluctuation in our locality",
-    "The electricity meter is not functioning correctly",
-    "Our neighborhood experiences daily power cuts",
-    "The electric wire near the road is hanging dangerously",
-    "The transformer in our locality appears overloaded",
-    "My electricity bill shows an incorrect reading",
-    "The power supply has not been restored after the outage",
-    "Several houses in our street have lost electricity",
-    "The electricity connection at my property is delayed",
-    "The street electrical line is damaged",
-    "The power meter has stopped recording consumption",
-],
-
-"Tamil": [
-    "எங்கள் பகுதியில் நேற்று முதல் மின்சாரம் இல்லை",
-    "எங்கள் தெருவின் அருகிலுள்ள மின்மாற்றியில் வித்தியாசமான சத்தம் வருகிறது",
-    "எங்கள் மின் இணைப்பு அடிக்கடி துண்டிக்கப்படுகிறது",
-    "எங்கள் வீட்டிற்கு வெளியே உள்ள மின்கம்பம் சேதமடைந்துள்ளது",
-    "எங்கள் பகுதியில் அடிக்கடி மின்னழுத்த ஏற்ற இறக்கம் ஏற்படுகிறது",
-    "மின் மீட்டர் சரியாக வேலை செய்யவில்லை",
-    "எங்கள் பகுதியில் தினமும் மின்தடை ஏற்படுகிறது",
-    "சாலையின் அருகே மின்கம்பி ஆபத்தான நிலையில் தொங்குகிறது",
-    "எங்கள் பகுதியில் உள்ள மின்மாற்றி அதிக சுமையில் இருப்பது போல் தெரிகிறது",
-    "என் மின்சார கட்டணத்தில் தவறான அளவு காட்டப்பட்டுள்ளது",
-    "மின்தடைக்குப் பிறகு மின்சாரம் மீண்டும் வழங்கப்படவில்லை",
-    "எங்கள் தெருவில் பல வீடுகளுக்கு மின்சாரம் இல்லை",
-    "என் வீட்டின் மின் இணைப்பு தாமதமாகிறது",
-    "தெருவில் உள்ள மின் கம்பி சேதமடைந்துள்ளது",
-    "மின் மீட்டர் பயன்பாட்டை பதிவு செய்யவில்லை",
-],
-
-"Tanglish": [
-    "Enga area la netthu la irundhu current illa",
-    "Enga street pakkathula transformer unusual sound varudhu",
-    "Enga electricity connection adikkadi cut aagudhu",
-    "Enga veetu veliya irukkura power pole damage aayiduchu",
-    "Enga area la voltage fluctuation romba irukku",
-    "Electricity meter correct ah work aagala",
-    "Enga locality la daily power cut aagudhu",
-    "Road pakkathula electric wire dangerous ah thongudhu",
-    "Enga area transformer overload aana madhiri irukku",
-    "En electricity bill la wrong reading irukku",
-    "Power cut ku apram current innum varala",
-    "Enga street la neraya veetuku current illa",
-    "En veetu electricity connection delay aagudhu",
-    "Street electrical wire damage aayiduchu",
-    "Power meter consumption record pannala",
-]
-},
+    # ========================================================
+    # 2. POLICE
+    # ========================================================
+    "Police": {
+        "English": [
+            "I want to report a theft in my neighborhood",
+            "There is a suspicious person near our residential area",
+            "My vehicle has been stolen",
+            "I need to file a police complaint",
+            "There is illegal activity near our street",
+            "Someone has damaged my property",
+            "I received a threatening message",
+            "There is a dispute that requires police assistance",
+            "My police complaint has not received a response",
+            "There is dangerous driving near our school",
+        ],
+        "Tamil": [
+            "எங்கள் பகுதியில் நடந்த திருட்டை புகார் செய்ய விரும்புகிறேன்",
+            "எங்கள் குடியிருப்பு பகுதியில் சந்தேகமான நபர் உள்ளார்",
+            "எனது வாகனம் திருடப்பட்டுள்ளது",
+            "நான் காவல்துறையில் புகார் அளிக்க வேண்டும்",
+            "எங்கள் தெருவின் அருகே சட்டவிரோத செயல்கள் நடக்கின்றன",
+            "யாரோ எனது சொத்தை சேதப்படுத்தியுள்ளனர்",
+            "எனக்கு மிரட்டல் செய்தி வந்துள்ளது",
+            "காவல்துறை உதவி தேவைப்படும் பிரச்சனை உள்ளது",
+            "எனது காவல் புகாருக்கு இன்னும் பதில் கிடைக்கவில்லை",
+            "எங்கள் பள்ளி அருகே ஆபத்தான முறையில் வாகனங்கள் ஓட்டப்படுகின்றன",
+        ],
+        "Hindi": [
+            "मैं अपने इलाके में हुई चोरी की शिकायत करना चाहता हूं",
+            "हमारे आवासीय क्षेत्र के पास एक संदिग्ध व्यक्ति है",
+            "मेरा वाहन चोरी हो गया है",
+            "मुझे पुलिस में शिकायत दर्ज करनी है",
+            "हमारी सड़क के पास अवैध गतिविधियां हो रही हैं",
+            "किसी ने मेरी संपत्ति को नुकसान पहुंचाया है",
+            "मुझे धमकी भरा संदेश मिला है",
+            "एक विवाद में पुलिस की सहायता चाहिए",
+            "मेरी पुलिस शिकायत का अभी तक जवाब नहीं मिला है",
+            "हमारे स्कूल के पास खतरनाक तरीके से वाहन चलाए जा रहे हैं",
+        ],
+        "Malayalam": [
+            "ഞങ്ങളുടെ പ്രദേശത്തെ മോഷണം റിപ്പോർട്ട് ചെയ്യണം",
+            "ഞങ്ങളുടെ താമസ പ്രദേശത്തിന് സമീപം സംശയാസ്പദനായ ഒരാൾ ഉണ്ട്",
+            "എന്റെ വാഹനം മോഷണം പോയി",
+            "എനിക്ക് പോലീസിൽ പരാതി നൽകണം",
+            "ഞങ്ങളുടെ തെരുവിന് സമീപം നിയമവിരുദ്ധ പ്രവർത്തനങ്ങൾ നടക്കുന്നു",
+            "ആരോ എന്റെ സ്വത്തിന് കേടുപാടുകൾ വരുത്തി",
+            "എനിക്ക് ഭീഷണി സന്ദേശം ലഭിച്ചു",
+            "ഒരു തർക്കത്തിന് പോലീസ് സഹായം ആവശ്യമാണ്",
+            "എന്റെ പോലീസ് പരാതിക്ക് ഇതുവരെ മറുപടി ലഭിച്ചിട്ടില്ല",
+            "ഞങ്ങളുടെ സ്കൂളിന് സമീപം അപകടകരമായി വാഹനങ്ങൾ ഓടിക്കുന്നു",
+        ],
+    },
 
 
-"Water Supply": {
-
-"English": [
-    "There is no drinking water supply in our neighborhood",
-    "Water has not reached our street since yesterday",
-    "The public water pipeline is leaking",
-    "Our water pressure is extremely low",
-    "The water supply schedule is not being followed",
-    "The overhead water tank is not receiving water",
-    "Dirty water is coming through the public pipeline",
-    "Our locality receives water only for a few minutes",
-    "The water pipeline near our house has burst",
-    "The public tap has stopped working",
-    "Water supply has been irregular for several weeks",
-    "Our village has insufficient drinking water",
-    "The water connection application is still pending",
-    "The municipal pipeline is damaged",
-    "The supplied water has an unusual smell",
-],
-
-"Tamil": [
-    "எங்கள் பகுதியில் குடிநீர் விநியோகம் இல்லை",
-    "நேற்று முதல் எங்கள் தெருவிற்கு தண்ணீர் வரவில்லை",
-    "பொது குடிநீர் குழாயில் கசிவு உள்ளது",
-    "எங்கள் பகுதியில் தண்ணீர் அழுத்தம் மிகவும் குறைவாக உள்ளது",
-    "தண்ணீர் விநியோக அட்டவணை பின்பற்றப்படவில்லை",
-    "மேல்நிலை நீர்த்தேக்க தொட்டிக்கு தண்ணீர் வரவில்லை",
-    "பொது குழாயில் அழுக்கான தண்ணீர் வருகிறது",
-    "எங்கள் பகுதியில் சில நிமிடங்கள் மட்டுமே தண்ணீர் வருகிறது",
-    "எங்கள் வீட்டருகே குடிநீர் குழாய் உடைந்துள்ளது",
-    "பொது தண்ணீர் குழாய் வேலை செய்யவில்லை",
-    "பல வாரங்களாக தண்ணீர் விநியோகம் சீராக இல்லை",
-    "எங்கள் கிராமத்தில் போதுமான குடிநீர் இல்லை",
-    "தண்ணீர் இணைப்பு விண்ணப்பம் இன்னும் நிலுவையில் உள்ளது",
-    "நகராட்சி குடிநீர் குழாய் சேதமடைந்துள்ளது",
-    "விநியோகிக்கப்படும் தண்ணீரில் வித்தியாசமான வாசனை உள்ளது",
-],
-
-"Tanglish": [
-    "Enga area la drinking water supply illa",
-    "Netthu la irundhu enga street ku water varala",
-    "Public water pipe la leakage irukku",
-    "Enga area la water pressure romba kammi",
-    "Water supply schedule follow pannala",
-    "Overhead water tank ku water varala",
-    "Public pipeline la dirty water varudhu",
-    "Enga area ku konjam neram mattum water varudhu",
-    "Enga veetu pakkathula water pipe burst aayiduchu",
-    "Public tap work aagala",
-    "Pala weeks ah water supply regular ah illa",
-    "Enga village la drinking water pothala",
-    "Water connection application innum pending la irukku",
-    "Municipal water pipeline damage aayiduchu",
-    "Supply aagura water la strange smell irukku",
-]
-},
+    # ========================================================
+    # 3. HEALTH
+    # ========================================================
+    "Health": {
+        "English": [
+            "The government hospital does not have essential medicines",
+            "The doctor is unavailable at the public health centre",
+            "The hospital lacks basic medical equipment",
+            "The ambulance service is not responding",
+            "The health centre is overcrowded",
+            "My medical report has been delayed",
+            "The government clinic is not open during working hours",
+            "There are no beds available in the public hospital",
+            "The vaccination service is unavailable",
+            "The hospital pharmacy has no medicines",
+        ],
+        "Tamil": [
+            "அரசு மருத்துவமனையில் அத்தியாவசிய மருந்துகள் இல்லை",
+            "அரசு சுகாதார மையத்தில் மருத்துவர் இல்லை",
+            "மருத்துவமனையில் அடிப்படை மருத்துவ உபகரணங்கள் இல்லை",
+            "ஆம்புலன்ஸ் சேவை பதிலளிக்கவில்லை",
+            "சுகாதார மையத்தில் அதிக கூட்டம் உள்ளது",
+            "எனது மருத்துவ அறிக்கை தாமதமாகியுள்ளது",
+            "அரசு மருத்துவமனை வேலை நேரத்தில் திறக்கப்படவில்லை",
+            "அரசு மருத்துவமனையில் படுக்கைகள் இல்லை",
+            "தடுப்பூசி சேவை கிடைக்கவில்லை",
+            "மருத்துவமனை மருந்தகத்தில் மருந்துகள் இல்லை",
+        ],
+        "Hindi": [
+            "सरकारी अस्पताल में जरूरी दवाइयां उपलब्ध नहीं हैं",
+            "सरकारी स्वास्थ्य केंद्र में डॉक्टर उपलब्ध नहीं हैं",
+            "अस्पताल में बुनियादी चिकित्सा उपकरण नहीं हैं",
+            "एम्बुलेंस सेवा जवाब नहीं दे रही है",
+            "स्वास्थ्य केंद्र में बहुत ज्यादा भीड़ है",
+            "मेरी मेडिकल रिपोर्ट में देरी हो रही है",
+            "सरकारी क्लिनिक काम के समय में खुला नहीं है",
+            "सरकारी अस्पताल में बेड उपलब्ध नहीं हैं",
+            "टीकाकरण सेवा उपलब्ध नहीं है",
+            "अस्पताल की फार्मेसी में दवाइयां नहीं हैं",
+        ],
+        "Malayalam": [
+            "സർക്കാർ ആശുപത്രിയിൽ ആവശ്യമായ മരുന്നുകൾ ലഭ്യമല്ല",
+            "സർക്കാർ ആരോഗ്യ കേന്ദ്രത്തിൽ ഡോക്ടർ ലഭ്യമല്ല",
+            "ആശുപത്രിയിൽ അടിസ്ഥാന മെഡിക്കൽ ഉപകരണങ്ങൾ ഇല്ല",
+            "ആംബുലൻസ് സേവനം പ്രതികരിക്കുന്നില്ല",
+            "ആരോഗ്യ കേന്ദ്രത്തിൽ വളരെ അധികം തിരക്കുണ്ട്",
+            "എന്റെ മെഡിക്കൽ റിപ്പോർട്ട് വൈകിയിരിക്കുന്നു",
+            "സർക്കാർ ക്ലിനിക്ക് ജോലി സമയത്ത് തുറക്കുന്നില്ല",
+            "സർക്കാർ ആശുപത്രിയിൽ കിടക്കകൾ ലഭ്യമല്ല",
+            "വാക്സിനേഷൻ സേവനം ലഭ്യമല്ല",
+            "ആശുപത്രിയിലെ ഫാർമസിയിൽ മരുന്നുകൾ ഇല്ല",
+        ],
+    },
 
 
-"Sanitation & Waste Management": {
+    # ========================================================
+    # 4. EDUCATION
+    # ========================================================
+    "Education": {
+        "English": [
+            "My scholarship has not been credited",
+            "The government school does not have enough teachers",
+            "Our school lacks proper classroom facilities",
+            "The college has not issued my certificate",
+            "My student scholarship application is pending",
+            "There are no computers in our government school",
+            "The school library does not have enough books",
+            "My education certificate has not arrived",
+            "The government hostel needs better facilities",
+            "My admission application is still pending",
+        ],
+        "Tamil": [
+            "எனது கல்வி உதவித்தொகை இன்னும் வரவில்லை",
+            "அரசுப் பள்ளியில் போதுமான ஆசிரியர்கள் இல்லை",
+            "எங்கள் பள்ளியில் சரியான வகுப்பறை வசதிகள் இல்லை",
+            "கல்லூரி எனது சான்றிதழை வழங்கவில்லை",
+            "எனது கல்வி உதவித்தொகை விண்ணப்பம் நிலுவையில் உள்ளது",
+            "எங்கள் அரசுப் பள்ளியில் கணினிகள் இல்லை",
+            "பள்ளி நூலகத்தில் போதுமான புத்தகங்கள் இல்லை",
+            "எனது கல்விச் சான்றிதழ் இன்னும் வரவில்லை",
+            "அரசு விடுதிக்கு சிறந்த வசதிகள் தேவை",
+            "எனது சேர்க்கை விண்ணப்பம் இன்னும் நிலுவையில் உள்ளது",
+        ],
+        "Hindi": [
+            "मेरी छात्रवृत्ति की राशि अभी तक नहीं मिली है",
+            "सरकारी स्कूल में पर्याप्त शिक्षक नहीं हैं",
+            "हमारे स्कूल में उचित कक्षा सुविधाएं नहीं हैं",
+            "कॉलेज ने मेरा प्रमाणपत्र जारी नहीं किया है",
+            "मेरी छात्रवृत्ति का आवेदन लंबित है",
+            "हमारे सरकारी स्कूल में कंप्यूटर नहीं हैं",
+            "स्कूल की लाइब्रेरी में पर्याप्त किताबें नहीं हैं",
+            "मेरा शिक्षा प्रमाणपत्र अभी तक नहीं आया है",
+            "सरकारी छात्रावास में बेहतर सुविधाओं की जरूरत है",
+            "मेरा प्रवेश आवेदन अभी भी लंबित है",
+        ],
+        "Malayalam": [
+            "എന്റെ സ്കോളർഷിപ്പ് തുക ഇതുവരെ ലഭിച്ചിട്ടില്ല",
+            "സർക്കാർ സ്കൂളിൽ മതിയായ അധ്യാപകർ ഇല്ല",
+            "ഞങ്ങളുടെ സ്കൂളിൽ ആവശ്യമായ ക്ലാസ് സൗകര്യങ്ങൾ ഇല്ല",
+            "കോളേജ് എന്റെ സർട്ടിഫിക്കറ്റ് നൽകിയിട്ടില്ല",
+            "എന്റെ സ്കോളർഷിപ്പ് അപേക്ഷ പരിഗണനയിൽ ആണ്",
+            "ഞങ്ങളുടെ സർക്കാർ സ്കൂളിൽ കമ്പ്യൂട്ടറുകൾ ഇല്ല",
+            "സ്കൂൾ ലൈബ്രറിയിൽ മതിയായ പുസ്തകങ്ങൾ ഇല്ല",
+            "എന്റെ വിദ്യാഭ്യാസ സർട്ടിഫിക്കറ്റ് ഇതുവരെ ലഭിച്ചിട്ടില്ല",
+            "സർക്കാർ ഹോസ്റ്റലിൽ മികച്ച സൗകര്യങ്ങൾ ആവശ്യമാണ്",
+            "എന്റെ പ്രവേശന അപേക്ഷ ഇപ്പോഴും പരിഗണനയിലാണ്",
+        ],
+    },
 
-"English": [
-    "Garbage has not been collected from our street",
-    "Waste bins in our area are overflowing",
-    "The garbage vehicle has stopped visiting our locality",
-    "Household waste is piling up near our houses",
-    "There is an open garbage dump beside the road",
-    "Waste collection has been irregular in our neighborhood",
-    "The garbage container near the market is overflowing",
-    "Our street has not been cleaned for several days",
-    "People are dumping waste on the roadside",
-    "The waste collection workers are not coming regularly",
-    "There is a large pile of rubbish near the bus stop",
-    "The garbage collection service has been delayed",
-    "Our locality has a serious solid waste problem",
-    "The waste bin near our apartment is full",
-    "Uncollected garbage is causing a bad smell",
-],
 
-"Tamil": [
-    "எங்கள் தெருவில் குப்பை சேகரிக்கப்படவில்லை",
-    "எங்கள் பகுதியில் உள்ள குப்பைத் தொட்டிகள் நிரம்பி வழிகின்றன",
-    "குப்பை வாகனம் எங்கள் பகுதிக்கு வருவதை நிறுத்திவிட்டது",
-    "வீட்டு குப்பைகள் எங்கள் வீடுகளுக்கு அருகில் குவிந்துள்ளன",
-    "சாலையின் அருகில் திறந்த குப்பை மேடு உள்ளது",
-    "எங்கள் பகுதியில் குப்பை சேகரிப்பு சீராக இல்லை",
-    "சந்தைக்கு அருகிலுள்ள குப்பைத் தொட்டி நிரம்பியுள்ளது",
-    "எங்கள் தெரு பல நாட்களாக சுத்தம் செய்யப்படவில்லை",
-    "மக்கள் சாலையோரத்தில் குப்பைகளை கொட்டுகின்றனர்",
-    "குப்பை சேகரிப்பு பணியாளர்கள் முறையாக வரவில்லை",
-    "பேருந்து நிறுத்தம் அருகே அதிக அளவு குப்பை குவிந்துள்ளது",
-    "குப்பை சேகரிப்பு சேவை தாமதமாகியுள்ளது",
-    "எங்கள் பகுதியில் திடக்கழிவு பிரச்சனை உள்ளது",
-    "எங்கள் குடியிருப்பின் அருகிலுள்ள குப்பைத் தொட்டி நிரம்பியுள்ளது",
-    "சேகரிக்கப்படாத குப்பையால் துர்நாற்றம் ஏற்படுகிறது",
-],
+    # ========================================================
+    # 5. ELECTRICITY
+    # ========================================================
+    "Electricity": {
+        "English": [
+            "There has been no power supply in our area since yesterday",
+            "The transformer near our street is making unusual sounds",
+            "Our electricity connection keeps getting interrupted",
+            "The power pole outside my house is damaged",
+            "There is frequent voltage fluctuation in our locality",
+            "The electricity meter is not functioning correctly",
+            "Our neighborhood experiences daily power cuts",
+            "The electric wire near the road is hanging dangerously",
+            "My electricity bill shows an incorrect reading",
+            "The power supply has not been restored after the outage",
+        ],
+        "Tamil": [
+            "எங்கள் பகுதியில் நேற்று முதல் மின்சாரம் இல்லை",
+            "எங்கள் தெருவின் அருகிலுள்ள மின்மாற்றியில் வித்தியாசமான சத்தம் வருகிறது",
+            "எங்கள் மின் இணைப்பு அடிக்கடி துண்டிக்கப்படுகிறது",
+            "எங்கள் வீட்டிற்கு வெளியே உள்ள மின்கம்பம் சேதமடைந்துள்ளது",
+            "எங்கள் பகுதியில் அடிக்கடி மின்னழுத்த ஏற்ற இறக்கம் ஏற்படுகிறது",
+            "மின் மீட்டர் சரியாக வேலை செய்யவில்லை",
+            "எங்கள் பகுதியில் தினமும் மின்தடை ஏற்படுகிறது",
+            "சாலையின் அருகே மின்கம்பி ஆபத்தான நிலையில் தொங்குகிறது",
+            "என் மின்சார கட்டணத்தில் தவறான அளவு காட்டப்பட்டுள்ளது",
+            "மின்தடைக்குப் பிறகு மின்சாரம் மீண்டும் வழங்கப்படவில்லை",
+        ],
+        "Hindi": [
+            "कल से हमारे इलाके में बिजली की आपूर्ति नहीं है",
+            "हमारी सड़क के पास ट्रांसफार्मर से अजीब आवाज आ रही है",
+            "हमारा बिजली कनेक्शन बार बार बंद हो रहा है",
+            "मेरे घर के बाहर बिजली का खंभा खराब है",
+            "हमारे इलाके में बार बार वोल्टेज की समस्या होती है",
+            "बिजली का मीटर ठीक से काम नहीं कर रहा है",
+            "हमारे इलाके में रोज बिजली कटौती होती है",
+            "सड़क के पास बिजली का तार खतरनाक तरीके से लटक रहा है",
+            "मेरे बिजली बिल में गलत रीडिंग दिखाई गई है",
+            "बिजली कटने के बाद आपूर्ति अभी तक बहाल नहीं हुई है",
+        ],
+        "Malayalam": [
+            "ഇന്നലെ മുതൽ ഞങ്ങളുടെ പ്രദേശത്ത് വൈദ്യുതി ഇല്ല",
+            "ഞങ്ങളുടെ തെരുവിന് സമീപമുള്ള ട്രാൻസ്ഫോർമറിൽ നിന്ന് വിചിത്രമായ ശബ്ദം കേൾക്കുന്നു",
+            "ഞങ്ങളുടെ വൈദ്യുതി കണക്ഷൻ ഇടയ്ക്കിടെ തടസ്സപ്പെടുന്നു",
+            "എന്റെ വീടിന് പുറത്തുള്ള വൈദ്യുതി തൂൺ കേടായിട്ടുണ്ട്",
+            "ഞങ്ങളുടെ പ്രദേശത്ത് വോൾട്ടേജ് വ്യതിയാനം പതിവാണ്",
+            "വൈദ്യുതി മീറ്റർ ശരിയായി പ്രവർത്തിക്കുന്നില്ല",
+            "ഞങ്ങളുടെ പ്രദേശത്ത് ദിവസവും വൈദ്യുതി മുടങ്ങുന്നു",
+            "റോഡിന് സമീപമുള്ള വൈദ്യുതി വയർ അപകടകരമായി തൂങ്ങിയിരിക്കുന്നു",
+            "എന്റെ വൈദ്യുതി ബില്ലിൽ തെറ്റായ റീഡിംഗ് കാണിക്കുന്നു",
+            "വൈദ്യുതി മുടങ്ങിയതിന് ശേഷം വിതരണം പുനഃസ്ഥാപിച്ചിട്ടില്ല",
+        ],
+    },
 
-"Tanglish": [
-    "Enga street la garbage collect pannala",
-    "Enga area garbage bins overflow aagudhu",
-    "Garbage vehicle enga locality ku varradha stop panniduchu",
-    "Veetu waste enga veetu pakkathula pile aagudhu",
-    "Road side la open garbage dump irukku",
-    "Enga neighborhood la waste collection regular ah illa",
-    "Market pakkathula garbage container full ah irukku",
-    "Enga street pala naala clean pannala",
-    "People road side la waste dump panranga",
-    "Garbage collection workers regular ah varala",
-    "Bus stop pakkathula rubbish romba pile aayirukku",
-    "Garbage collection service delay aayiduchu",
-    "Enga locality la solid waste problem romba irukku",
-    "Apartment pakkathula garbage bin full ah irukku",
-    "Collect pannadha garbage nala bad smell varudhu",
-]
-},
 
+    # ========================================================
+    # 6. WATER SERVICES
+    # ========================================================
+    "Water Services": {
+        "English": [
+            "There is no drinking water supply in our neighborhood",
+            "Water has not reached our street since yesterday",
+            "The public water pipeline is leaking",
+            "Our water pressure is extremely low",
+            "The water supply schedule is not being followed",
+            "The overhead water tank is not receiving water",
+            "Dirty water is coming through the public pipeline",
+            "The public tap has stopped working",
+            "The water connection application is still pending",
+            "The municipal water pipeline is damaged",
+        ],
+        "Tamil": [
+            "எங்கள் பகுதியில் குடிநீர் விநியோகம் இல்லை",
+            "நேற்று முதல் எங்கள் தெருவிற்கு தண்ணீர் வரவில்லை",
+            "பொது குடிநீர் குழாயில் கசிவு உள்ளது",
+            "எங்கள் பகுதியில் தண்ணீர் அழுத்தம் மிகவும் குறைவாக உள்ளது",
+            "தண்ணீர் விநியோக அட்டவணை பின்பற்றப்படவில்லை",
+            "மேல்நிலை நீர்த்தேக்க தொட்டிக்கு தண்ணீர் வரவில்லை",
+            "பொது குழாயில் அழுக்கான தண்ணீர் வருகிறது",
+            "பொது தண்ணீர் குழாய் வேலை செய்யவில்லை",
+            "தண்ணீர் இணைப்பு விண்ணப்பம் இன்னும் நிலுவையில் உள்ளது",
+            "நகராட்சி குடிநீர் குழாய் சேதமடைந்துள்ளது",
+            "எங்கள் பகுதியில் குடிநீர் வரவில்லை",
+            "எங்கள் தெருவில் குடிநீர் விநியோகம் இல்லை",
+            "எங்கள் பகுதியில் தண்ணீர் விநியோகம் நிறுத்தப்பட்டுள்ளது",
+            "குடிநீர் பல நாட்களாக வரவில்லை",
+            "குடிநீர் குழாயில் தண்ணீர் வரவில்லை",
+            "எங்கள் பகுதியில் குடிநீர் பற்றாக்குறை உள்ளது",
+            "குடிநீர் விநியோகம் சரியாக இல்லை",
+            "எங்கள் தெருவிற்கு குடிநீர் வரவில்லை",
+            "குடிநீர் குழாயில் அழுத்தம் குறைவாக உள்ளது",
+            "குடிநீர் இணைப்பு வேலை செய்யவில்லை"
+        ],
+        "Hindi": [
+            "हमारे इलाके में पीने के पानी की आपूर्ति नहीं है",
+            "कल से हमारी सड़क पर पानी नहीं आया है",
+            "सार्वजनिक पानी की पाइपलाइन में रिसाव है",
+            "हमारे इलाके में पानी का दबाव बहुत कम है",
+            "पानी की आपूर्ति का समय निर्धारित तरीके से नहीं है",
+            "ओवरहेड पानी की टंकी में पानी नहीं आ रहा है",
+            "सार्वजनिक पाइपलाइन से गंदा पानी आ रहा है",
+            "सार्वजनिक नल काम करना बंद कर चुका है",
+            "पानी के कनेक्शन का आवेदन अभी लंबित है",
+            "नगरपालिका की पानी की पाइपलाइन खराब है",
+        ],
+        "Malayalam": [
+            "ഞങ്ങളുടെ പ്രദേശത്ത് കുടിവെള്ള വിതരണം ഇല്ല",
+            "ഇന്നലെ മുതൽ ഞങ്ങളുടെ തെരുവിൽ വെള്ളം എത്തിയിട്ടില്ല",
+            "പൊതു കുടിവെള്ള പൈപ്പിൽ ചോർച്ചയുണ്ട്",
+            "ഞങ്ങളുടെ പ്രദേശത്ത് വെള്ളത്തിന്റെ സമ്മർദ്ദം വളരെ കുറവാണ്",
+            "വെള്ള വിതരണ സമയക്രമം പാലിക്കുന്നില്ല",
+            "ഓവർഹെഡ് ടാങ്കിൽ വെള്ളം എത്തുന്നില്ല",
+            "പൊതു പൈപ്പിലൂടെ മലിനമായ വെള്ളം വരുന്നു",
+            "പൊതു ടാപ്പ് പ്രവർത്തിക്കുന്നില്ല",
+            "വെള്ള കണക്ഷൻ അപേക്ഷ ഇപ്പോഴും പരിഗണനയിലാണ്",
+            "മുനിസിപ്പൽ വെള്ള പൈപ്പ് കേടായിട്ടുണ്ട്",
+        ],
+    },
+
+
+    # ========================================================
+    # 7. ROADS & HIGHWAYS
+    # ========================================================
+    "Roads & Highways": {
+        "English": [
+            "There is a large pothole on the main road",
+            "The highway surface is badly damaged",
+            "The road near our village is full of potholes",
+            "A damaged road is causing accidents",
+            "The main road needs resurfacing",
+            "There are cracks across the highway",
+            "The road shoulder has collapsed",
+            "The road surface becomes dangerous during rain",
+            "The road repair work has been delayed",
+            "A major pothole is blocking traffic",
+        ],
+        "Tamil": [
+            "முக்கிய சாலையில் பெரிய பள்ளம் உள்ளது",
+            "நெடுஞ்சாலை மிகவும் சேதமடைந்துள்ளது",
+            "எங்கள் கிராமத்திற்கு அருகிலுள்ள சாலை பள்ளங்களால் நிறைந்துள்ளது",
+            "சேதமடைந்த சாலையால் விபத்துகள் ஏற்படுகின்றன",
+            "முக்கிய சாலைக்கு புதிய தார் போட வேண்டும்",
+            "நெடுஞ்சாலையில் பல விரிசல்கள் உள்ளன",
+            "சாலையின் ஓரம் இடிந்து விழுந்துள்ளது",
+            "மழைக்காலத்தில் சாலை மிகவும் ஆபத்தாகிறது",
+            "சாலை பழுதுபார்ப்பு பணி தாமதமாகியுள்ளது",
+            "பெரிய பள்ளம் போக்குவரத்தை தடுக்கிறது",
+        ],
+        "Hindi": [
+            "मुख्य सड़क पर एक बड़ा गड्ढा है",
+            "राजमार्ग की सतह बहुत खराब हो गई है",
+            "हमारे गांव के पास की सड़क गड्ढों से भरी है",
+            "खराब सड़क के कारण दुर्घटनाएं हो रही हैं",
+            "मुख्य सड़क की मरम्मत की जरूरत है",
+            "राजमार्ग पर कई दरारें हैं",
+            "सड़क का किनारा टूट गया है",
+            "बारिश के दौरान सड़क बहुत खतरनाक हो जाती है",
+            "सड़क की मरम्मत का काम देर से हो रहा है",
+            "बड़ा गड्ढा यातायात को रोक रहा है",
+        ],
+        "Malayalam": [
+            "പ്രധാന റോഡിൽ വലിയ കുഴിയുണ്ട്",
+            "ഹൈവേയുടെ ഉപരിതലം വളരെ മോശമായി കേടായിട്ടുണ്ട്",
+            "ഞങ്ങളുടെ ഗ്രാമത്തിന് സമീപമുള്ള റോഡ് കുഴികളാൽ നിറഞ്ഞിരിക്കുന്നു",
+            "കേടായ റോഡ് കാരണം അപകടങ്ങൾ ഉണ്ടാകുന്നു",
+            "പ്രധാന റോഡ് പുനർനിർമ്മിക്കണം",
+            "ഹൈവേയിൽ നിരവധി വിള്ളലുകൾ ഉണ്ട്",
+            "റോഡിന്റെ വശം ഇടിഞ്ഞുപോയി",
+            "മഴക്കാലത്ത് റോഡ് വളരെ അപകടകരമാണ്",
+            "റോഡ് അറ്റകുറ്റപ്പണി വൈകുകയാണ്",
+            "വലിയ കുഴി ഗതാഗതത്തെ തടസ്സപ്പെടുത്തുന്നു",
+        ],
+    },
+
+
+    # ========================================================
+    # 8. WASTE MANAGEMENT
+    # ========================================================
+    "Waste Management": {
+        "English": [
+            "Garbage has not been collected from our street",
+            "Waste bins in our area are overflowing",
+            "The garbage vehicle has stopped visiting our locality",
+            "Household waste is piling up near our houses",
+            "There is an open garbage dump beside the road",
+            "Waste collection has been irregular in our neighborhood",
+            "The garbage container near the market is overflowing",
+            "People are dumping waste on the roadside",
+            "The waste collection workers are not coming regularly",
+            "Uncollected garbage is causing a bad smell",
+        ],
+        "Tamil": [
+            "எங்கள் தெருவில் குப்பை சேகரிக்கப்படவில்லை",
+            "எங்கள் பகுதியில் உள்ள குப்பைத் தொட்டிகள் நிரம்பி வழிகின்றன",
+            "குப்பை வாகனம் எங்கள் பகுதிக்கு வருவதை நிறுத்திவிட்டது",
+            "வீட்டு குப்பைகள் எங்கள் வீடுகளுக்கு அருகில் குவிந்துள்ளன",
+            "சாலையின் அருகில் திறந்த குப்பை மேடு உள்ளது",
+            "எங்கள் பகுதியில் குப்பை சேகரிப்பு சீராக இல்லை",
+            "சந்தைக்கு அருகிலுள்ள குப்பைத் தொட்டி நிரம்பியுள்ளது",
+            "மக்கள் சாலையோரத்தில் குப்பைகளை கொட்டுகின்றனர்",
+            "குப்பை சேகரிப்பு பணியாளர்கள் முறையாக வரவில்லை",
+            "சேகரிக்கப்படாத குப்பையால் துர்நாற்றம் ஏற்படுகிறது",
+            "எங்கள் தெருவில் குப்பை சேகரிக்கப்படவில்லை",
+            "குப்பை தொட்டிகள் நிரம்பி உள்ளன",
+            "எங்கள் பகுதியில் குப்பைகள் குவிந்துள்ளன",
+            "குப்பை வண்டி எங்கள் பகுதிக்கு வரவில்லை",
+            "தெருவில் குப்பைகள் அகற்றப்படவில்லை"
+        ],
+        "Hindi": [
+            "हमारी सड़क से कचरा नहीं उठाया गया है",
+            "हमारे इलाके के कूड़ेदान भरकर बाहर निकल रहे हैं",
+            "कचरा वाहन हमारे इलाके में आना बंद कर चुका है",
+            "घरों का कचरा हमारे घरों के पास जमा हो रहा है",
+            "सड़क के किनारे खुले में कचरा पड़ा है",
+            "हमारे इलाके में कचरा संग्रह नियमित नहीं है",
+            "बाजार के पास कचरे का डिब्बा भर गया है",
+            "लोग सड़क के किनारे कचरा फेंक रहे हैं",
+            "कचरा संग्रह कर्मचारी नियमित रूप से नहीं आ रहे हैं",
+            "जमा कचरे से बहुत बदबू आ रही है",
+        ],
+        "Malayalam": [
+            "ഞങ്ങളുടെ തെരുവിൽ നിന്ന് മാലിന്യം ശേഖരിക്കുന്നില്ല",
+            "ഞങ്ങളുടെ പ്രദേശത്തെ മാലിന്യപ്പെട്ടികൾ നിറഞ്ഞുകവിഞ്ഞു",
+            "മാലിന്യ വാഹനം ഞങ്ങളുടെ പ്രദേശത്ത് വരുന്നത് നിർത്തി",
+            "വീട്ടുമാലിന്യം വീടുകൾക്ക് സമീപം കെട്ടിക്കിടക്കുന്നു",
+            "റോഡിന്റെ അരികിൽ തുറന്ന മാലിന്യക്കൂമ്പാരം ഉണ്ട്",
+            "ഞങ്ങളുടെ പ്രദേശത്ത് മാലിന്യ ശേഖരണം ക്രമമായിട്ടില്ല",
+            "മാർക്കറ്റിന് സമീപമുള്ള മാലിന്യപ്പെട്ടി നിറഞ്ഞു",
+            "ആളുകൾ റോഡിന്റെ വശത്ത് മാലിന്യം വലിച്ചെറിയുന്നു",
+            "മാലിന്യ ശേഖരണ തൊഴിലാളികൾ പതിവായി വരുന്നില്ല",
+            "ശേഖരിക്കാത്ത മാലിന്യം ദുർഗന്ധം ഉണ്ടാക്കുന്നു",
+        ],
+    },
+
+
+    # ========================================================
+    # 9. AGRICULTURE
+    # ========================================================
+    "Agriculture": {
+        "English": [
+            "Farmers are not receiving irrigation water",
+            "My crop has been damaged by pests",
+            "I need information about agricultural subsidies",
+            "The agriculture officer has not visited our village",
+            "Farmers have not received crop insurance support",
+            "There is a shortage of seeds in our area",
+            "The fertilizer supply has been delayed",
+            "My farmer subsidy application is pending",
+            "The irrigation canal for our fields is damaged",
+            "We need assistance for crop loss",
+        ],
+        "Tamil": [
+            "விவசாயிகளுக்கு பாசன நீர் கிடைக்கவில்லை",
+            "பூச்சிகளால் எனது பயிர் சேதமடைந்துள்ளது",
+            "விவசாய மானியங்கள் குறித்து தகவல் வேண்டும்",
+            "வேளாண் அதிகாரி எங்கள் கிராமத்திற்கு வரவில்லை",
+            "விவசாயிகளுக்கு பயிர் காப்பீட்டு உதவி கிடைக்கவில்லை",
+            "எங்கள் பகுதியில் விதைகள் பற்றாக்குறையாக உள்ளன",
+            "உர விநியோகம் தாமதமாகியுள்ளது",
+            "எனது விவசாய மானிய விண்ணப்பம் நிலுவையில் உள்ளது",
+            "எங்கள் வயலுக்கான பாசன கால்வாய் சேதமடைந்துள்ளது",
+            "பயிர் இழப்புக்கு உதவி தேவை",
+        ],
+        "Hindi": [
+            "किसानों को सिंचाई का पानी नहीं मिल रहा है",
+            "कीटों के कारण मेरी फसल खराब हो गई है",
+            "मुझे कृषि सब्सिडी के बारे में जानकारी चाहिए",
+            "कृषि अधिकारी हमारे गांव में नहीं आए हैं",
+            "किसानों को फसल बीमा सहायता नहीं मिली है",
+            "हमारे क्षेत्र में बीजों की कमी है",
+            "उर्वरक की आपूर्ति में देरी हो रही है",
+            "मेरा किसान सब्सिडी आवेदन लंबित है",
+            "हमारे खेत की सिंचाई नहर खराब हो गई है",
+            "फसल के नुकसान के लिए सहायता चाहिए",
+        ],
+        "Malayalam": [
+            "കർഷകർക്ക് ജലസേചന വെള്ളം ലഭിക്കുന്നില്ല",
+            "കീടങ്ങൾ കാരണം എന്റെ വിള നശിച്ചു",
+            "കാർഷിക സബ്സിഡിയെക്കുറിച്ച് വിവരം വേണം",
+            "കൃഷി ഓഫീസർ ഞങ്ങളുടെ ഗ്രാമത്തിൽ വന്നിട്ടില്ല",
+            "കർഷകർക്ക് വിള ഇൻഷുറൻസ് സഹായം ലഭിച്ചിട്ടില്ല",
+            "ഞങ്ങളുടെ പ്രദേശത്ത് വിത്തുകളുടെ ക്ഷാമമുണ്ട്",
+            "വള വിതരണം വൈകുകയാണ്",
+            "എന്റെ കർഷക സബ്സിഡി അപേക്ഷ പരിഗണനയിലാണ്",
+            "ഞങ്ങളുടെ വയലിലേക്കുള്ള ജലസേചന കനാൽ കേടായിട്ടുണ്ട്",
+            "വിളനാശത്തിന് സഹായം ആവശ്യമാണ്",
+        ],
+    },
+
+
+    # ========================================================
+    # 10. HOUSING
+    # ========================================================
+    "Housing": {
+        "English": [
+            "I have not received my housing scheme benefit",
+            "My housing assistance application is pending",
+            "The government housing allotment has been delayed",
+            "I need help with a housing scheme application",
+            "My house construction subsidy has not arrived",
+            "The housing department has not responded",
+            "My affordable housing application is pending",
+            "I have not received the approved housing amount",
+            "The housing scheme beneficiary list is incorrect",
+            "I need information about government housing",
+        ],
+        "Tamil": [
+            "எனது வீட்டு திட்ட உதவி இன்னும் கிடைக்கவில்லை",
+            "எனது வீட்டு உதவி விண்ணப்பம் நிலுவையில் உள்ளது",
+            "அரசு வீட்டு ஒதுக்கீடு தாமதமாகியுள்ளது",
+            "வீட்டு திட்ட விண்ணப்பத்திற்கு உதவி வேண்டும்",
+            "வீடு கட்டுவதற்கான மானியம் இன்னும் வரவில்லை",
+            "வீட்டு துறை பதிலளிக்கவில்லை",
+            "எனது மலிவு விலை வீட்டு விண்ணப்பம் நிலுவையில் உள்ளது",
+            "அனுமதிக்கப்பட்ட வீட்டு தொகை இன்னும் கிடைக்கவில்லை",
+            "வீட்டு திட்ட பயனாளிகள் பட்டியல் தவறாக உள்ளது",
+            "அரசு வீட்டு திட்டம் குறித்து தகவல் வேண்டும்",
+        ],
+        "Hindi": [
+            "मुझे आवास योजना का लाभ अभी तक नहीं मिला है",
+            "मेरा आवास सहायता आवेदन लंबित है",
+            "सरकारी आवास आवंटन में देरी हो रही है",
+            "मुझे आवास योजना के आवेदन में सहायता चाहिए",
+            "घर निर्माण की सब्सिडी अभी तक नहीं मिली है",
+            "आवास विभाग ने जवाब नहीं दिया है",
+            "मेरा किफायती आवास आवेदन लंबित है",
+            "स्वीकृत आवास राशि अभी तक नहीं मिली है",
+            "आवास योजना की लाभार्थी सूची गलत है",
+            "मुझे सरकारी आवास योजना की जानकारी चाहिए",
+        ],
+        "Malayalam": [
+            "എനിക്ക് ഭവന പദ്ധതിയുടെ ആനുകൂല്യം ലഭിച്ചിട്ടില്ല",
+            "എന്റെ ഭവന സഹായ അപേക്ഷ പരിഗണനയിലാണ്",
+            "സർക്കാർ ഭവന അനുവദിക്കൽ വൈകുകയാണ്",
+            "ഭവന പദ്ധതി അപേക്ഷയിൽ സഹായം വേണം",
+            "വീട് നിർമ്മാണ സബ്സിഡി ഇതുവരെ ലഭിച്ചിട്ടില്ല",
+            "ഭവന വകുപ്പ് മറുപടി നൽകിയിട്ടില്ല",
+            "എന്റെ കുറഞ്ഞ ചെലവിലുള്ള ഭവന അപേക്ഷ പരിഗണനയിലാണ്",
+            "അനുവദിച്ച ഭവന തുക ഇതുവരെ ലഭിച്ചിട്ടില്ല",
+            "ഭവന പദ്ധതി ഗുണഭോക്തൃ പട്ടിക തെറ്റാണ്",
+            "സർക്കാർ ഭവന പദ്ധതിയെക്കുറിച്ച് വിവരം വേണം",
+        ],
+    },
+
+
+    # ========================================================
+    # 11. REVENUE & LAND RECORDS
+    # ========================================================
+    "Revenue & Land Records": {
+        "English": [
+            "My land record has an incorrect entry",
+            "I need a copy of my land document",
+            "The patta transfer application is pending",
+            "My property survey details are incorrect",
+            "I need to update my land ownership record",
+            "The land registration process has been delayed",
+            "My revenue certificate has not been issued",
+            "There is an error in my property record",
+            "I need a copy of the land survey map",
+            "My land mutation application is pending",
+        ],
+        "Tamil": [
+            "எனது நில பதிவில் தவறான தகவல் உள்ளது",
+            "எனது நில ஆவணத்தின் நகல் வேண்டும்",
+            "பட்டா மாற்ற விண்ணப்பம் நிலுவையில் உள்ளது",
+            "எனது சொத்து சர்வே விவரங்கள் தவறாக உள்ளன",
+            "நில உரிமை பதிவை புதுப்பிக்க வேண்டும்",
+            "நில பதிவு செயல்முறை தாமதமாகியுள்ளது",
+            "எனது வருவாய் சான்றிதழ் வழங்கப்படவில்லை",
+            "எனது சொத்து பதிவில் பிழை உள்ளது",
+            "நில அளவை வரைபடத்தின் நகல் வேண்டும்",
+            "எனது நில மாற்ற விண்ணப்பம் நிலுவையில் உள்ளது",
+        ],
+        "Hindi": [
+            "मेरे भूमि रिकॉर्ड में गलत जानकारी दर्ज है",
+            "मुझे अपने भूमि दस्तावेज की प्रति चाहिए",
+            "पट्टा हस्तांतरण आवेदन लंबित है",
+            "मेरी संपत्ति के सर्वेक्षण विवरण गलत हैं",
+            "मुझे भूमि स्वामित्व रिकॉर्ड अपडेट करना है",
+            "भूमि पंजीकरण प्रक्रिया में देरी हो रही है",
+            "मेरा राजस्व प्रमाणपत्र जारी नहीं हुआ है",
+            "मेरी संपत्ति के रिकॉर्ड में गलती है",
+            "मुझे भूमि सर्वेक्षण मानचित्र की प्रति चाहिए",
+            "मेरा भूमि म्यूटेशन आवेदन लंबित है",
+        ],
+        "Malayalam": [
+            "എന്റെ ഭൂമി രേഖയിൽ തെറ്റായ വിവരമുണ്ട്",
+            "എന്റെ ഭൂമി രേഖയുടെ പകർപ്പ് വേണം",
+            "പട്ട കൈമാറ്റ അപേക്ഷ പരിഗണനയിലാണ്",
+            "എന്റെ സ്വത്തിന്റെ സർവേ വിവരങ്ങൾ തെറ്റാണ്",
+            "ഭൂമി ഉടമസ്ഥാവകാശ രേഖ പുതുക്കണം",
+            "ഭൂമി രജിസ്ട്രേഷൻ നടപടിയിൽ വൈകുന്നു",
+            "എന്റെ റവന്യൂ സർട്ടിഫിക്കറ്റ് നൽകിയിട്ടില്ല",
+            "എന്റെ സ്വത്ത് രേഖയിൽ പിഴവുണ്ട്",
+            "ഭൂമി സർവേ മാപ്പിന്റെ പകർപ്പ് വേണം",
+            "എന്റെ ഭൂമി മ്യൂട്ടേഷൻ അപേക്ഷ പരിഗണനയിലാണ്",
+        ],
+    },
+
+
+    # ========================================================
+    # 12. FOOD & CIVIL SUPPLIES
+    # ========================================================
+    "Food & Civil Supplies": {
+        "English": [
+            "My ration card application is pending",
+            "The ration shop is not providing rice",
+            "My ration card contains incorrect details",
+            "The fair price shop is closed during working hours",
+            "I have not received my monthly ration",
+            "The ration dealer is charging extra money",
+            "My family member is missing from the ration card",
+            "I need to update my ration card details",
+            "The food supply at the ration shop is insufficient",
+            "My new ration card has not been issued",
+        ],
+        "Tamil": [
+            "எனது ரேஷன் அட்டை விண்ணப்பம் நிலுவையில் உள்ளது",
+            "ரேஷன் கடையில் அரிசி வழங்கப்படவில்லை",
+            "எனது ரேஷன் அட்டையில் தவறான விவரங்கள் உள்ளன",
+            "நியாய விலைக் கடை வேலை நேரத்தில் திறக்கப்படவில்லை",
+            "எனது மாதாந்திர ரேஷன் கிடைக்கவில்லை",
+            "ரேஷன் கடைக்காரர் கூடுதல் பணம் கேட்கிறார்",
+            "எனது குடும்ப உறுப்பினர் ரேஷன் அட்டையில் இல்லை",
+            "ரேஷன் அட்டை விவரங்களை புதுப்பிக்க வேண்டும்",
+            "ரேஷன் கடையில் உணவுப் பொருட்கள் போதுமானதாக இல்லை",
+            "எனது புதிய ரேஷன் அட்டை வழங்கப்படவில்லை",
+        ],
+        "Hindi": [
+            "मेरा राशन कार्ड आवेदन लंबित है",
+            "राशन की दुकान पर चावल नहीं दिया जा रहा है",
+            "मेरे राशन कार्ड में गलत जानकारी है",
+            "उचित मूल्य की दुकान काम के समय बंद रहती है",
+            "मुझे इस महीने का राशन नहीं मिला है",
+            "राशन दुकानदार अतिरिक्त पैसे मांग रहा है",
+            "मेरे परिवार का सदस्य राशन कार्ड में नहीं है",
+            "मुझे राशन कार्ड की जानकारी अपडेट करनी है",
+            "राशन की दुकान पर खाद्य सामग्री पर्याप्त नहीं है",
+            "मेरा नया राशन कार्ड जारी नहीं हुआ है",
+        ],
+        "Malayalam": [
+            "എന്റെ റേഷൻ കാർഡ് അപേക്ഷ പരിഗണനയിലാണ്",
+            "റേഷൻ കടയിൽ അരി നൽകുന്നില്ല",
+            "എന്റെ റേഷൻ കാർഡിൽ തെറ്റായ വിവരങ്ങളുണ്ട്",
+            "ന്യായവില കട ജോലി സമയത്ത് തുറക്കുന്നില്ല",
+            "എനിക്ക് ഈ മാസത്തെ റേഷൻ ലഭിച്ചിട്ടില്ല",
+            "റേഷൻ കടക്കാരൻ അധിക പണം ആവശ്യപ്പെടുന്നു",
+            "എന്റെ കുടുംബാംഗം റേഷൻ കാർഡിൽ ഇല്ല",
+            "റേഷൻ കാർഡ് വിവരങ്ങൾ പുതുക്കണം",
+            "റേഷൻ കടയിലെ ഭക്ഷ്യസാധനങ്ങൾ മതിയായിട്ടില്ല",
+            "എന്റെ പുതിയ റേഷൻ കാർഡ് നൽകിയിട്ടില്ല",
+        ],
+    },
+
+
+    # ========================================================
+    # 13. TRANSPORT
+    # ========================================================
+    "Transport": {
+        "English": [
+            "Government buses are not operating regularly",
+            "The bus service to our village has been reduced",
+            "The bus stop in our area needs maintenance",
+            "The public bus is frequently overcrowded",
+            "Our area does not have enough bus services",
+            "The bus route has been changed without notice",
+            "The transport pass application is delayed",
+            "The government bus is not following its schedule",
+            "The bus shelter is damaged",
+            "I need information about public transport services",
+        ],
+        "Tamil": [
+            "அரசு பேருந்துகள் முறையாக இயக்கப்படவில்லை",
+            "எங்கள் கிராமத்திற்கான பேருந்து சேவை குறைக்கப்பட்டுள்ளது",
+            "எங்கள் பகுதியில் உள்ள பேருந்து நிறுத்தத்திற்கு பராமரிப்பு தேவை",
+            "பொது பேருந்து அடிக்கடி அதிக கூட்டமாக உள்ளது",
+            "எங்கள் பகுதியில் போதுமான பேருந்து சேவைகள் இல்லை",
+            "அறிவிப்பு இல்லாமல் பேருந்து பாதை மாற்றப்பட்டுள்ளது",
+            "போக்குவரத்து பாஸ் விண்ணப்பம் தாமதமாகியுள்ளது",
+            "அரசு பேருந்து அட்டவணையை பின்பற்றவில்லை",
+            "பேருந்து நிறுத்த நிழற்குடை சேதமடைந்துள்ளது",
+            "பொது போக்குவரத்து சேவைகள் குறித்து தகவல் வேண்டும்",
+        ],
+        "Hindi": [
+            "सरकारी बसें नियमित रूप से नहीं चल रही हैं",
+            "हमारे गांव की बस सेवा कम कर दी गई है",
+            "हमारे इलाके के बस स्टॉप की मरम्मत की जरूरत है",
+            "सार्वजनिक बस में अक्सर बहुत भीड़ होती है",
+            "हमारे क्षेत्र में पर्याप्त बस सेवाएं नहीं हैं",
+            "बिना सूचना के बस मार्ग बदल दिया गया है",
+            "परिवहन पास आवेदन में देरी हो रही है",
+            "सरकारी बस अपने समय का पालन नहीं कर रही है",
+            "बस शेल्टर खराब हो गया है",
+            "मुझे सार्वजनिक परिवहन सेवाओं की जानकारी चाहिए",
+        ],
+        "Malayalam": [
+            "സർക്കാർ ബസുകൾ ക്രമമായി ഓടുന്നില്ല",
+            "ഞങ്ങളുടെ ഗ്രാമത്തിലേക്കുള്ള ബസ് സർവീസ് കുറച്ചു",
+            "ഞങ്ങളുടെ പ്രദേശത്തെ ബസ് സ്റ്റോപ്പിന് അറ്റകുറ്റപ്പണി ആവശ്യമാണ്",
+            "പൊതു ബസിൽ പതിവായി വലിയ തിരക്കാണ്",
+            "ഞങ്ങളുടെ പ്രദേശത്ത് മതിയായ ബസ് സർവീസ് ഇല്ല",
+            "അറിയിപ്പില്ലാതെ ബസ് റൂട്ട് മാറ്റി",
+            "ട്രാൻസ്പോർട്ട് പാസ് അപേക്ഷ വൈകുകയാണ്",
+            "സർക്കാർ ബസ് സമയക്രമം പാലിക്കുന്നില്ല",
+            "ബസ് ഷെൽട്ടർ കേടായിട്ടുണ്ട്",
+            "പൊതു ഗതാഗത സേവനങ്ങളെക്കുറിച്ച് വിവരം വേണം",
+        ],
+    },
+
+
+    # ========================================================
+    # 14. LABOUR & EMPLOYMENT
+    # ========================================================
+    "Labour & Employment": {
+        "English": [
+            "I have not received my employment benefit",
+            "My labour registration application is pending",
+            "I have not received my worker welfare payment",
+            "I need help registering as a worker",
+            "My employment certificate has been delayed",
+            "The government employment scheme has not provided work",
+            "My labour welfare application has not been processed",
+            "I need information about employment schemes",
+            "My worker registration details are incorrect",
+            "My unemployment assistance application is pending",
+        ],
+        "Tamil": [
+            "எனது வேலைவாய்ப்பு நலத்தொகை கிடைக்கவில்லை",
+            "எனது தொழிலாளர் பதிவு விண்ணப்பம் நிலுவையில் உள்ளது",
+            "எனது தொழிலாளர் நலத்தொகை கிடைக்கவில்லை",
+            "தொழிலாளராக பதிவு செய்ய உதவி வேண்டும்",
+            "எனது வேலைவாய்ப்பு சான்றிதழ் தாமதமாகியுள்ளது",
+            "அரசு வேலைவாய்ப்பு திட்டத்தில் வேலை கிடைக்கவில்லை",
+            "எனது தொழிலாளர் நல விண்ணப்பம் செயல்படுத்தப்படவில்லை",
+            "வேலைவாய்ப்பு திட்டங்கள் குறித்து தகவல் வேண்டும்",
+            "எனது தொழிலாளர் பதிவு விவரங்கள் தவறாக உள்ளன",
+            "எனது வேலை இழப்பு உதவி விண்ணப்பம் நிலுவையில் உள்ளது",
+        ],
+        "Hindi": [
+            "मुझे अपना रोजगार लाभ नहीं मिला है",
+            "मेरा श्रमिक पंजीकरण आवेदन लंबित है",
+            "मुझे श्रमिक कल्याण भुगतान नहीं मिला है",
+            "मुझे श्रमिक के रूप में पंजीकरण करने में सहायता चाहिए",
+            "मेरा रोजगार प्रमाणपत्र देर से मिला है",
+            "सरकारी रोजगार योजना में काम नहीं मिला है",
+            "मेरे श्रमिक कल्याण आवेदन पर कार्रवाई नहीं हुई है",
+            "मुझे रोजगार योजनाओं की जानकारी चाहिए",
+            "मेरे श्रमिक पंजीकरण की जानकारी गलत है",
+            "मेरा बेरोजगारी सहायता आवेदन लंबित है",
+        ],
+        "Malayalam": [
+            "എനിക്ക് തൊഴിൽ ആനുകൂല്യം ലഭിച്ചിട്ടില്ല",
+            "എന്റെ തൊഴിലാളി രജിസ്ട്രേഷൻ അപേക്ഷ പരിഗണനയിലാണ്",
+            "എനിക്ക് തൊഴിലാളി ക്ഷേമ തുക ലഭിച്ചിട്ടില്ല",
+            "തൊഴിലാളിയായി രജിസ്റ്റർ ചെയ്യാൻ സഹായം വേണം",
+            "എന്റെ തൊഴിൽ സർട്ടിഫിക്കറ്റ് വൈകിയിരിക്കുന്നു",
+            "സർക്കാർ തൊഴിൽ പദ്ധതിയിൽ ജോലി ലഭിച്ചിട്ടില്ല",
+            "എന്റെ തൊഴിലാളി ക്ഷേമ അപേക്ഷയിൽ നടപടി ഉണ്ടായിട്ടില്ല",
+            "തൊഴിൽ പദ്ധതികളെക്കുറിച്ച് വിവരം വേണം",
+            "എന്റെ തൊഴിലാളി രജിസ്ട്രേഷൻ വിവരങ്ങൾ തെറ്റാണ്",
+            "എന്റെ തൊഴിലില്ലായ്മ സഹായ അപേക്ഷ പരിഗണനയിലാണ്",
+        ],
+    },
+
+
+    # ========================================================
+    # 15. WOMEN & CHILD WELFARE
+    # ========================================================
+    "Women & Child Welfare": {
+        "English": [
+            "I need assistance from the women welfare department",
+            "My child welfare benefit has not been received",
+            "The child protection service is not responding",
+            "My maternity benefit application is pending",
+            "I need information about women welfare schemes",
+            "The child care centre in our area is not functioning",
+            "My child welfare application has been delayed",
+            "I need help with a women welfare scheme",
+            "The nutrition service for children is unavailable",
+            "The government child support payment is pending",
+        ],
+        "Tamil": [
+            "பெண்கள் நலத்துறையின் உதவி வேண்டும்",
+            "எனது குழந்தை நலத்தொகை கிடைக்கவில்லை",
+            "குழந்தைகள் பாதுகாப்பு சேவை பதிலளிக்கவில்லை",
+            "எனது மகப்பேறு உதவி விண்ணப்பம் நிலுவையில் உள்ளது",
+            "பெண்கள் நலத்திட்டங்கள் குறித்து தகவல் வேண்டும்",
+            "எங்கள் பகுதியில் உள்ள குழந்தை பராமரிப்பு மையம் செயல்படவில்லை",
+            "எனது குழந்தை நல விண்ணப்பம் தாமதமாகியுள்ளது",
+            "பெண்கள் நலத்திட்டத்தில் உதவி வேண்டும்",
+            "குழந்தைகளுக்கான ஊட்டச்சத்து சேவை கிடைக்கவில்லை",
+            "அரசின் குழந்தை உதவித்தொகை நிலுவையில் உள்ளது",
+        ],
+        "Hindi": [
+            "मुझे महिला कल्याण विभाग से सहायता चाहिए",
+            "मेरे बच्चे का कल्याण लाभ नहीं मिला है",
+            "बाल संरक्षण सेवा जवाब नहीं दे रही है",
+            "मेरा मातृत्व लाभ आवेदन लंबित है",
+            "मुझे महिला कल्याण योजनाओं की जानकारी चाहिए",
+            "हमारे क्षेत्र का बाल देखभाल केंद्र काम नहीं कर रहा है",
+            "मेरे बच्चे के कल्याण आवेदन में देरी हुई है",
+            "मुझे महिला कल्याण योजना में सहायता चाहिए",
+            "बच्चों के लिए पोषण सेवा उपलब्ध नहीं है",
+            "सरकारी बाल सहायता भुगतान लंबित है",
+        ],
+        "Malayalam": [
+            "എനിക്ക് വനിതാ ക്ഷേമ വകുപ്പിന്റെ സഹായം വേണം",
+            "എന്റെ കുട്ടിയുടെ ക്ഷേമ ആനുകൂല്യം ലഭിച്ചിട്ടില്ല",
+            "ശിശു സംരക്ഷണ സേവനം പ്രതികരിക്കുന്നില്ല",
+            "എന്റെ പ്രസവാനുകൂല്യ അപേക്ഷ പരിഗണനയിലാണ്",
+            "വനിതാ ക്ഷേമ പദ്ധതികളെക്കുറിച്ച് വിവരം വേണം",
+            "ഞങ്ങളുടെ പ്രദേശത്തെ ശിശു പരിപാലന കേന്ദ്രം പ്രവർത്തിക്കുന്നില്ല",
+            "എന്റെ കുട്ടിയുടെ ക്ഷേമ അപേക്ഷ വൈകിയിരിക്കുന്നു",
+            "വനിതാ ക്ഷേമ പദ്ധതിയിൽ സഹായം വേണം",
+            "കുട്ടികൾക്കുള്ള പോഷകാഹാര സേവനം ലഭ്യമല്ല",
+            "സർക്കാർ കുട്ടി സഹായ തുക പരിഗണനയിലാണ്",
+        ],
+    },
+
+
+    # ========================================================
+    # 16. ENVIRONMENT & FOREST
+    # ========================================================
+    "Environment & Forest": {
+        "English": [
+            "There is illegal tree cutting in our area",
+            "A factory is causing serious air pollution",
+            "There is a strong chemical smell near our locality",
+            "Illegal dumping is happening near the forest",
+            "The river near our village is polluted",
+            "There is excessive smoke from an industrial unit",
+            "I want to report illegal tree cutting",
+            "Industrial waste is entering the nearby water body",
+            "There is noise pollution from a factory",
+            "The forest area is being encroached",
+        ],
+        "Tamil": [
+            "எங்கள் பகுதியில் சட்டவிரோதமாக மரங்கள் வெட்டப்படுகின்றன",
+            "ஒரு தொழிற்சாலை கடுமையான காற்று மாசை ஏற்படுத்துகிறது",
+            "எங்கள் பகுதியில் கடுமையான ரசாயன வாசனை உள்ளது",
+            "காட்டிற்கு அருகில் சட்டவிரோதமாக கழிவுகள் கொட்டப்படுகின்றன",
+            "எங்கள் கிராமத்திற்கு அருகிலுள்ள ஆறு மாசடைந்துள்ளது",
+            "தொழிற்சாலையில் இருந்து அதிக புகை வருகிறது",
+            "சட்டவிரோத மர வெட்டலை புகார் செய்ய வேண்டும்",
+            "தொழிற்சாலை கழிவுகள் அருகிலுள்ள நீர்நிலைக்குள் செல்கின்றன",
+            "தொழிற்சாலையால் ஒலி மாசு ஏற்படுகிறது",
+            "வனப்பகுதி ஆக்கிரமிக்கப்படுகிறது",
+        ],
+        "Hindi": [
+            "हमारे इलाके में अवैध रूप से पेड़ काटे जा रहे हैं",
+            "एक कारखाना गंभीर वायु प्रदूषण कर रहा है",
+            "हमारे क्षेत्र के पास तेज रासायनिक गंध है",
+            "जंगल के पास अवैध रूप से कचरा डाला जा रहा है",
+            "हमारे गांव के पास की नदी प्रदूषित है",
+            "औद्योगिक इकाई से बहुत अधिक धुआं निकल रहा है",
+            "मैं अवैध पेड़ कटाई की शिकायत करना चाहता हूं",
+            "औद्योगिक कचरा पास के जल स्रोत में जा रहा है",
+            "कारखाने से ध्वनि प्रदूषण हो रहा है",
+            "वन क्षेत्र पर अतिक्रमण किया जा रहा है",
+        ],
+        "Malayalam": [
+            "ഞങ്ങളുടെ പ്രദേശത്ത് അനധികൃതമായി മരങ്ങൾ മുറിക്കുന്നു",
+            "ഒരു ഫാക്ടറി ഗുരുതരമായ വായു മലിനീകരണം ഉണ്ടാക്കുന്നു",
+            "ഞങ്ങളുടെ പ്രദേശത്തിന് സമീപം ശക്തമായ രാസവസ്തു ഗന്ധമുണ്ട്",
+            "വനത്തിന് സമീപം അനധികൃതമായി മാലിന്യം തള്ളുന്നു",
+            "ഞങ്ങളുടെ ഗ്രാമത്തിന് സമീപമുള്ള നദി മലിനമായി",
+            "വ്യവസായ യൂണിറ്റിൽ നിന്ന് അമിതമായ പുക വരുന്നു",
+            "അനധികൃത മരം മുറിക്കൽ റിപ്പോർട്ട് ചെയ്യണം",
+            "വ്യവസായ മാലിന്യം സമീപത്തെ ജലാശയത്തിലേക്ക് ഒഴുകുന്നു",
+            "ഫാക്ടറിയിൽ നിന്ന് ശബ്ദ മലിനീകരണം ഉണ്ടാകുന്നു",
+            "വനമേഖല കൈയേറുന്നു",
+        ],
+    },
+
+
+    # ========================================================
+    # 17. SOCIAL WELFARE
+    # ========================================================
+    "Social Welfare": {
+        "English": [
+            "My social welfare pension has not been credited",
+            "My welfare scheme application is pending",
+            "I have not received my monthly pension",
+            "I need help applying for a welfare scheme",
+            "My disability assistance payment has been delayed",
+            "The welfare office has not responded",
+            "My senior citizen benefit is pending",
+            "I need information about social welfare schemes",
+            "My welfare certificate has not been issued",
+            "My beneficiary details are incorrect",
+        ],
+        "Tamil": [
+            "எனது சமூக நல ஓய்வூதியம் வரவில்லை",
+            "எனது நலத்திட்ட விண்ணப்பம் நிலுவையில் உள்ளது",
+            "எனது மாதாந்திர ஓய்வூதியம் கிடைக்கவில்லை",
+            "நலத்திட்டத்திற்கு விண்ணப்பிக்க உதவி வேண்டும்",
+            "எனது மாற்றுத்திறனாளர் உதவித்தொகை தாமதமாகியுள்ளது",
+            "நலத்துறை அலுவலகம் பதிலளிக்கவில்லை",
+            "எனது மூத்த குடிமக்கள் நலத்தொகை நிலுவையில் உள்ளது",
+            "சமூக நலத்திட்டங்கள் குறித்து தகவல் வேண்டும்",
+            "எனது நலச் சான்றிதழ் வழங்கப்படவில்லை",
+            "எனது பயனாளி விவரங்கள் தவறாக உள்ளன",
+        ],
+        "Hindi": [
+            "मेरी सामाजिक कल्याण पेंशन जमा नहीं हुई है",
+            "मेरा कल्याण योजना आवेदन लंबित है",
+            "मुझे इस महीने की पेंशन नहीं मिली है",
+            "मुझे कल्याण योजना के लिए आवेदन करने में सहायता चाहिए",
+            "मेरी दिव्यांग सहायता राशि में देरी हुई है",
+            "कल्याण कार्यालय ने जवाब नहीं दिया है",
+            "मेरा वरिष्ठ नागरिक लाभ लंबित है",
+            "मुझे सामाजिक कल्याण योजनाओं की जानकारी चाहिए",
+            "मेरा कल्याण प्रमाणपत्र जारी नहीं हुआ है",
+            "मेरे लाभार्थी विवरण गलत हैं",
+        ],
+        "Malayalam": [
+            "എന്റെ സാമൂഹിക ക്ഷേമ പെൻഷൻ ലഭിച്ചിട്ടില്ല",
+            "എന്റെ ക്ഷേമ പദ്ധതി അപേക്ഷ പരിഗണനയിലാണ്",
+            "എനിക്ക് ഈ മാസത്തെ പെൻഷൻ ലഭിച്ചിട്ടില്ല",
+            "ക്ഷേമ പദ്ധതിക്ക് അപേക്ഷിക്കാൻ സഹായം വേണം",
+            "എന്റെ ഭിന്നശേഷി സഹായ തുക വൈകിയിരിക്കുന്നു",
+            "ക്ഷേമ ഓഫീസ് മറുപടി നൽകിയിട്ടില്ല",
+            "എന്റെ മുതിർന്ന പൗരൻ ആനുകൂല്യം പരിഗണനയിലാണ്",
+            "സാമൂഹിക ക്ഷേമ പദ്ധതികളെക്കുറിച്ച് വിവരം വേണം",
+            "എന്റെ ക്ഷേമ സർട്ടിഫിക്കറ്റ് നൽകിയിട്ടില്ല",
+            "എന്റെ ഗുണഭോക്തൃ വിവരങ്ങൾ തെറ്റാണ്",
+        ],
+    },
+
+
+    # ========================================================
+    # 18. PUBLIC WORKS
+    # ========================================================
+    "Public Works": {
+        "English": [
+            "The government office building needs repair",
+            "The public building has cracks in its walls",
+            "The government facility roof is leaking",
+            "The public building has damaged doors",
+            "The government office requires electrical repairs",
+            "The public infrastructure is poorly maintained",
+            "The government building needs urgent maintenance",
+            "The public facility has broken windows",
+            "The government building drainage needs repair",
+            "The public office has structural damage",
+        ],
+        "Tamil": [
+            "அரசு அலுவலக கட்டிடத்திற்கு பழுது பார்க்க வேண்டும்",
+            "பொது கட்டிடத்தின் சுவர்களில் விரிசல்கள் உள்ளன",
+            "அரசு கட்டிடத்தின் கூரையில் கசிவு உள்ளது",
+            "பொது கட்டிடத்தின் கதவுகள் சேதமடைந்துள்ளன",
+            "அரசு அலுவலகத்திற்கு மின் பழுதுபார்ப்பு தேவை",
+            "பொது உள்கட்டமைப்பு சரியாக பராமரிக்கப்படவில்லை",
+            "அரசு கட்டிடத்திற்கு அவசர பராமரிப்பு தேவை",
+            "பொது கட்டிடத்தின் ஜன்னல்கள் உடைந்துள்ளன",
+            "அரசு கட்டிடத்தின் வடிகால் பழுதுபார்க்க வேண்டும்",
+            "பொது அலுவலக கட்டிடத்தில் கட்டமைப்பு சேதம் உள்ளது",
+        ],
+        "Hindi": [
+            "सरकारी कार्यालय की इमारत की मरम्मत की जरूरत है",
+            "सार्वजनिक भवन की दीवारों में दरारें हैं",
+            "सरकारी भवन की छत से पानी टपक रहा है",
+            "सार्वजनिक भवन के दरवाजे खराब हैं",
+            "सरकारी कार्यालय में बिजली की मरम्मत की जरूरत है",
+            "सार्वजनिक बुनियादी ढांचे का रखरखाव खराब है",
+            "सरकारी भवन में तत्काल रखरखाव की जरूरत है",
+            "सार्वजनिक भवन की खिड़कियां टूट गई हैं",
+            "सरकारी भवन के जल निकासी सिस्टम की मरम्मत चाहिए",
+            "सार्वजनिक कार्यालय की इमारत में संरचनात्मक नुकसान है",
+        ],
+        "Malayalam": [
+            "സർക്കാർ ഓഫീസ് കെട്ടിടത്തിന് അറ്റകുറ്റപ്പണി ആവശ്യമാണ്",
+            "പൊതു കെട്ടിടത്തിന്റെ ചുമരുകളിൽ വിള്ളലുകൾ ഉണ്ട്",
+            "സർക്കാർ കെട്ടിടത്തിന്റെ മേൽക്കൂരയിൽ ചോർച്ചയുണ്ട്",
+            "പൊതു കെട്ടിടത്തിന്റെ വാതിലുകൾ കേടായിട്ടുണ്ട്",
+            "സർക്കാർ ഓഫീസിൽ വൈദ്യുതി അറ്റകുറ്റപ്പണി വേണം",
+            "പൊതു അടിസ്ഥാന സൗകര്യങ്ങൾ ശരിയായി പരിപാലിക്കുന്നില്ല",
+            "സർക്കാർ കെട്ടിടത്തിന് അടിയന്തര പരിപാലനം ആവശ്യമാണ്",
+            "പൊതു കെട്ടിടത്തിലെ ജനലുകൾ തകർന്നിട്ടുണ്ട്",
+            "സർക്കാർ കെട്ടിടത്തിലെ ഡ്രെയിനേജ് നന്നാക്കണം",
+            "പൊതു ഓഫീസ് കെട്ടിടത്തിൽ ഘടനാപരമായ കേടുപാടുണ്ട്",
+        ],
+    },
+
+
+    # ========================================================
+    # 19. RURAL DEVELOPMENT / PANCHAYAT
+    # ========================================================
+    "Rural Development / Panchayat": {
+        "English": [
+            "Our village needs better basic infrastructure",
+            "The panchayat has not repaired the village facilities",
+            "The village development work has been delayed",
+            "Our village community hall needs maintenance",
+            "The panchayat office has not responded to our complaint",
+            "The rural development project has stopped",
+            "Our village needs better public facilities",
+            "The panchayat development fund has not been used",
+            "The village road development work is incomplete",
+            "The rural welfare project is pending",
+        ],
+        "Tamil": [
+            "எங்கள் கிராமத்திற்கு சிறந்த அடிப்படை வசதிகள் தேவை",
+            "ஊராட்சி கிராம வசதிகளை பழுதுபார்க்கவில்லை",
+            "கிராம வளர்ச்சி பணி தாமதமாகியுள்ளது",
+            "எங்கள் கிராம சமூக கூடத்திற்கு பராமரிப்பு தேவை",
+            "ஊராட்சி அலுவலகம் எங்கள் புகாருக்கு பதிலளிக்கவில்லை",
+            "கிராம வளர்ச்சி திட்டம் நிறுத்தப்பட்டுள்ளது",
+            "எங்கள் கிராமத்திற்கு சிறந்த பொது வசதிகள் தேவை",
+            "ஊராட்சி வளர்ச்சி நிதி பயன்படுத்தப்படவில்லை",
+            "கிராம சாலை வளர்ச்சி பணி முடிக்கப்படவில்லை",
+            "கிராம நலத்திட்டம் நிலுவையில் உள்ளது",
+        ],
+        "Hindi": [
+            "हमारे गांव में बेहतर बुनियादी सुविधाओं की जरूरत है",
+            "पंचायत ने गांव की सुविधाओं की मरम्मत नहीं की है",
+            "गांव के विकास कार्य में देरी हो रही है",
+            "हमारे गांव के सामुदायिक भवन को रखरखाव की जरूरत है",
+            "पंचायत कार्यालय ने हमारी शिकायत का जवाब नहीं दिया",
+            "ग्रामीण विकास परियोजना बंद हो गई है",
+            "हमारे गांव में बेहतर सार्वजनिक सुविधाओं की जरूरत है",
+            "पंचायत विकास निधि का उपयोग नहीं किया गया है",
+            "गांव की सड़क विकास परियोजना अधूरी है",
+            "ग्रामीण कल्याण परियोजना लंबित है",
+        ],
+        "Malayalam": [
+            "ഞങ്ങളുടെ ഗ്രാമത്തിൽ മികച്ച അടിസ്ഥാന സൗകര്യങ്ങൾ ആവശ്യമാണ്",
+            "പഞ്ചായത്ത് ഗ്രാമത്തിലെ സൗകര്യങ്ങൾ നന്നാക്കിയിട്ടില്ല",
+            "ഗ്രാമ വികസന പ്രവർത്തനം വൈകുകയാണ്",
+            "ഞങ്ങളുടെ ഗ്രാമത്തിലെ കമ്മ്യൂണിറ്റി ഹാളിന് അറ്റകുറ്റപ്പണി വേണം",
+            "പഞ്ചായത്ത് ഓഫീസ് ഞങ്ങളുടെ പരാതിക്ക് മറുപടി നൽകിയിട്ടില്ല",
+            "ഗ്രാമ വികസന പദ്ധതി നിർത്തിവച്ചിരിക്കുന്നു",
+            "ഞങ്ങളുടെ ഗ്രാമത്തിൽ മികച്ച പൊതു സൗകര്യങ്ങൾ ആവശ്യമാണ്",
+            "പഞ്ചായത്ത് വികസന ഫണ്ട് ഉപയോഗിച്ചിട്ടില്ല",
+            "ഗ്രാമ റോഡ് വികസന പ്രവർത്തനം പൂർത്തിയായിട്ടില്ല",
+            "ഗ്രാമ ക്ഷേമ പദ്ധതി പരിഗണനയിലാണ്",
+        ],
+    },
+
+
+    # ========================================================
+    # 20. E-GOVERNANCE
+    # ========================================================
+    "e-Governance": {
+        "English": [
+            "The government online portal is not working",
+            "I cannot submit my application online",
+            "The government website is showing an error",
+            "My online application status has not changed",
+            "The digital government service is unavailable",
+            "I cannot download my government certificate",
+            "The online service keeps timing out",
+            "My digital application has not been processed",
+            "The government portal is very slow",
+            "I am unable to access the online citizen service",
+        ],
+        "Tamil": [
+            "அரசு ஆன்லைன் தளம் வேலை செய்யவில்லை",
+            "எனது விண்ணப்பத்தை ஆன்லைனில் சமர்ப்பிக்க முடியவில்லை",
+            "அரசு இணையதளத்தில் பிழை வருகிறது",
+            "எனது ஆன்லைன் விண்ணப்ப நிலை மாறவில்லை",
+            "டிஜிட்டல் அரசு சேவை கிடைக்கவில்லை",
+            "எனது அரசு சான்றிதழை பதிவிறக்கம் செய்ய முடியவில்லை",
+            "ஆன்லைன் சேவை அடிக்கடி செயலிழக்கிறது",
+            "எனது டிஜிட்டல் விண்ணப்பம் செயல்படுத்தப்படவில்லை",
+            "அரசு இணையதளம் மிகவும் மெதுவாக உள்ளது",
+            "ஆன்லைன் குடிமக்கள் சேவையை அணுக முடியவில்லை",
+        ],
+        "Hindi": [
+            "सरकारी ऑनलाइन पोर्टल काम नहीं कर रहा है",
+            "मैं अपना आवेदन ऑनलाइन जमा नहीं कर सकता",
+            "सरकारी वेबसाइट पर त्रुटि दिखाई दे रही है",
+            "मेरे ऑनलाइन आवेदन की स्थिति नहीं बदली है",
+            "डिजिटल सरकारी सेवा उपलब्ध नहीं है",
+            "मैं अपना सरकारी प्रमाणपत्र डाउनलोड नहीं कर सकता",
+            "ऑनलाइन सेवा बार बार टाइम आउट हो रही है",
+            "मेरे डिजिटल आवेदन पर कार्रवाई नहीं हुई है",
+            "सरकारी पोर्टल बहुत धीमा है",
+            "मैं ऑनलाइन नागरिक सेवा का उपयोग नहीं कर पा रहा हूं",
+        ],
+        "Malayalam": [
+            "സർക്കാർ ഓൺലൈൻ പോർട്ടൽ പ്രവർത്തിക്കുന്നില്ല",
+            "എന്റെ അപേക്ഷ ഓൺലൈനായി സമർപ്പിക്കാൻ കഴിയുന്നില്ല",
+            "സർക്കാർ വെബ്സൈറ്റിൽ പിശക് കാണിക്കുന്നു",
+            "എന്റെ ഓൺലൈൻ അപേക്ഷയുടെ സ്ഥിതി മാറിയിട്ടില്ല",
+            "ഡിജിറ്റൽ സർക്കാർ സേവനം ലഭ്യമല്ല",
+            "എന്റെ സർക്കാർ സർട്ടിഫിക്കറ്റ് ഡൗൺലോഡ് ചെയ്യാൻ കഴിയുന്നില്ല",
+            "ഓൺലൈൻ സേവനം പലപ്പോഴും ടൈം ഔട്ട് ആകുന്നു",
+            "എന്റെ ഡിജിറ്റൽ അപേക്ഷയിൽ നടപടി ഉണ്ടായിട്ടില്ല",
+            "സർക്കാർ പോർട്ടൽ വളരെ മന്ദഗതിയിലാണ്",
+            "ഓൺലൈൻ പൗര സേവനം ആക്സസ് ചെയ്യാൻ കഴിയുന്നില്ല",
+        ],
+    },
+
+
+    # ========================================================
+    # 21. DRAINAGE & SEWERAGE
+    # ========================================================
+    "Drainage & Sewerage": {
+        "English": [
+            "The sewage drain near my house is blocked",
+            "Wastewater is overflowing onto the street",
+            "The sewer line in our area is blocked",
+            "There is sewage water outside our house",
+            "The drainage pipe has broken near our street",
+            "The sewer is overflowing after rain",
+            "Dirty wastewater is entering our locality",
+            "The underground drainage system is blocked",
+            "A sewage manhole is overflowing",
+            "The drainage water is causing a bad smell",
+        ],
+        "Tamil": [
+            "என் வீட்டின் அருகிலுள்ள கழிவுநீர் கால்வாய் அடைத்துள்ளது",
+            "கழிவுநீர் தெருவில் நிரம்பி வழிகிறது",
+            "எங்கள் பகுதியில் கழிவுநீர் குழாய் அடைத்துள்ளது",
+            "எங்கள் வீட்டிற்கு வெளியே கழிவுநீர் தேங்கியுள்ளது",
+            "எங்கள் தெருவின் அருகே கழிவுநீர் குழாய் உடைந்துள்ளது",
+            "மழைக்குப் பிறகு கழிவுநீர் நிரம்பி வழிகிறது",
+            "அழுக்கான கழிவுநீர் எங்கள் பகுதியில் வருகிறது",
+            "நிலத்தடி கழிவுநீர் அமைப்பு அடைத்துள்ளது",
+            "கழிவுநீர் மேன்ஹோல் நிரம்பி வழிகிறது",
+            "கழிவுநீரால் துர்நாற்றம் ஏற்படுகிறது",
+            "எங்கள் பகுதியில் கழிவுநீர் தேங்கி உள்ளது",
+            "என் வீட்டின் அருகிலுள்ள கழிவுநீர் குழாய் அடைத்துள்ளது",
+            "சாக்கடை அடைத்துள்ளது",
+            "கழிவுநீர் கால்வாய் நிரம்பியுள்ளது",
+            "சாக்கடையில் இருந்து கழிவுநீர் வெளியேறுகிறது",
+            "கழிவுநீர் குழாய் அடைத்துள்ளது"
+        ],
+        "Hindi": [
+            "मेरे घर के पास सीवेज नाला बंद है",
+            "गंदा पानी सड़क पर बह रहा है",
+            "हमारे इलाके की सीवर लाइन बंद है",
+            "हमारे घर के बाहर सीवेज का पानी जमा है",
+            "हमारी सड़क के पास ड्रेनेज पाइप टूट गया है",
+            "बारिश के बाद सीवर का पानी बाहर आ रहा है",
+            "गंदा अपशिष्ट पानी हमारे इलाके में आ रहा है",
+            "भूमिगत जल निकासी व्यवस्था बंद है",
+            "सीवेज मैनहोल से पानी बाहर निकल रहा है",
+            "नाले के पानी से बहुत बदबू आ रही है",
+        ],
+        "Malayalam": [
+            "എന്റെ വീടിന് സമീപമുള്ള മലിനജല ഓട അടഞ്ഞിരിക്കുന്നു",
+            "മലിനജലം തെരുവിലേക്ക് ഒഴുകുന്നു",
+            "ഞങ്ങളുടെ പ്രദേശത്തെ സീവർ ലൈൻ അടഞ്ഞിരിക്കുന്നു",
+            "ഞങ്ങളുടെ വീടിന് പുറത്ത് മലിനജലം കെട്ടിക്കിടക്കുന്നു",
+            "ഞങ്ങളുടെ തെരുവിന് സമീപമുള്ള ഡ്രെയിനേജ് പൈപ്പ് പൊട്ടിയിട്ടുണ്ട്",
+            "മഴയ്ക്ക് ശേഷം സീവർ വെള്ളം പുറത്തേക്ക് ഒഴുകുന്നു",
+            "മലിനജലം ഞങ്ങളുടെ പ്രദേശത്തേക്ക് ഒഴുകുന്നു",
+            "ഭൂഗർഭ ഡ്രെയിനേജ് സംവിധാനം അടഞ്ഞിരിക്കുന്നു",
+            "സീവേജ് മാൻഹോൾ നിറഞ്ഞുകവിഞ്ഞു",
+            "ഡ്രെയിനേജ് വെള്ളം ദുർഗന്ധം ഉണ്ടാക്കുന്നു",
+        ],
+    },
 }
 
 
 # ============================================================
-# ADDITIONAL DEPARTMENTS
+# VALIDATE DEPARTMENTS
 # ============================================================
 
-DATA.update({
-
-"Health": {
-"English": [
-    "The government hospital does not have essential medicines",
-    "The doctor is unavailable at the public health centre",
-    "The hospital lacks basic medical equipment",
-    "The ambulance service is not responding",
-    "The health centre is overcrowded",
-    "My medical report has been delayed",
-    "The government clinic is not open during working hours",
-    "There are no beds available in the public hospital",
-    "The vaccination service is unavailable",
-    "The pharmacy at the hospital has no medicines",
-],
-"Tamil": [
-    "அரசு மருத்துவமனையில் அத்தியாவசிய மருந்துகள் இல்லை",
-    "அரசு சுகாதார மையத்தில் மருத்துவர் இல்லை",
-    "மருத்துவமனையில் அடிப்படை மருத்துவ உபகரணங்கள் இல்லை",
-    "ஆம்புலன்ஸ் சேவை பதிலளிக்கவில்லை",
-    "சுகாதார மையத்தில் அதிக கூட்டம் உள்ளது",
-    "எனது மருத்துவ அறிக்கை தாமதமாகியுள்ளது",
-    "அரசு மருத்துவமனை வேலை நேரத்தில் திறக்கப்படவில்லை",
-    "அரசு மருத்துவமனையில் படுக்கைகள் இல்லை",
-    "தடுப்பூசி சேவை கிடைக்கவில்லை",
-    "மருத்துவமனை மருந்தகத்தில் மருந்துகள் இல்லை",
-],
-"Tanglish": [
-    "Government hospital la essential medicines illa",
-    "Public health centre la doctor illa",
-    "Hospital la basic medical equipment illa",
-    "Ambulance service response pannala",
-    "Health centre la romba crowd irukku",
-    "En medical report delay aayiduchu",
-    "Government clinic working hours la open aagala",
-    "Public hospital la beds available illa",
-    "Vaccination service available illa",
-    "Hospital pharmacy la medicines illa",
+EXPECTED_DEPARTMENTS = [
+    "Municipal Corporation",
+    "Police",
+    "Health",
+    "Education",
+    "Electricity",
+    "Water Services",
+    "Roads & Highways",
+    "Waste Management",
+    "Agriculture",
+    "Housing",
+    "Revenue & Land Records",
+    "Food & Civil Supplies",
+    "Transport",
+    "Labour & Employment",
+    "Women & Child Welfare",
+    "Environment & Forest",
+    "Social Welfare",
+    "Public Works",
+    "Rural Development / Panchayat",
+    "e-Governance",
+    "Drainage & Sewerage",
 ]
-},
 
-"Education": {
-"English": [
-    "My scholarship has not been credited",
-    "The government school does not have enough teachers",
-    "Our school lacks proper classroom facilities",
-    "The college has not issued my certificate",
-    "The school building requires urgent repair",
-    "My student scholarship application is pending",
-    "There are no computers in our government school",
-    "The school library does not have enough books",
-    "My education certificate has not arrived",
-    "The government hostel needs better facilities",
-],
-"Tamil": [
-    "எனது கல்வி உதவித்தொகை இன்னும் வரவில்லை",
-    "அரசுப் பள்ளியில் போதுமான ஆசிரியர்கள் இல்லை",
-    "எங்கள் பள்ளியில் சரியான வகுப்பறை வசதிகள் இல்லை",
-    "கல்லூரி எனது சான்றிதழை வழங்கவில்லை",
-    "பள்ளி கட்டிடத்திற்கு அவசர பராமரிப்பு தேவை",
-    "எனது கல்வி உதவித்தொகை விண்ணப்பம் நிலுவையில் உள்ளது",
-    "எங்கள் அரசுப் பள்ளியில் கணினிகள் இல்லை",
-    "பள்ளி நூலகத்தில் போதுமான புத்தகங்கள் இல்லை",
-    "எனது கல்விச் சான்றிதழ் இன்னும் வரவில்லை",
-    "அரசு விடுதிக்கு சிறந்த வசதிகள் தேவை",
-],
-"Tanglish": [
-    "En scholarship amount innum credit aagala",
-    "Government school la teachers pothala",
-    "Enga school la proper classroom facilities illa",
-    "College en certificate issue pannala",
-    "School building ku urgent repair venum",
-    "En scholarship application pending la irukku",
-    "Enga government school la computers illa",
-    "School library la books pothala",
-    "En education certificate innum varala",
-    "Government hostel ku better facilities venum",
-]
-},
+if set(DATA.keys()) != set(EXPECTED_DEPARTMENTS):
+    missing = set(EXPECTED_DEPARTMENTS) - set(DATA.keys())
+    extra = set(DATA.keys()) - set(EXPECTED_DEPARTMENTS)
 
-"Police": {
-"English": [
-    "I want to report a theft in my neighborhood",
-    "There is a suspicious person near our residential area",
-    "My vehicle has been stolen",
-    "I need to file a police complaint",
-    "There is frequent illegal activity near our street",
-    "Someone has damaged my property",
-    "I received a threatening message",
-    "There is a dispute that requires police assistance",
-    "My complaint has not received a response",
-    "There is dangerous driving near our school",
-],
-"Tamil": [
-    "எங்கள் பகுதியில் நடந்த திருட்டை புகார் செய்ய விரும்புகிறேன்",
-    "எங்கள் குடியிருப்பு பகுதியில் சந்தேகமான நபர் உள்ளார்",
-    "எனது வாகனம் திருடப்பட்டுள்ளது",
-    "நான் காவல்துறையில் புகார் அளிக்க வேண்டும்",
-    "எங்கள் தெருவின் அருகே சட்டவிரோத செயல்கள் நடக்கின்றன",
-    "யாரோ எனது சொத்தை சேதப்படுத்தியுள்ளனர்",
-    "எனக்கு மிரட்டல் செய்தி வந்துள்ளது",
-    "காவல்துறை உதவி தேவைப்படும் பிரச்சனை உள்ளது",
-    "எனது புகாருக்கு இன்னும் பதில் கிடைக்கவில்லை",
-    "எங்கள் பள்ளி அருகே ஆபத்தான முறையில் வாகனங்கள் ஓட்டப்படுகின்றன",
-],
-"Tanglish": [
-    "Enga area la nadandha theft ah complaint panna venum",
-    "Enga residential area pakkathula suspicious person irukkaru",
-    "En vehicle thirudappattuduchu",
-    "Police complaint file panna venum",
-    "Enga street pakkathula illegal activity nadakkudhu",
-    "Yaaro en property ah damage pannirukanga",
-    "Enakku threatening message vandhirukku",
-    "Police assistance thevai padra dispute irukku",
-    "En complaint ku response innum varala",
-    "Enga school pakkathula dangerous driving nadakkudhu",
-]
-},
-
-})
+    raise RuntimeError(
+        f"Department mismatch.\n"
+        f"Missing: {missing}\n"
+        f"Extra: {extra}"
+    )
 
 
 # ============================================================
-# GENERATE UNIQUE DATA
+# VALIDATE LANGUAGES
 # ============================================================
 
-rows = []
-seen = set()
+EXPECTED_LANGUAGES = {
+    "English",
+    "Tamil",
+    "Hindi",
+    "Malayalam",
+}
 
-priority_words = {
+for department, languages in DATA.items():
 
-    "Low": [
-        "information",
-        "general request",
-        "minor issue",
+    if set(languages.keys()) != EXPECTED_LANGUAGES:
+        raise RuntimeError(
+            f"Language mismatch in department: {department}\n"
+            f"Found: {set(languages.keys())}\n"
+            f"Expected: {EXPECTED_LANGUAGES}"
+        )
+
+
+# ============================================================
+# GENERATION SETTINGS
+# ============================================================
+
+prefixes = {
+
+    "English": [
+        "",
+        "Please help. ",
+        "I want to report that ",
+        "I would like to complain that ",
+        "Kindly look into this: ",
     ],
 
-    "Medium": [
-        "service delay",
-        "ongoing problem",
-        "local issue",
+    "Tamil": [
+        "",
+        "தயவுசெய்து உதவுங்கள். ",
+        "இந்த பிரச்சனை குறித்து புகார் அளிக்கிறேன்: ",
+        "தயவுசெய்து இதை சரி செய்யுங்கள். ",
+        "இந்த பிரச்சனையை கவனிக்கவும்: ",
     ],
 
-    "High": [
-        "urgent problem",
-        "serious issue",
-        "immediate attention needed",
+    "Hindi": [
+        "",
+        "कृपया मदद करें। ",
+        "मैं शिकायत करना चाहता हूं कि ",
+        "कृपया इस समस्या को देखें: ",
+        "इस समस्या पर ध्यान दें: ",
     ],
 
-    "Critical": [
-        "emergency situation",
-        "dangerous situation",
-        "immediate emergency",
+    "Malayalam": [
+        "",
+        "ദയവായി സഹായിക്കണം. ",
+        "ഈ പ്രശ്നത്തെക്കുറിച്ച് പരാതി നൽകുന്നു: ",
+        "ദയവായി ഇത് പരിഹരിക്കുക. ",
+        "ഈ പ്രശ്നം ശ്രദ്ധിക്കുക: ",
     ],
 }
 
+
+endings = {
+
+    "English": [
+        "",
+        " Please take necessary action.",
+        " Kindly resolve this issue.",
+        " Please look into this matter.",
+    ],
+
+    "Tamil": [
+        "",
+        " தயவுசெய்து தேவையான நடவடிக்கை எடுக்கவும்.",
+        " தயவுசெய்து இந்த பிரச்சனையை தீர்க்கவும்.",
+        " இந்த பிரச்சனையை கவனிக்கவும்.",
+    ],
+
+    "Hindi": [
+        "",
+        " कृपया आवश्यक कार्रवाई करें।",
+        " कृपया इस समस्या का समाधान करें।",
+        " कृपया इस मामले को देखें।",
+    ],
+
+    "Malayalam": [
+        "",
+        " ദയവായി ആവശ്യമായ നടപടി സ്വീകരിക്കുക.",
+        " ദയവായി ഈ പ്രശ്നം പരിഹരിക്കുക.",
+        " ദയവായി ഈ വിഷയം പരിശോധിക്കുക.",
+    ],
+}
+
+
+# ============================================================
+# PRIORITY
+# ============================================================
 
 def choose_priority(text, department):
 
     urgent_words = [
+
+        # English
         "emergency",
         "dangerous",
         "threat",
@@ -424,17 +1346,51 @@ def choose_priority(text, department):
         "fire",
         "accident",
         "collapse",
+        "sewage",
+
+        # Tamil
+        "அவசரம்",
+        "ஆபத்து",
+        "திருட",
+        "மின்சாரம் இல்லை",
+        "தண்ணீர் இல்லை",
+
+        # Hindi
+        "आपातकाल",
+        "खतरनाक",
+        "धमकी",
+        "चोरी",
+        "बिजली नहीं",
+        "पानी नहीं",
+
+        # Malayalam
+        "അടിയന്തര",
+        "അപകടകരം",
+        "ഭീഷണി",
+        "മോഷണം",
+        "വൈദ്യുതി ഇല്ല",
+        "വെള്ളം ഇല്ല",
     ]
 
-    if any(word.lower() in text.lower()
-           for word in urgent_words):
+    text_lower = text.lower()
 
+    if any(word.lower() in text_lower for word in urgent_words):
         return random.choice(["High", "Critical"])
 
-    return random.choice(
-        ["Low", "Medium", "Medium", "High"]
-    )
+    return random.choice([
+        "Low",
+        "Medium",
+        "Medium",
+        "High",
+    ])
 
+
+# ============================================================
+# GENERATE DATASET
+# ============================================================
+
+rows = []
+seen = set()
 
 for department, languages in DATA.items():
 
@@ -448,15 +1404,10 @@ for department, languages in DATA.items():
                 (language, example)
             )
 
-
-    # Generate variations until target reached
-
+    department_count = 0
     attempts = 0
 
-    while sum(
-        1 for row in rows
-        if row[1] == department
-    ) < TARGET_PER_DEPARTMENT:
+    while department_count < TARGET_PER_DEPARTMENT:
 
         attempts += 1
 
@@ -471,70 +1422,24 @@ for department, languages in DATA.items():
             base_examples
         )
 
-        # Different harmless variations
-        prefixes = {
-
-            "English": [
-                "",
-                "Please help. ",
-                "I want to report that ",
-                "I would like to complain that ",
-                "Kindly look into this: ",
-            ],
-
-            "Tamil": [
-                "",
-                "தயவுசெய்து உதவுங்கள். ",
-                "இந்த பிரச்சனை குறித்து புகார் அளிக்கிறேன்: ",
-                "தயவுசெய்து இதை சரி செய்யுங்கள். ",
-                "இந்த பிரச்சனையை கவனிக்கவும்: ",
-            ],
-
-            "Tanglish": [
-                "",
-                "Please help. ",
-                "Indha problem pathi complaint panren: ",
-                "Kindly idha solve pannunga. ",
-                "Indha issue ah check pannunga: ",
-            ],
-        }
-
         prefix = random.choice(
             prefixes[language]
         )
 
-        text = prefix + base
-
-        # Add optional ending
-        endings = {
-
-            "English": [
-                "",
-                " Please take necessary action.",
-                " Kindly resolve this issue.",
-                " Please look into this matter.",
-            ],
-
-            "Tamil": [
-                "",
-                " தயவுசெய்து தேவையான நடவடிக்கை எடுக்கவும்.",
-                " தயவுசெய்து இந்த பிரச்சனையை தீர்க்கவும்.",
-                " இந்த பிரச்சனையை கவனிக்கவும்.",
-            ],
-
-            "Tanglish": [
-                "",
-                " Please necessary action edunga.",
-                " Kindly indha issue ah solve pannunga.",
-                " Idha konjam check pannunga.",
-            ],
-        }
-
-        text += random.choice(
+        ending = random.choice(
             endings[language]
         )
 
-        normalized = text.strip().lower()
+        text = (
+            prefix +
+            base +
+            ending
+        )
+
+        normalized = (
+            text.strip()
+            .lower()
+        )
 
         if normalized in seen:
             continue
@@ -552,6 +1457,8 @@ for department, languages in DATA.items():
             priority
         ])
 
+        department_count += 1
+
 
 # ============================================================
 # SHUFFLE
@@ -561,7 +1468,7 @@ random.shuffle(rows)
 
 
 # ============================================================
-# SAVE
+# SAVE DATASET
 # ============================================================
 
 OUTPUT.parent.mkdir(
@@ -592,20 +1499,24 @@ with open(
 # ============================================================
 
 print("=" * 70)
-print("CIVICAI NEXUS DATASET GENERATED")
+print("CIVICAI NEXUS MULTILINGUAL DATASET GENERATED")
 print("=" * 70)
 
 print(f"\nOutput: {OUTPUT}")
 print(f"Total rows: {len(rows)}")
+print(f"Departments: {len(DATA)}")
+print(f"Rows per department: {TARGET_PER_DEPARTMENT}")
 
-print(
-    f"Departments: "
-    f"{len(DATA)}"
-)
+print("\nLanguages:")
+print("  - English")
+print("  - Tamil")
+print("  - Hindi")
+print("  - Malayalam")
 
-print(
-    f"Rows per department: "
-    f"{TARGET_PER_DEPARTMENT}"
-)
+print("\nDepartments:")
+
+for index, department in enumerate(DATA.keys(), start=1):
+    print(f"  {index:2}. {department}")
 
 print("\nDataset ready for training!")
+print("=" * 70)
