@@ -1,28 +1,17 @@
-from bson import ObjectId
-from bson.errors import InvalidId
+from datetime import datetime, timedelta
 
-from fastapi import (
-    APIRouter,
-    Depends,
-    HTTPException,
-)
+from bson import ObjectId
+from fastapi import APIRouter, Depends, HTTPException
 
 from app.config.database import (
     users_collection,
     grievances_collection,
-    departments_collection,
 )
 
-from app.models.user import user_document
+from app.schemas.admin import OfficerCreateRequest
 
-from app.schemas.admin import (
-    OfficerCreateRequest,
-)
-
-from app.utils.constants import (
-    DEPARTMENTS,
-    DEPARTMENT_ALIASES,
-    DISTRICTS,
+from app.services.classification_service import (
+    CANONICAL_DEPARTMENTS,
     normalize_department,
 )
 
@@ -38,44 +27,14 @@ from app.utils.helpers import (
 
 from app.utils.security import hash_password
 
+from app.models.user import user_document
+
 
 router = APIRouter(
     prefix="/api/officers",
     tags=["Officers"],
 )
 
-
-# ============================================================
-# VALIDATE DEPARTMENT
-# ============================================================
-
-def _validate_department(value):
-    if not value:
-        raise HTTPException(
-            status_code=400,
-            detail="Department is required",
-        )
-
-    department = normalize_department(
-        value
-    )
-
-    if department not in DEPARTMENTS:
-        raise HTTPException(
-            status_code=400,
-            detail=(
-                "Invalid department. "
-                "Select a department from the "
-                "CivicAI department list."
-            ),
-        )
-
-    return department
-
-
-# ============================================================
-# LIST OFFICERS
-# ============================================================
 
 @router.get("/")
 def list_officers(
@@ -91,56 +50,37 @@ def list_officers(
         "district"
     )
 
-    # --------------------------------------------------------
-    # DISTRICT ADMIN
-    # --------------------------------------------------------
-
+    # District admin can only see officers
+    # belonging to their own district.
     if admin_district:
-
-        if (
-            district
-            and district != admin_district
-        ):
-            raise HTTPException(
-                status_code=403,
-                detail=(
-                    "You can only view officers "
-                    "from your own district"
-                ),
-            )
-
         query["district"] = admin_district
 
-    # --------------------------------------------------------
-    # SUPER ADMIN
-    # --------------------------------------------------------
-
-    elif district:
-        if district not in DISTRICTS:
+        if district and district != admin_district:
             raise HTTPException(
-                status_code=400,
-                detail="Invalid district",
+                status_code=403,
+                detail="You can only view officers from your own district.",
             )
 
+    elif district:
         query["district"] = district
 
-    # --------------------------------------------------------
-    # DEPARTMENT
-    # --------------------------------------------------------
-
     if department:
-        department = _validate_department(
+        canonical_department = normalize_department(
             department
         )
 
-        query["department"] = department
+        if not canonical_department:
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid department.",
+            )
+
+        query["department"] = canonical_department
 
     officers = list(
         users_collection.find(
             query,
-            {
-                "password_hash": 0
-            },
+            {"password_hash": 0},
         ).sort(
             "name",
             1,
@@ -148,16 +88,13 @@ def list_officers(
     )
 
     for officer in officers:
-
         officer["open_cases"] = (
             grievances_collection.count_documents(
                 {
                     "assigned_officer":
                         officer["_id"],
                     "status": {
-                        "$nin": [
-                            "CLOSED"
-                        ]
+                        "$nin": ["CLOSED"]
                     },
                 }
             )
@@ -173,10 +110,6 @@ def list_officers(
             )
         )
 
-        officer["department"] = normalize_department(
-            officer.get("department")
-        )
-
     return {
         "success": True,
         "data": serialize_documents(
@@ -185,65 +118,42 @@ def list_officers(
     }
 
 
-# ============================================================
-# CREATE OFFICER
-# ============================================================
-
 @router.post("/")
 def create_officer(
     data: OfficerCreateRequest,
     admin=Depends(require_admin),
 ):
-    email = (
-        data.email
-        .lower()
-        .strip()
-    )
+    email = data.email.lower().strip()
 
     if users_collection.find_one(
-        {
-            "email": email
-        }
+        {"email": email}
     ):
         raise HTTPException(
             status_code=400,
-            detail="Email is already registered",
+            detail="Email is already registered.",
         )
 
-    # --------------------------------------------------------
-    # DEPARTMENT MUST BE CANONICAL
-    # --------------------------------------------------------
+    # ---------------------------------------------------------
+    # Canonical department validation
+    # ---------------------------------------------------------
 
-    department = _validate_department(
+    department = normalize_department(
         data.department
     )
 
-    department_document = (
-        departments_collection.find_one(
-            {
-                "name": department
-            }
-        )
-    )
-
-    if not department_document:
+    if department not in CANONICAL_DEPARTMENTS:
         raise HTTPException(
             status_code=400,
             detail=(
-                "Department is not available. "
-                "Refresh the department list."
+                f"Invalid department. "
+                f"Please select one of the "
+                f"supported departments."
             ),
         )
 
-    # --------------------------------------------------------
-    # DISTRICT VALIDATION
-    # --------------------------------------------------------
-
-    if data.district not in DISTRICTS:
-        raise HTTPException(
-            status_code=400,
-            detail="Invalid district",
-        )
+    # ---------------------------------------------------------
+    # District validation
+    # ---------------------------------------------------------
 
     admin_district = admin.get(
         "district"
@@ -256,14 +166,15 @@ def create_officer(
         raise HTTPException(
             status_code=403,
             detail=(
-                "You can only create officers "
-                f"inside {admin_district}"
+                f"You can only add officers "
+                f"within your own district "
+                f"({admin_district})."
             ),
         )
 
-    # --------------------------------------------------------
-    # CREATE OFFICER
-    # --------------------------------------------------------
+    # ---------------------------------------------------------
+    # Create officer
+    # ---------------------------------------------------------
 
     officer = user_document(
         name=data.name.strip(),
@@ -273,16 +184,8 @@ def create_officer(
         ),
         role="officer",
         department=department,
-        specialization=(
-            data.specialization.strip()
-            if data.specialization
-            else None
-        ),
-        phone=(
-            data.phone.strip()
-            if data.phone
-            else None
-        ),
+        specialization=data.specialization,
+        phone=data.phone,
         district=data.district,
     )
 
@@ -292,21 +195,6 @@ def create_officer(
 
     officer["_id"] = result.inserted_id
 
-    # --------------------------------------------------------
-    # UPDATE OFFICER COUNT
-    # --------------------------------------------------------
-
-    departments_collection.update_one(
-        {
-            "name": department
-        },
-        {
-            "$inc": {
-                "total_officers": 1
-            }
-        },
-    )
-
     officer.pop(
         "password_hash",
         None,
@@ -314,16 +202,12 @@ def create_officer(
 
     return {
         "success": True,
-        "message": "Officer created",
+        "message": "Officer created successfully.",
         "data": serialize_document(
             officer
         ),
     }
 
-
-# ============================================================
-# GET OFFICER
-# ============================================================
 
 @router.get("/{officer_id}")
 def get_officer(
@@ -334,13 +218,10 @@ def get_officer(
         object_id = ObjectId(
             officer_id
         )
-    except (
-        InvalidId,
-        TypeError,
-    ):
+    except Exception:
         raise HTTPException(
             status_code=404,
-            detail="Officer not found",
+            detail="Officer not found.",
         )
 
     officer = users_collection.find_one(
@@ -356,7 +237,7 @@ def get_officer(
     if not officer:
         raise HTTPException(
             status_code=404,
-            detail="Officer not found",
+            detail="Officer not found.",
         )
 
     admin_district = admin.get(
@@ -371,14 +252,10 @@ def get_officer(
         raise HTTPException(
             status_code=403,
             detail=(
-                "You cannot view officers "
-                "outside your district"
+                "You can only view officers "
+                "from your own district."
             ),
         )
-
-    officer["department"] = normalize_department(
-        officer.get("department")
-    )
 
     officer["open_cases"] = (
         grievances_collection.count_documents(
@@ -386,9 +263,7 @@ def get_officer(
                 "assigned_officer":
                     officer["_id"],
                 "status": {
-                    "$nin": [
-                        "CLOSED"
-                    ]
+                    "$nin": ["CLOSED"]
                 },
             }
         )
@@ -412,28 +287,32 @@ def get_officer(
     }
 
 
-# ============================================================
-# OFFICER PERFORMANCE
-# ============================================================
-
-@router.get("/{officer_id}/performance")
+@router.get(
+    "/{officer_id}/performance"
+)
 def officer_performance(
     officer_id: str,
     current_user=Depends(
         get_current_user
     ),
 ):
+    if current_user["role"] != "admin":
+        if str(
+            current_user["_id"]
+        ) != officer_id:
+            raise HTTPException(
+                status_code=403,
+                detail="Access denied.",
+            )
+
     try:
         object_id = ObjectId(
             officer_id
         )
-    except (
-        InvalidId,
-        TypeError,
-    ):
+    except Exception:
         raise HTTPException(
             status_code=404,
-            detail="Officer not found",
+            detail="Officer not found.",
         )
 
     officer = users_collection.find_one(
@@ -446,71 +325,232 @@ def officer_performance(
     if not officer:
         raise HTTPException(
             status_code=404,
-            detail="Officer not found",
+            detail="Officer not found.",
         )
+
+    admin_district = current_user.get(
+        "district"
+    )
 
     if (
         current_user["role"] == "admin"
-        and current_user.get("district")
+        and admin_district
         and officer.get("district")
-        != current_user.get("district")
+        != admin_district
     ):
         raise HTTPException(
             status_code=403,
             detail=(
-                "You cannot view officers "
-                "outside your district"
+                "You can only view officers "
+                "from your own district."
             ),
         )
 
-    officer_id = officer["_id"]
-
-    total = grievances_collection.count_documents(
-        {
-            "assigned_officer": officer_id
-        }
+    total_assigned = (
+        grievances_collection.count_documents(
+            {
+                "assigned_officer":
+                    officer["_id"]
+            }
+        )
     )
 
-    resolved = grievances_collection.count_documents(
-        {
-            "assigned_officer": officer_id,
-            "status": "CLOSED",
-        }
+    resolved = (
+        grievances_collection.count_documents(
+            {
+                "assigned_officer":
+                    officer["_id"],
+                "status": "CLOSED",
+            }
+        )
     )
 
-    open_cases = grievances_collection.count_documents(
+    open_cases = (
+        grievances_collection.count_documents(
+            {
+                "assigned_officer":
+                    officer["_id"],
+                "status": {
+                    "$nin": ["CLOSED"]
+                },
+            }
+        )
+    )
+
+    escalated = (
+        grievances_collection.count_documents(
+            {
+                "assigned_officer":
+                    officer["_id"],
+                "status": "ESCALATED",
+            }
+        )
+    )
+
+    avg_hours_pipeline = [
         {
-            "assigned_officer": officer_id,
-            "status": {
-                "$nin": [
-                    "CLOSED"
-                ]
+            "$match": {
+                "assigned_officer":
+                    officer["_id"],
+                "resolved_at": {
+                    "$ne": None
+                },
+            }
+        },
+        {
+            "$project": {
+                "hours": {
+                    "$divide": [
+                        {
+                            "$subtract": [
+                                "$resolved_at",
+                                "$created_at",
+                            ]
+                        },
+                        1000 * 60 * 60,
+                    ]
+                }
+            }
+        },
+        {
+            "$group": {
+                "_id": None,
+                "avg_hours": {
+                    "$avg": "$hours"
+                },
+            }
+        },
+    ]
+
+    avg_agg = list(
+        grievances_collection.aggregate(
+            avg_hours_pipeline
+        )
+    )
+
+    avg_resolution_hours = (
+        round(
+            avg_agg[0]["avg_hours"],
+            1,
+        )
+        if avg_agg
+        and avg_agg[0].get(
+            "avg_hours"
+        ) is not None
+        else None
+    )
+
+    six_months_ago = (
+        datetime.utcnow()
+        - timedelta(days=180)
+    )
+
+    trend_pipeline = [
+        {
+            "$match": {
+                "assigned_officer":
+                    officer["_id"],
+                "status": "CLOSED",
+                "resolved_at": {
+                    "$gte": six_months_ago
+                },
+            }
+        },
+        {
+            "$group": {
+                "_id": {
+                    "$dateToString": {
+                        "format": "%Y-%m",
+                        "date": "$resolved_at",
+                    }
+                },
+                "count": {
+                    "$sum": 1
+                },
+            }
+        },
+        {
+            "$sort": {
+                "_id": 1
+            }
+        },
+    ]
+
+    trend = [
+        {
+            "month": item["_id"],
+            "resolved": item["count"],
+        }
+        for item in grievances_collection.aggregate(
+            trend_pipeline
+        )
+    ]
+
+    recent_cases = list(
+        grievances_collection.find(
+            {
+                "assigned_officer":
+                    officer["_id"]
             },
-        }
+            {
+                "grievance_id": 1,
+                "title": 1,
+                "status": 1,
+                "priority": 1,
+                "category": 1,
+                "updated_at": 1,
+            },
+        )
+        .sort(
+            "updated_at",
+            -1,
+        )
+        .limit(6)
     )
 
     return {
         "success": True,
         "data": {
-            "officer_id": str(
-                officer_id
+            "officer_id": officer_id,
+            "name": officer.get("name"),
+            "email": officer.get("email"),
+            "phone": officer.get("phone"),
+            "department": officer.get(
+                "department"
             ),
-            "department": normalize_department(
-                officer.get("department")
+            "specialization": officer.get(
+                "specialization"
             ),
             "district": officer.get(
                 "district"
             ),
-            "total_cases": total,
-            "resolved_cases": resolved,
-            "open_cases": open_cases,
-            "resolution_rate": (
-                round(
-                    resolved / total * 100,
-                    1,
-                )
-                if total
-                else 0
+            "badge_id": officer.get(
+                "badge_id"
             ),
+            "created_at": officer.get(
+                "created_at"
+            ),
+            "total_assigned":
+                total_assigned,
+            "resolved": resolved,
+            "open_cases": open_cases,
+            "escalated": escalated,
+            "resolution_rate": round(
+                (
+                    resolved
+                    / total_assigned
+                )
+                * 100,
+                1,
+            )
+            if total_assigned
+            else 0,
+            "avg_resolution_hours":
+                avg_resolution_hours,
+            "trend": trend,
+            "recent_cases":
+                serialize_documents(
+                    recent_cases
+                ),
         },
     }

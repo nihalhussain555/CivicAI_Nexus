@@ -38,13 +38,27 @@ CHENNAI_CENTER = (13.0827, 80.2707)
 DISTRICTS = ["Chennai", "Coimbatore", "Madurai", "Salem", "Erode", "Tiruchirappalli"]
 
 DEPARTMENTS = [
-    ("Sanitation Department", "SAN", ["WASTE"]),
-    ("Water Supply Department", "WAT", ["WATER"]),
-    ("Public Works Department", "PWD", ["ROAD", "DRAINAGE"]),
-    ("Electricity Department", "ELE", ["ELECTRICITY", "STREET_LIGHT"]),
-    ("Traffic Police Department", "TRF", ["TRAFFIC"]),
-    ("Public Safety Department", "SAF", ["PUBLIC_SAFETY"]),
-    ("General Administration", "GEN", ["GENERAL"]),
+    ("Municipal Corporation", "MUN", ["MUNICIPAL"]),
+    ("Police", "POL", ["POLICE"]),
+    ("Health", "HLT", ["HEALTH"]),
+    ("Education", "EDU", ["EDUCATION"]),
+    ("Electricity", "ELE", ["ELECTRICITY"]),
+    ("Water Supply", "WAT", ["WATER"]),
+    ("Roads & Highways", "RHD", ["ROAD"]),
+    ("Sanitation & Waste Management", "SAN", ["WASTE"]),
+    ("Agriculture", "AGR", ["AGRICULTURE"]),
+    ("Housing", "HOU", ["HOUSING"]),
+    ("Revenue & Land Records", "REV", ["REVENUE"]),
+    ("Food & Civil Supplies", "FCS", ["FOOD"]),
+    ("Transport", "TRN", ["TRANSPORT"]),
+    ("Labour & Employment", "LAB", ["LABOUR"]),
+    ("Women & Child Welfare", "WCW", ["WOMEN_CHILD"]),
+    ("Environment & Forest", "ENV", ["ENVIRONMENT"]),
+    ("Social Welfare", "SOC", ["SOCIAL_WELFARE"]),
+    ("Public Works", "PWD", ["PUBLIC_WORKS"]),
+    ("Rural Development / Panchayat", "RDP", ["RURAL_DEVELOPMENT"]),
+    ("e-Governance", "EGOV", ["E_GOVERNANCE"]),
+    ("Drainage & Sewerage", "DRN", ["DRAINAGE"]),
 ]
 
 OFFICER_NAMES = [

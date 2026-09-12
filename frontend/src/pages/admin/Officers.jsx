@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Users,
   Plus,
@@ -16,32 +16,20 @@ import {
 } from "../../services/officerService";
 
 import {
-  getDepartments,
-} from "../../services/departmentService";
-
-import {
-  useToast,
-} from "../../context/ToastContext";
-
-import {
-  useAuth,
-} from "../../hooks/useAuth";
-
-import {
-  getErrorMessage,
-} from "../../utils/helpers";
-
-import {
+  DEPARTMENTS,
   DISTRICTS,
 } from "../../utils/constants";
+
+import { useToast } from "../../context/ToastContext";
+import { useAuth } from "../../hooks/useAuth";
+import { getErrorMessage } from "../../utils/helpers";
 
 import Modal from "../../components/common/Modal";
 import EmptyState from "../../components/common/EmptyState";
 import { SkeletonList } from "../../components/common/Skeleton";
 import Avatar from "../../components/common/Avatar";
 
-
-const emptyForm = {
+const EMPTY_FORM = {
   name: "",
   email: "",
   password: "",
@@ -51,272 +39,173 @@ const emptyForm = {
   phone: "",
 };
 
-
 const Officers = () => {
-  const {
-    user,
-  } = useAuth();
-
+  const { user } = useAuth();
   const toast = useToast();
 
-  const [officers, setOfficers] =
-    useState(null);
+  const [officers, setOfficers] = useState(null);
+  const [loadError, setLoadError] = useState("");
+  const [districtFilter, setDistrictFilter] = useState("");
+  const [modalOpen, setModalOpen] = useState(false);
+  const [form, setForm] = useState(EMPTY_FORM);
+  const [saving, setSaving] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
-  const [departments, setDepartments] =
-    useState([]);
+  const isDistrictAdmin = Boolean(user?.district);
 
-  const [districtFilter, setDistrictFilter] =
-    useState("");
-
-  const [modalOpen, setModalOpen] =
-    useState(false);
-
-  const [form, setForm] =
-    useState(emptyForm);
-
-  const [saving, setSaving] =
-    useState(false);
-
-  const [loadingDepartments, setLoadingDepartments] =
-    useState(true);
-
-  const [loadError, setLoadError] =
-    useState("");
-
-  const [showPassword, setShowPassword] =
-    useState(false);
-
-
-  const isDistrictRestricted =
-    Boolean(user?.district);
-
-
-  // ==========================================================
-  // LOAD OFFICERS
-  // ==========================================================
+  const effectiveDistrict = isDistrictAdmin
+    ? user.district
+    : districtFilter;
 
   const loadOfficers = async () => {
+    setLoadError("");
+    setOfficers(null);
+
     try {
-      setLoadError("");
+      const params = {};
 
-      const params =
-        districtFilter
-          ? {
-              district:
-                districtFilter,
-            }
-          : {};
+      if (effectiveDistrict) {
+        params.district = effectiveDistrict;
+      }
 
-      const response =
-        await getOfficers(params);
+      const response = await getOfficers(params);
 
-      setOfficers(
-        response.data || []
-      );
+      const data = Array.isArray(response?.data)
+        ? response.data
+        : [];
 
+      setOfficers(data);
     } catch (error) {
-      setLoadError(
-        getErrorMessage(error)
-      );
+      console.error("Failed to load officers:", error);
+      setLoadError(getErrorMessage(error));
+      setOfficers([]);
     }
   };
-
-
-  // ==========================================================
-  // LOAD DEPARTMENTS FROM BACKEND
-  // ==========================================================
-
-  const loadDepartments = async () => {
-    try {
-      setLoadingDepartments(true);
-
-      const response =
-        await getDepartments();
-
-      const backendDepartments =
-        Array.isArray(response.data)
-          ? response.data
-          : [];
-
-      setDepartments(
-        backendDepartments.filter(
-          (department) =>
-            department?.name
-        )
-      );
-
-    } catch (error) {
-      setDepartments([]);
-
-      toast.error(
-        getErrorMessage(error)
-      );
-
-    } finally {
-      setLoadingDepartments(false);
-    }
-  };
-
-
-  // ==========================================================
-  // INITIAL LOAD
-  // ==========================================================
 
   useEffect(() => {
     loadOfficers();
-  }, [districtFilter]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [effectiveDistrict]);
 
-
-  useEffect(() => {
-    loadDepartments();
-  }, []);
-
-
-  // ==========================================================
-  // OPEN CREATE MODAL
-  // ==========================================================
-
-  const openModal = () => {
+  const openCreateModal = () => {
     setForm({
-      ...emptyForm,
-      district:
-        isDistrictRestricted
-          ? user.district
-          : "",
+      ...EMPTY_FORM,
+      district: isDistrictAdmin ? user.district : "",
     });
 
     setShowPassword(false);
     setModalOpen(true);
   };
 
-
-  // ==========================================================
-  // CLOSE MODAL
-  // ==========================================================
-
   const closeModal = () => {
-    if (saving) {
+    if (saving) return;
+
+    setModalOpen(false);
+    setForm({
+      ...EMPTY_FORM,
+      district: isDistrictAdmin ? user.district : "",
+    });
+    setShowPassword(false);
+  };
+
+  const updateForm = (field, value) => {
+    setForm((previous) => ({
+      ...previous,
+      [field]: value,
+    }));
+  };
+
+  const handleCreate = async () => {
+    const payload = {
+      name: form.name.trim(),
+      email: form.email.trim().toLowerCase(),
+      password: form.password,
+      department: form.department,
+      district: form.district,
+      specialization: form.specialization.trim() || null,
+      phone: form.phone.trim() || null,
+    };
+
+    if (!payload.name) {
+      toast.error("Enter the officer name.");
       return;
     }
 
-    setModalOpen(false);
-    setShowPassword(false);
-    setForm(emptyForm);
-  };
+    if (!payload.email) {
+      toast.error("Enter the officer email.");
+      return;
+    }
 
+    if (payload.password.length < 6) {
+      toast.error("Password must contain at least 6 characters.");
+      return;
+    }
 
-  // ==========================================================
-  // CREATE OFFICER
-  // ==========================================================
+    if (!DEPARTMENTS.includes(payload.department)) {
+      toast.error("Please select a valid department.");
+      return;
+    }
 
-  const handleCreate = async () => {
-    if (!canSubmit) {
-      toast.error(
-        "Please complete all required fields."
-      );
-
+    if (!DISTRICTS.includes(payload.district)) {
+      toast.error("Please select a valid district.");
       return;
     }
 
     setSaving(true);
 
     try {
-      await createOfficer({
-        ...form,
-        name: form.name.trim(),
-        email: form.email.trim(),
-        department:
-          form.department.trim(),
-        district:
-          form.district.trim(),
-        specialization:
-          form.specialization.trim(),
-        phone:
-          form.phone.trim(),
-      });
+      await createOfficer(payload);
 
-      toast.success(
-        "Officer created successfully."
-      );
+      toast.success("Officer created successfully.");
 
-      setModalOpen(false);
-      setForm(emptyForm);
-      setShowPassword(false);
-
+      closeModal();
       await loadOfficers();
-
     } catch (error) {
-      toast.error(
-        getErrorMessage(error)
-      );
-
+      console.error("Officer creation failed:", error);
+      toast.error(getErrorMessage(error));
     } finally {
       setSaving(false);
     }
   };
 
+  const totalOpenCases = useMemo(
+    () =>
+      (officers || []).reduce(
+        (sum, officer) => sum + Number(officer.open_cases || 0),
+        0
+      ),
+    [officers]
+  );
 
-  // ==========================================================
-  // VALIDATION
-  // ==========================================================
+  const totalResolved = useMemo(
+    () =>
+      (officers || []).reduce(
+        (sum, officer) => sum + Number(officer.cases_resolved || 0),
+        0
+      ),
+    [officers]
+  );
 
   const canSubmit =
     form.name.trim().length >= 2 &&
-    form.email.trim().length > 0 &&
+    form.email.trim().length > 3 &&
     form.password.length >= 6 &&
-    form.department.length > 0 &&
-    form.district.length > 0;
-
-
-  // ==========================================================
-  // STATISTICS
-  // ==========================================================
-
-  const totalOpenCases =
-    officers?.reduce(
-      (sum, officer) =>
-        sum +
-        Number(
-          officer.open_cases || 0
-        ),
-      0
-    ) ?? 0;
-
-  const totalResolved =
-    officers?.reduce(
-      (sum, officer) =>
-        sum +
-        Number(
-          officer.cases_resolved || 0
-        ),
-      0
-    ) ?? 0;
-
+    DEPARTMENTS.includes(form.department) &&
+    DISTRICTS.includes(form.district);
 
   return (
     <div>
-
-      {/* =====================================================
-          HEADER
-      ====================================================== */}
-
       <div className="page-header">
-
         <div>
-          <h1>
-            Officers
-          </h1>
+          <h1>Officers</h1>
 
           <p>
-            Field officers across CivicAI departments.
-            {isDistrictRestricted && (
+            Manage field officers and their department assignments.
+            {isDistrictAdmin && (
               <>
                 {" "}
-                You can only manage officers in{" "}
-                <strong>
-                  {user.district}
-                </strong>
-                .
+                Your jurisdiction:{" "}
+                <strong>{user.district}</strong>.
               </>
             )}
           </p>
@@ -325,26 +214,14 @@ const Officers = () => {
         <button
           type="button"
           className="btn btn-primary"
-          onClick={openModal}
+          onClick={openCreateModal}
         >
           <Plus size={15} />
           New officer
         </button>
-
       </div>
 
-
-      {/* =====================================================
-          STATISTICS
-      ====================================================== */}
-
-      <div
-        className="grid grid-3"
-        style={{
-          marginBottom: 20,
-        }}
-      >
-
+      <div className="grid grid-3" style={{ marginBottom: 20 }}>
         <div className="stat-card">
           <span className="stat-label">
             <Users size={13} />
@@ -352,10 +229,9 @@ const Officers = () => {
           </span>
 
           <span className="stat-value">
-            {officers?.length ?? "—"}
+            {officers === null ? "—" : officers.length}
           </span>
         </div>
-
 
         <div className="stat-card">
           <span className="stat-label">
@@ -364,10 +240,9 @@ const Officers = () => {
           </span>
 
           <span className="stat-value">
-            {totalOpenCases}
+            {officers === null ? "—" : totalOpenCases}
           </span>
         </div>
-
 
         <div className="stat-card">
           <span className="stat-label">
@@ -375,16 +250,10 @@ const Officers = () => {
           </span>
 
           <span className="stat-value">
-            {totalResolved}
+            {officers === null ? "—" : totalResolved}
           </span>
         </div>
-
       </div>
-
-
-      {/* =====================================================
-          FILTER
-      ====================================================== */}
 
       <div
         className="card"
@@ -396,108 +265,99 @@ const Officers = () => {
           flexWrap: "wrap",
         }}
       >
-
         <MapPin
           size={14}
           color="var(--text-faint)"
         />
 
-        {isDistrictRestricted ? (
-
-          <div
-            className="badge badge-status"
-            style={{
-              minHeight: 34,
-              display: "inline-flex",
-              alignItems: "center",
-            }}
-          >
-            <MapPin size={11} />
-            {user.district}
-          </div>
-
+        {isDistrictAdmin ? (
+          <input
+            className="input"
+            value={user.district}
+            disabled
+            style={{ maxWidth: 260 }}
+          />
         ) : (
-
           <select
             className="select"
-            style={{
-              maxWidth: 240,
-            }}
+            style={{ maxWidth: 260 }}
             value={districtFilter}
             onChange={(event) =>
-              setDistrictFilter(
-                event.target.value
-              )
+              setDistrictFilter(event.target.value)
             }
           >
             <option value="">
               All districts
             </option>
 
-            {DISTRICTS.map(
-              (district) => (
-                <option
-                  key={district}
-                  value={district}
-                >
-                  {district}
-                </option>
-              )
-            )}
+            {DISTRICTS.map((district) => (
+              <option
+                key={district}
+                value={district}
+              >
+                {district}
+              </option>
+            ))}
           </select>
-
         )}
 
         <button
           type="button"
           className="btn btn-secondary"
           onClick={loadOfficers}
-          style={{
-            marginLeft: "auto",
-          }}
+          disabled={officers === null}
         >
           <RefreshCw size={14} />
           Refresh
         </button>
-
       </div>
 
-
-      {/* =====================================================
-          ERROR
-      ====================================================== */}
-
-      {loadError && (
-        <div
-          className="card"
-          style={{
-            marginBottom: 16,
-            color: "var(--danger)",
-          }}
-        >
-          {loadError}
-        </div>
-      )}
-
-
-      {/* =====================================================
-          OFFICER LIST
-      ====================================================== */}
-
       {officers === null ? (
-
         <SkeletonList rows={5} />
+      ) : loadError ? (
+        <div className="card">
+          <div
+            style={{
+              textAlign: "center",
+              padding: 30,
+            }}
+          >
+            <Users
+              size={30}
+              color="var(--danger)"
+              style={{ marginBottom: 10 }}
+            />
 
+            <h3 style={{ marginBottom: 6 }}>
+              Unable to load officers
+            </h3>
+
+            <p
+              style={{
+                color: "var(--text-muted)",
+                marginBottom: 16,
+              }}
+            >
+              {loadError}
+            </p>
+
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={loadOfficers}
+            >
+              <RefreshCw size={14} />
+              Try again
+            </button>
+          </div>
+        </div>
       ) : officers.length === 0 ? (
-
         <EmptyState
           icon={Users}
-          title="No officers yet"
-          description="Add your first field officer to start assigning grievances."
+          title="No officers found"
+          description="Create an officer for the required district and department."
         />
-
       ) : (
-
         <div
           style={{
             display: "flex",
@@ -505,159 +365,109 @@ const Officers = () => {
             gap: 8,
           }}
         >
-
-          {officers.map(
-            (officer) => (
-
-              <Link
-                key={officer._id}
-                to={`/admin/officers/${officer._id}`}
-                className="list-row"
+          {officers.map((officer) => (
+            <Link
+              key={String(officer._id)}
+              to={`/admin/officers/${officer._id}`}
+              className="list-row"
+            >
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 14,
+                  minWidth: 0,
+                }}
               >
+                <Avatar
+                  user={officer}
+                  size={40}
+                />
 
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 14,
-                    minWidth: 0,
-                  }}
-                >
-
-                  <Avatar
-                    user={officer}
-                    size={40}
-                  />
-
+                <div style={{ minWidth: 0 }}>
                   <div
                     style={{
-                      minWidth: 0,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 8,
+                      marginBottom: 4,
+                      flexWrap: "wrap",
                     }}
                   >
+                    <strong style={{ fontSize: 14 }}>
+                      {officer.name || "Unnamed officer"}
+                    </strong>
 
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 8,
-                        marginBottom: 3,
-                        flexWrap: "wrap",
-                      }}
-                    >
+                    <span className="badge badge-neutral">
+                      {officer.department || "No department"}
+                    </span>
 
-                      <strong
-                        style={{
-                          fontSize: 14,
-                        }}
-                      >
-                        {officer.name}
-                      </strong>
-
-                      <span className="badge badge-neutral">
-                        {officer.department}
+                    {officer.district && (
+                      <span className="badge badge-status">
+                        <MapPin size={10} />
+                        {officer.district}
                       </span>
-
-                      {officer.district && (
-                        <span className="badge badge-status">
-                          <MapPin size={10} />
-                          {officer.district}
-                        </span>
-                      )}
-
-                    </div>
-
-                    <div
-                      style={{
-                        fontSize: 12.5,
-                        color:
-                          "var(--text-muted)",
-                      }}
-                    >
-                      {officer.email}
-
-                      {officer.specialization
-                        ? ` · ${officer.specialization}`
-                        : ""}
-                    </div>
-
+                    )}
                   </div>
-
-                </div>
-
-
-                <div
-                  style={{
-                    display: "flex",
-                    gap: 18,
-                    fontSize: 13,
-                    flexShrink: 0,
-                  }}
-                >
 
                   <div
                     style={{
-                      textAlign: "center",
+                      fontSize: 12.5,
+                      color: "var(--text-muted)",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
                     }}
                   >
-                    <div
-                      style={{
-                        fontWeight: 700,
-                      }}
-                    >
-                      {officer.open_cases || 0}
-                    </div>
-
-                    <div
-                      style={{
-                        fontSize: 10.5,
-                        color:
-                          "var(--text-faint)",
-                      }}
-                    >
-                      OPEN
-                    </div>
+                    {officer.email || "No email"}
+                    {officer.specialization
+                      ? ` · ${officer.specialization}`
+                      : ""}
                   </div>
+                </div>
+              </div>
 
+              <div
+                style={{
+                  display: "flex",
+                  gap: 18,
+                  fontSize: 13,
+                  flexShrink: 0,
+                }}
+              >
+                <div style={{ textAlign: "center" }}>
+                  <div style={{ fontWeight: 700 }}>
+                    {officer.open_cases || 0}
+                  </div>
 
                   <div
                     style={{
-                      textAlign: "center",
+                      fontSize: 10.5,
+                      color: "var(--text-faint)",
                     }}
                   >
-                    <div
-                      style={{
-                        fontWeight: 700,
-                      }}
-                    >
-                      {officer.cases_resolved || 0}
-                    </div>
-
-                    <div
-                      style={{
-                        fontSize: 10.5,
-                        color:
-                          "var(--text-faint)",
-                      }}
-                    >
-                      RESOLVED
-                    </div>
+                    OPEN
                   </div>
-
                 </div>
 
-              </Link>
+                <div style={{ textAlign: "center" }}>
+                  <div style={{ fontWeight: 700 }}>
+                    {officer.cases_resolved || 0}
+                  </div>
 
-            )
-          )}
-
+                  <div
+                    style={{
+                      fontSize: 10.5,
+                      color: "var(--text-faint)",
+                    }}
+                  >
+                    RESOLVED
+                  </div>
+                </div>
+              </div>
+            </Link>
+          ))}
         </div>
-
       )}
-
-
-      {/* =====================================================
-          CREATE OFFICER MODAL
-      ====================================================== */}
 
       <Modal
         open={modalOpen}
@@ -677,11 +487,7 @@ const Officers = () => {
             <button
               type="button"
               className="btn btn-primary"
-              disabled={
-                saving ||
-                !canSubmit ||
-                loadingDepartments
-              }
+              disabled={!canSubmit || saving}
               onClick={handleCreate}
             >
               {saving
@@ -691,31 +497,21 @@ const Officers = () => {
           </>
         }
       >
-
-        {/* NAME + PHONE */}
-
         <div className="form-row">
-
           <div className="form-group">
             <label className="form-label">
-              Full name *
+              Full name
             </label>
 
             <input
               className="input"
               value={form.name}
               onChange={(event) =>
-                setForm((current) => ({
-                  ...current,
-                  name:
-                    event.target.value,
-                }))
+                updateForm("name", event.target.value)
               }
-              placeholder="Officer full name"
-              autoComplete="name"
+              placeholder="Officer name"
             />
           </div>
-
 
           <div className="form-group">
             <label className="form-label">
@@ -726,26 +522,16 @@ const Officers = () => {
               className="input"
               value={form.phone}
               onChange={(event) =>
-                setForm((current) => ({
-                  ...current,
-                  phone:
-                    event.target.value,
-                }))
+                updateForm("phone", event.target.value)
               }
-              placeholder="Optional phone number"
-              autoComplete="tel"
+              placeholder="Optional"
             />
           </div>
-
         </div>
 
-
-        {/* EMAIL */}
-
         <div className="form-group">
-
           <label className="form-label">
-            Email *
+            Email
           </label>
 
           <input
@@ -753,33 +539,18 @@ const Officers = () => {
             type="email"
             value={form.email}
             onChange={(event) =>
-              setForm((current) => ({
-                ...current,
-                email:
-                  event.target.value,
-              }))
+              updateForm("email", event.target.value)
             }
             placeholder="officer@example.com"
-            autoComplete="email"
           />
-
         </div>
 
-
-        {/* PASSWORD */}
-
         <div className="form-group">
-
           <label className="form-label">
-            Temporary password *
+            Temporary password
           </label>
 
-          <div
-            style={{
-              position: "relative",
-            }}
-          >
-
+          <div style={{ position: "relative" }}>
             <input
               className="input"
               type={
@@ -789,25 +560,20 @@ const Officers = () => {
               }
               value={form.password}
               onChange={(event) =>
-                setForm((current) => ({
-                  ...current,
-                  password:
-                    event.target.value,
-                }))
+                updateForm(
+                  "password",
+                  event.target.value
+                )
               }
               placeholder="Minimum 6 characters"
-              autoComplete="new-password"
-              style={{
-                paddingRight: 42,
-              }}
+              style={{ paddingRight: 42 }}
             />
 
             <button
               type="button"
               onClick={() =>
                 setShowPassword(
-                  (current) =>
-                    !current
+                  (previous) => !previous
                 )
               }
               aria-label={
@@ -823,114 +589,75 @@ const Officers = () => {
                   "translateY(-50%)",
                 background: "none",
                 border: "none",
-                color:
-                  "var(--text-faint)",
+                color: "var(--text-faint)",
                 display: "flex",
-                alignItems: "center",
                 cursor: "pointer",
               }}
             >
               {showPassword ? (
-                <EyeOff size={16} />
+                <EyeOff size={15} />
               ) : (
-                <Eye size={16} />
+                <Eye size={15} />
               )}
             </button>
-
           </div>
-
-          <p className="form-hint">
-            At least 6 characters.
-          </p>
-
         </div>
 
-
-        {/* DEPARTMENT + DISTRICT */}
-
         <div className="form-row">
-
           <div className="form-group">
-
             <label className="form-label">
-              Department *
+              Department
             </label>
 
             <select
               className="select"
               value={form.department}
               onChange={(event) =>
-                setForm((current) => ({
-                  ...current,
-                  department:
-                    event.target.value,
-                }))
-              }
-              disabled={
-                loadingDepartments
+                updateForm(
+                  "department",
+                  event.target.value
+                )
               }
             >
-
               <option value="">
-                {loadingDepartments
-                  ? "Loading departments..."
-                  : "Select department"}
+                Select department
               </option>
 
-              {departments.map(
+              {DEPARTMENTS.map(
                 (department) => (
                   <option
-                    key={
-                      department.code ||
-                      department.name
-                    }
-                    value={
-                      department.name
-                    }
+                    key={department}
+                    value={department}
                   >
-                    {department.name}
+                    {department}
                   </option>
                 )
               )}
-
             </select>
-
-            <p className="form-hint">
-              Departments are loaded directly
-              from the CivicAI backend.
-            </p>
-
           </div>
 
-
           <div className="form-group">
-
             <label className="form-label">
-              District *
+              District
             </label>
 
-            {isDistrictRestricted ? (
-
+            {isDistrictAdmin ? (
               <input
                 className="input"
                 value={form.district}
                 disabled
               />
-
             ) : (
-
               <select
                 className="select"
                 value={form.district}
                 onChange={(event) =>
-                  setForm((current) => ({
-                    ...current,
-                    district:
-                      event.target.value,
-                  }))
+                  updateForm(
+                    "district",
+                    event.target.value
+                  )
                 }
               >
-
                 <option value="">
                   Select district
                 </option>
@@ -945,37 +672,12 @@ const Officers = () => {
                     </option>
                   )
                 )}
-
               </select>
-
             )}
-
           </div>
-
         </div>
 
-
-        {isDistrictRestricted && (
-          <p
-            className="form-hint"
-            style={{
-              marginTop: -8,
-              marginBottom: 14,
-            }}
-          >
-            District is locked to your own
-            jurisdiction:{" "}
-            <strong>
-              {user.district}
-            </strong>
-          </p>
-        )}
-
-
-        {/* SPECIALIZATION */}
-
         <div className="form-group">
-
           <label className="form-label">
             Specialization
           </label>
@@ -984,22 +686,22 @@ const Officers = () => {
             className="input"
             value={form.specialization}
             onChange={(event) =>
-              setForm((current) => ({
-                ...current,
-                specialization:
-                  event.target.value,
-              }))
+              updateForm(
+                "specialization",
+                event.target.value
+              )
             }
-            placeholder="Optional specialization"
+            placeholder="Optional"
           />
-
         </div>
 
+        <p className="form-hint">
+          The officer's department must exactly match
+          the department assigned to grievances.
+        </p>
       </Modal>
-
     </div>
   );
 };
-
 
 export default Officers;

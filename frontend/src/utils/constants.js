@@ -1,24 +1,62 @@
+export const DEPARTMENTS = [
+  "Municipal Corporation",
+  "Police",
+  "Health",
+  "Education",
+  "Electricity",
+  "Water Supply",
+  "Roads & Highways",
+  "Sanitation & Waste Management",
+  "Agriculture",
+  "Housing",
+  "Revenue & Land Records",
+  "Food & Civil Supplies",
+  "Transport",
+  "Labour & Employment",
+  "Women & Child Welfare",
+  "Environment & Forest",
+  "Social Welfare",
+  "Public Works",
+  "Rural Development / Panchayat",
+  "e-Governance",
+  "Drainage & Sewerage",
+];
+
 export const CATEGORIES = [
-  "WASTE", "WATER", "ROAD", "ELECTRICITY", "STREET_LIGHT",
-  "DRAINAGE", "TRAFFIC", "PUBLIC_SAFETY", "GENERAL",
+  "WASTE",
+  "WATER",
+  "ROAD",
+  "ELECTRICITY",
+  "STREET_LIGHT",
+  "DRAINAGE",
+  "TRAFFIC",
+  "PUBLIC_SAFETY",
+  "GENERAL",
 ];
 
 export const CATEGORY_LABELS = {
   WASTE: "Waste",
   WATER: "Water Supply",
-  ROAD: "Road",
+  ROAD: "Roads & Highways",
   ELECTRICITY: "Electricity",
-  STREET_LIGHT: "Street Light",
-  DRAINAGE: "Drainage",
-  TRAFFIC: "Traffic",
-  PUBLIC_SAFETY: "Public Safety",
-  GENERAL: "General",
+  STREET_LIGHT: "Electricity",
+  DRAINAGE: "Drainage & Sewerage",
+  TRAFFIC: "Police",
+  PUBLIC_SAFETY: "Police",
+  GENERAL: "Municipal Corporation",
 };
 
 export const STATUSES = [
-  "SUBMITTED", "AI_ANALYZED", "DEPARTMENT_ASSIGNED", "OFFICER_ACCEPTED",
-  "IN_PROGRESS", "RESOLUTION_SUBMITTED", "CITIZEN_VERIFICATION",
-  "CLOSED", "REOPENED", "ESCALATED",
+  "SUBMITTED",
+  "AI_ANALYZED",
+  "DEPARTMENT_ASSIGNED",
+  "OFFICER_ACCEPTED",
+  "IN_PROGRESS",
+  "RESOLUTION_SUBMITTED",
+  "CITIZEN_VERIFICATION",
+  "CLOSED",
+  "REOPENED",
+  "ESCALATED",
 ];
 
 export const STATUS_LABELS = {
@@ -34,24 +72,59 @@ export const STATUS_LABELS = {
   ESCALATED: "Escalated",
 };
 
-export const PRIORITIES = ["LOW", "MEDIUM", "HIGH", "CRITICAL"];
+export const PRIORITIES = [
+  "LOW",
+  "MEDIUM",
+  "HIGH",
+  "CRITICAL",
+];
 
-export const LANGUAGES = ["English", "Hindi", "Tamil" , "Malayalam", "Telugu", "Kannada", "Bengali", "Marathi", "Gujarati", "Punjabi", "Odia", "Assamese", "Urdu"];
+export const LANGUAGES = [
+  "English",
+  "Hindi",
+  "Tamil",
+  "Malayalam",
+];
 
-// This exact list must stay in sync with backend/app/utils/constants.py —
-// district values are validated server-side against the same set, so a
-// citizen's report and an officer's assigned district always match
-// exactly (no free-text drift between geocoding output and this list).
-// All 38 Tamil Nadu districts, alphabetical.
 export const DISTRICTS = [
-  "Ariyalur", "Chengalpattu", "Chennai", "Coimbatore", "Cuddalore",
-  "Dharmapuri", "Dindigul", "Erode", "Kallakurichi", "Kanchipuram",
-  "Kanyakumari", "Karur", "Krishnagiri", "Madurai", "Mayiladuthurai",
-  "Nagapattinam", "Namakkal", "Nilgiris", "Perambalur", "Pudukkottai",
-  "Ramanathapuram", "Ranipet", "Salem", "Sivaganga", "Tenkasi",
-  "Thanjavur", "Theni", "Thoothukudi", "Tiruchirappalli", "Tirunelveli",
-  "Tirupathur", "Tiruppur", "Tiruvallur", "Tiruvannamalai", "Tiruvarur",
-  "Vellore", "Viluppuram", "Virudhunagar",
+  "Ariyalur",
+  "Chengalpattu",
+  "Chennai",
+  "Coimbatore",
+  "Cuddalore",
+  "Dharmapuri",
+  "Dindigul",
+  "Erode",
+  "Kallakurichi",
+  "Kanchipuram",
+  "Kanyakumari",
+  "Karur",
+  "Krishnagiri",
+  "Madurai",
+  "Mayiladuthurai",
+  "Nagapattinam",
+  "Namakkal",
+  "Nilgiris",
+  "Perambalur",
+  "Pudukkottai",
+  "Ramanathapuram",
+  "Ranipet",
+  "Salem",
+  "Sivaganga",
+  "Tenkasi",
+  "Thanjavur",
+  "Theni",
+  "Thoothukudi",
+  "Tiruchirappalli",
+  "Tirunelveli",
+  "Tirupathur",
+  "Tiruppur",
+  "Tiruvallur",
+  "Tiruvannamalai",
+  "Tiruvarur",
+  "Vellore",
+  "Viluppuram",
+  "Virudhunagar",
 ];
 
 export const ROLES = {
