@@ -1,3 +1,17 @@
+/**
+ * Canonical CivicAI department names.
+ *
+ * These values must match backend/app/utils/constants.py exactly.
+ *
+ * AI prediction
+ *      ↓
+ * Backend department
+ *      ↓
+ * Frontend department
+ *      ↓
+ * Officer department
+ */
+
 export const DEPARTMENTS = [
   "Municipal Corporation",
   "Police",
@@ -22,9 +36,11 @@ export const DEPARTMENTS = [
   "Drainage & Sewerage",
 ];
 
-export const DEPARTMENT_OPTIONS = DEPARTMENTS.map((department) => ({
-  value: department,
-  label: department,
-}));
+export const DEPARTMENT_OPTIONS = DEPARTMENTS.map(
+  (department) => ({
+    value: department,
+    label: department,
+  })
+);
 
 export default DEPARTMENTS;

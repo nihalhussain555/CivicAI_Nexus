@@ -11,11 +11,18 @@ export const createDepartment = async (data) => {
 };
 
 export const updateDepartment = async (code, data) => {
-  const response = await api.put(`/departments/${code}`, data);
+  const response = await api.put(
+    `/departments/${code}`,
+    data
+  );
+
   return response.data;
 };
 
 export const getDepartmentPerformance = async (code) => {
-  const response = await api.get(`/departments/${code}/performance`);
+  const response = await api.get(
+    `/departments/${code}/performance`
+  );
+
   return response.data;
 };
