@@ -120,76 +120,269 @@ def get_grievance_or_404(grievance_id: str) -> dict:
 
 
 def assert_can_view(grievance: dict, current_user: dict):
-    if current_user["role"] == "citizen" and grievance["citizen_id"] != current_user["_id"]:
-        raise HTTPException(status_code=403, detail="You can only view your own grievances")
-    if current_user["role"] == "officer" and grievance.get("assigned_officer") not in (
-        None, current_user["_id"],
-    ) and grievance.get("department") != current_user.get("department"):
-        raise HTTPException(status_code=403, detail="This case is outside your department")
+    role = current_user["role"]
+
+    # ---------------------------------------------------------
+    # CITIZEN
+    # ---------------------------------------------------------
+
+    if role == "citizen":
+        if grievance.get("citizen_id") != current_user["_id"]:
+            raise HTTPException(
+                status_code=403,
+                detail="You can only view your own grievances",
+            )
+
+        return
+
+    # ---------------------------------------------------------
+    # OFFICER
+    # ---------------------------------------------------------
+
+    if role == "officer":
+
+        if grievance.get("department") != current_user.get("department"):
+            raise HTTPException(
+                status_code=403,
+                detail="This case belongs to a different department",
+            )
+
+        grievance_district = grievance.get("district")
+        officer_district = current_user.get("district")
+
+        if (
+            grievance_district
+            and officer_district
+            and grievance_district != officer_district
+        ):
+            raise HTTPException(
+                status_code=403,
+                detail="This case belongs to a different district",
+            )
+
+        assigned_officer = grievance.get(
+            "assigned_officer"
+        )
+
+        if (
+            assigned_officer
+            and assigned_officer != current_user["_id"]
+        ):
+            raise HTTPException(
+                status_code=403,
+                detail="This grievance is assigned to another officer",
+            )
+
+        return
+
+    # ---------------------------------------------------------
+    # DISTRICT ADMIN
+    # ---------------------------------------------------------
+
+    if role == "admin":
+
+        admin_district = current_user.get(
+            "district"
+        )
+
+        if admin_district:
+
+            if grievance.get("district") != admin_district:
+                raise HTTPException(
+                    status_code=403,
+                    detail="This grievance belongs to another district",
+                )
+
+        return
 
 
-def transition_status(grievance: dict, new_status: str, actor: dict, message: str = None, extra_fields: dict = None):
+def transition_status(
+    grievance: dict,
+    new_status: str,
+    actor: dict,
+    message: str = None,
+    extra_fields: dict = None,
+):
     current_status = grievance["status"]
-    allowed = VALID_TRANSITIONS.get(current_status, set())
+
+    allowed = VALID_TRANSITIONS.get(
+        current_status,
+        set(),
+    )
 
     if new_status not in allowed:
         raise HTTPException(
             status_code=400,
-            detail=f"Cannot transition from {current_status} to {new_status}",
+            detail=(
+                f"Cannot transition from "
+                f"{current_status} to {new_status}"
+            ),
         )
 
+    # ---------------------------------------------------------
+    # DISTRICT ADMIN SECURITY
+    # ---------------------------------------------------------
+
+    if (
+        actor["role"] == "admin"
+        and actor.get("district")
+        and grievance.get("district")
+        != actor.get("district")
+    ):
+        raise HTTPException(
+            status_code=403,
+            detail="You cannot modify grievances outside your district",
+        )
+
+    # ---------------------------------------------------------
+    # OFFICER SECURITY
+    # ---------------------------------------------------------
+
+    if actor["role"] == "officer":
+
+        if grievance.get(
+            "assigned_officer"
+        ) != actor["_id"]:
+            raise HTTPException(
+                status_code=403,
+                detail=(
+                    "You can only modify grievances "
+                    "assigned to you"
+                ),
+            )
+
     now = datetime.utcnow()
+
     history_item = {
         "status": new_status,
-        "message": message or f"Status changed to {new_status}",
+        "message": message
+        or f"Status changed to {new_status}",
         "actor_role": actor["role"],
         "timestamp": now,
     }
 
-    update_fields = {"status": new_status, "updated_at": now}
+    update_fields = {
+        "status": new_status,
+        "updated_at": now,
+    }
+
     if extra_fields:
-        update_fields.update(extra_fields)
+        update_fields.update(
+            extra_fields
+        )
 
     grievances_collection.update_one(
-        {"grievance_id": grievance["grievance_id"]},
-        {"$set": update_fields, "$push": {"history": history_item}},
+        {
+            "grievance_id":
+                grievance["grievance_id"]
+        },
+        {
+            "$set": update_fields,
+            "$push": {
+                "history": history_item
+            },
+        },
     )
 
     log_action(
-        actor["_id"], actor["role"], "GRIEVANCE_STATUS_CHANGE", "grievance",
-        grievance["grievance_id"], {"from": current_status, "to": new_status},
+        actor["_id"],
+        actor["role"],
+        "GRIEVANCE_STATUS_CHANGE",
+        "grievance",
+        grievance["grievance_id"],
+        {
+            "from": current_status,
+            "to": new_status,
+        },
     )
 
     notify(
         grievance["citizen_id"],
         "Grievance Update",
-        f"Grievance {grievance['grievance_id']} is now {new_status.replace('_', ' ').title()}.",
+        (
+            f"Grievance "
+            f"{grievance['grievance_id']} "
+            f"is now "
+            f"{new_status.replace('_', ' ').title()}."
+        ),
         notification_type="STATUS_CHANGE",
-        related_grievance_id=grievance["grievance_id"],
+        related_grievance_id=
+            grievance["grievance_id"],
     )
 
-    updated = grievances_collection.find_one({"grievance_id": grievance["grievance_id"]})
-    return updated
+    return grievances_collection.find_one(
+        {
+            "grievance_id":
+                grievance["grievance_id"]
+        }
+    )
 
 
-def build_list_query(current_user, status=None, category=None, department=None, priority=None, search=None):
+def build_list_query(
+    current_user,
+    status=None,
+    category=None,
+    department=None,
+    priority=None,
+    search=None,
+):
     query = {}
 
-    if current_user["role"] == "citizen":
+    role = current_user["role"]
+
+    # ---------------------------------------------------------
+    # CITIZEN
+    # ---------------------------------------------------------
+
+    if role == "citizen":
         query["citizen_id"] = current_user["_id"]
-    elif current_user["role"] == "officer":
-        query["department"] = current_user.get("department")
+
+    # ---------------------------------------------------------
+    # OFFICER
+    # ---------------------------------------------------------
+
+    elif role == "officer":
+
+        query["department"] = current_user.get(
+            "department"
+        )
+
+        if current_user.get("district"):
+            query["district"] = current_user.get(
+                "district"
+            )
+
+    # ---------------------------------------------------------
+    # ADMIN
+    # ---------------------------------------------------------
+
+    elif role == "admin":
+
+        # District Admin
+        if current_user.get("district"):
+            query["district"] = current_user[
+                "district"
+            ]
 
     if status:
         query["status"] = status
+
     if category:
         query["category"] = category
-    if department and current_user["role"] == "admin":
-        query["department"] = department
+
+    if department:
+        # District admin can filter departments
+        # inside their own district.
+        if role in ("admin",):
+            query["department"] = department
+
     if priority:
         query["priority"] = priority
+
     if search:
-        query["$text"] = {"$search": search}
+        query["$text"] = {
+            "$search": search
+        }
 
     return query
 

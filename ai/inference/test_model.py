@@ -1,55 +1,104 @@
 from pathlib import Path
+
 import joblib
 
 
-# ============================================================
-# PATH
-# ============================================================
-
-BASE_DIR = Path(__file__).resolve().parent.parent
+BASE_DIR = (
+    Path(__file__)
+    .resolve()
+    .parent.parent
+)
 
 MODEL_PATH = (
-    BASE_DIR /
-    "models" /
-    "complaint_classifier.pkl"
+    BASE_DIR
+    / "models"
+    / "complaint_classifier.pkl"
 )
 
 
-# ============================================================
-# LOAD MODEL
-# ============================================================
-
 if not MODEL_PATH.exists():
     raise FileNotFoundError(
-        f"Model not found:\n{MODEL_PATH}"
+        f"Model not found:\n{MODEL_PATH}\n\n"
+        "Run train_classifier.py first."
     )
 
-model = joblib.load(MODEL_PATH)
 
-print("=" * 70)
-print("CIVICAI NEXUS - DEPARTMENT CLASSIFIER")
-print("=" * 70)
-
-print("\nModel loaded successfully.")
+model = joblib.load(
+    MODEL_PATH
+)
 
 
-# ============================================================
-# PREDICTION
-# ============================================================
+def predict(text):
+    prediction = (
+        model.predict(
+            [text]
+        )[0]
+    )
 
-def predict_department(text):
+    confidence = None
+    alternatives = []
 
-    prediction = model.predict([text])[0]
+    if hasattr(
+        model,
+        "decision_function",
+    ):
+        scores = (
+            model.decision_function(
+                [text]
+            )[0]
+        )
 
-    return prediction
+        classes = (
+            model.classes_
+        )
+
+        ranked = sorted(
+            zip(
+                classes,
+                scores,
+            ),
+            key=lambda item:
+                item[1],
+            reverse=True,
+        )
+
+        alternatives = [
+            {
+                "department":
+                    department,
+                "score":
+                    round(
+                        float(score),
+                        4,
+                    ),
+            }
+            for department, score
+            in ranked[:5]
+        ]
+
+        confidence = round(
+            1 /
+            (
+                1 +
+                __import__(
+                    "math"
+                ).exp(
+                    -float(
+                        ranked[0][1]
+                    )
+                )
+            ),
+            4,
+        )
+
+    return (
+        prediction,
+        confidence,
+        alternatives,
+    )
 
 
-# ============================================================
-# TEST COMPLAINTS
-# ============================================================
-
-test_complaints = [
-
+TEST_COMPLAINTS = [
     # Tamil
     "எங்கள் பகுதியில் குடிநீர் வரவில்லை",
 
@@ -63,59 +112,125 @@ test_complaints = [
     "There is no drinking water supply in my area",
 
     # Tanglish
-    "Enga area la drinking water varala"
+    "Enga area la drinking water varala",
+
+    # Road
+    "There is a huge pothole on the main road",
+
+    # Electricity
+    "There has been no electricity since yesterday",
+
+    # Police
+    "My vehicle was stolen and I need police help",
+
+    # Waste
+    "Garbage has not been collected from our street",
+
+    # Drainage
+    "The sewage drain near my house is blocked",
+
+    # Education
+    "My government scholarship has not been credited",
+
+    # Health
+    "The government hospital has no essential medicines",
 ]
 
 
-print("\n" + "=" * 70)
-print("MULTILINGUAL TEST")
-print("=" * 70)
+print("=" * 80)
+print("CIVICAI NEXUS")
+print("DEPARTMENT MODEL TEST")
+print("=" * 80)
 
 
-for complaint in test_complaints:
+for index, complaint in enumerate(
+    TEST_COMPLAINTS,
+    start=1,
+):
 
-    department = predict_department(
+    department, confidence, alternatives = (
+        predict(
+            complaint
+        )
+    )
+
+    print(
+        f"\n[{index}] Complaint:"
+    )
+
+    print(
         complaint
     )
 
-    print("\nComplaint:")
-    print(complaint)
+    print(
+        "\nPredicted:"
+    )
 
-    print("\nPredicted Department:")
-    print(department)
+    print(
+        department
+    )
 
-    print("-" * 70)
+    print(
+        "Confidence:",
+        confidence,
+    )
+
+    print(
+        "\nTop alternatives:"
+    )
+
+    for item in alternatives:
+        print(
+            f"  {item['department']}: "
+            f"{item['score']}"
+        )
+
+    print(
+        "-" * 80
+    )
 
 
-# ============================================================
-# INTERACTIVE TEST
-# ============================================================
+print(
+    "\nInteractive testing"
+)
 
-print("\n")
-print("=" * 70)
-print("INTERACTIVE TEST")
-print("=" * 70)
-
-print("\nEnter a grievance complaint")
-print("Type 'exit' to stop.\n")
+print(
+    "Type 'exit' to stop."
+)
 
 
 while True:
 
-    complaint = input("Complaint: ").strip()
+    text = input(
+        "\nComplaint: "
+    ).strip()
 
-    if complaint.lower() == "exit":
-        print("\nTesting stopped.")
+    if text.lower() == "exit":
         break
 
-    if not complaint:
+    if not text:
         continue
 
-    department = predict_department(
-        complaint
+    department, confidence, alternatives = (
+        predict(text)
     )
 
-    print("\nPredicted Department:")
-    print(department)
+    print(
+        "\nDepartment:",
+        department,
+    )
 
-    print("-" * 70)
+    print(
+        "Confidence:",
+        confidence,
+    )
+
+    print(
+        "\nTop predictions:"
+    )
+
+    for item in alternatives:
+        print(
+            f"  {item['department']}: "
+            f"{item['score']}"
+        )

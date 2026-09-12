@@ -1,91 +1,296 @@
-from datetime import datetime, timedelta
+from pathlib import Path
+import math
 
-from app.config.settings import settings
-
-
-# Baseline resolution hours by category, tuned by severity multiplier.
-# In a real deployment this would be a regression model trained on
-# historical `grievances` data (see ai/training/); the heuristic here keeps
-# the product fully functional without requiring a trained model.
-BASE_RESOLUTION_HOURS = {
-    "WASTE": 48,
-    "WATER": 36,
-    "ROAD": 96,
-    "ELECTRICITY": 12,
-    "STREET_LIGHT": 72,
-    "DRAINAGE": 60,
-    "TRAFFIC": 48,
-    "PUBLIC_SAFETY": 8,
-    "GENERAL": 72,
-}
-
-SEVERITY_MULTIPLIER = {
-    "CRITICAL": 0.35,
-    "HIGH": 0.6,
-    "MEDIUM": 1.0,
-    "LOW": 1.3,
-}
-
-SLA_HOURS_BY_PRIORITY = {
-    "CRITICAL": lambda s: s.SLA_HOURS_CRITICAL,
-    "HIGH": lambda s: s.SLA_HOURS_HIGH,
-    "MEDIUM": lambda s: s.SLA_HOURS_MEDIUM,
-    "LOW": lambda s: s.SLA_HOURS_LOW,
-}
+import joblib
 
 
-def predict_resolution_hours(category: str, severity: str, is_incident: bool = False) -> int:
-    base = BASE_RESOLUTION_HOURS.get(category, BASE_RESOLUTION_HOURS["GENERAL"])
-    multiplier = SEVERITY_MULTIPLIER.get(severity, 1.0)
-    hours = base * multiplier
-    if is_incident:
-        # Clustered/community incidents tend to get prioritized field response.
-        hours *= 0.8
-    return max(2, round(hours))
+PROJECT_ROOT = (
+    Path(__file__)
+    .resolve()
+    .parents[3]
+)
+
+MODEL_PATH = (
+    PROJECT_ROOT
+    / "ai"
+    / "models"
+    / "priority_model.pkl"
+)
 
 
-def compute_sla_due_at(priority: str, created_at: datetime = None) -> tuple[datetime, int]:
-    created_at = created_at or datetime.utcnow()
-    sla_hours = SLA_HOURS_BY_PRIORITY.get(priority, SLA_HOURS_BY_PRIORITY["MEDIUM"])(settings)
-    return created_at + timedelta(hours=sla_hours), sla_hours
+_model = None
 
 
-def assess_escalation_risk(
-    priority: str,
-    duplicate_score: float,
-    similar_case_count: int,
-    hours_since_created: float = 0,
-    sla_hours: int = 72,
-) -> str:
-    """Rule-based SLA-risk classifier. Escalation risk rises as a case
-    approaches or exceeds its SLA window, or when community pressure
-    (many similar/duplicate reports) is high."""
-    score = 0
+HIGH_PRIORITY = [
+    "emergency",
+    "danger",
+    "dangerous",
+    "accident",
+    "fire",
+    "electric shock",
+    "fallen wire",
+    "life threatening",
+    "death",
+    "stolen",
+    "robbery",
+    "threat",
 
-    if priority in ("HIGH", "CRITICAL"):
-        score += 2
-    elif priority == "MEDIUM":
-        score += 1
+    "அவசரம்",
+    "ஆபத்து",
+    "விபத்து",
+    "தீ",
+    "மின்சாரம் தாக்க",
+    "திருட்டு",
+    "மிரட்டல்",
 
-    if similar_case_count >= 5:
-        score += 2
-    elif similar_case_count >= 2:
-        score += 1
+    "आपातकाल",
+    "खतरनाक",
+    "दुर्घटना",
+    "आग",
+    "बिजली का झटका",
+    "चोरी",
+    "धमकी",
 
-    if duplicate_score >= 70:
-        score += 1
+    "അടിയന്തര",
+    "അപകടം",
+    "തീ",
+    "വൈദ്യുതി ഷോക്ക്",
+    "മോഷണം",
+    "ഭീഷണി",
+]
 
-    if sla_hours:
-        elapsed_ratio = hours_since_created / sla_hours
-        if elapsed_ratio >= 1:
-            score += 3
-        elif elapsed_ratio >= 0.75:
-            score += 2
-        elif elapsed_ratio >= 0.5:
-            score += 1
 
-    if score >= 5:
-        return "HIGH"
-    if score >= 2:
-        return "MEDIUM"
-    return "LOW"
+CRITICAL_PRIORITY = [
+    "life threatening",
+    "life-threatening",
+    "death",
+    "fire emergency",
+    "electric shock",
+    "major accident",
+
+    "உயிருக்கு ஆபத்து",
+    "மரணம்",
+    "தீ விபத்து",
+
+    "जान का खतरा",
+    "मौत",
+    "आग",
+
+    "ജീവന് ഭീഷണി",
+    "മരണം",
+]
+
+
+MEDIUM_PRIORITY = [
+    "urgent",
+    "blocked",
+    "overflow",
+    "broken",
+    "leak",
+    "damaged",
+    "not working",
+    "flood",
+    "delay",
+
+    "அவசர",
+    "அடைப்பு",
+    "கசிவு",
+    "சேதம்",
+    "வேலை செய்யவில்லை",
+
+    "तुरंत",
+    "बंद",
+    "रिसाव",
+    "खराब",
+    "देरी",
+
+    "അടഞ്ഞ",
+    "ചോർച്ച",
+    "കേടായി",
+    "പ്രവർത്തിക്കുന്നില്ല",
+    "വൈകി",
+]
+
+
+def _load_model():
+    global _model
+
+    if _model is not None:
+        return _model
+
+    if not MODEL_PATH.exists():
+        return None
+
+    try:
+        _model = joblib.load(
+            MODEL_PATH
+        )
+
+        return _model
+
+    except Exception as error:
+        print(
+            "WARNING: Priority model "
+            f"load failed: {error}"
+        )
+
+        return None
+
+
+def _model_prediction(text):
+    model = _load_model()
+
+    if model is None:
+        return None
+
+    try:
+        prediction = (
+            model.predict(
+                [text]
+            )[0]
+        )
+
+        confidence = 0.5
+
+        if hasattr(
+            model,
+            "predict_proba",
+        ):
+            probabilities = (
+                model.predict_proba(
+                    [text]
+                )[0]
+            )
+
+            confidence = float(
+                max(
+                    probabilities
+                )
+            )
+
+        return {
+            "priority":
+                str(
+                    prediction
+                ).upper(),
+            "confidence":
+                confidence,
+        }
+
+    except Exception:
+        return None
+
+
+def predict_priority(text):
+    text = str(
+        text or ""
+    ).strip()
+
+    lowered = text.lower()
+
+    critical_matches = [
+        word
+        for word in CRITICAL_PRIORITY
+        if word.lower()
+        in lowered
+    ]
+
+    if critical_matches:
+        return {
+            "priority":
+                "CRITICAL",
+            "score":
+                98,
+            "matched_keywords":
+                critical_matches,
+        }
+
+    high_matches = [
+        word
+        for word in HIGH_PRIORITY
+        if word.lower()
+        in lowered
+    ]
+
+    if high_matches:
+        return {
+            "priority":
+                "HIGH",
+            "score":
+                90,
+            "matched_keywords":
+                high_matches,
+        }
+
+    medium_matches = [
+        word
+        for word in MEDIUM_PRIORITY
+        if word.lower()
+        in lowered
+    ]
+
+    model_result = (
+        _model_prediction(
+            text
+        )
+    )
+
+    if model_result:
+        predicted = (
+            model_result[
+                "priority"
+            ]
+        )
+
+        if (
+            predicted
+            == "CRITICAL"
+        ):
+            score = 95
+
+        elif (
+            predicted
+            == "HIGH"
+        ):
+            score = 85
+
+        elif (
+            predicted
+            == "MEDIUM"
+        ):
+            score = 60
+
+        else:
+            score = 30
+
+        return {
+            "priority":
+                predicted,
+            "score":
+                score,
+            "matched_keywords":
+                medium_matches,
+            "model_confidence":
+                model_result[
+                    "confidence"
+                ],
+        }
+
+    if medium_matches:
+        return {
+            "priority":
+                "MEDIUM",
+            "score":
+                65,
+            "matched_keywords":
+                medium_matches,
+        }
+
+    return {
+        "priority":
+            "LOW",
+        "score":
+            35,
+        "matched_keywords":
+            [],
+    }

@@ -109,10 +109,18 @@ const Login = () => {
 
       const from = location.state?.from?.pathname;
 
-      const target =
-        from && from.startsWith(`/${user.role}`)
-          ? from
-          : roleHome[user.role] || "/";
+      let target = roleHome[user.role] || "/";
+
+        if (user.role === "admin") {
+          target = user.district
+            ? "/admin/district"
+            : "/admin/dashboard";
+        } else if (
+          from &&
+          from.startsWith(`/${user.role}`)
+        ) {
+          target = from;
+        }
 
       navigate(target, { replace: true });
     } catch (error) {

@@ -1,108 +1,250 @@
 import { useState } from "react";
-import { NavLink, useNavigate } from "react-router-dom";
+import {
+  NavLink,
+  useNavigate,
+} from "react-router-dom";
+
 import {
   ShieldCheck,
   LogOut,
   PanelLeftClose,
   PanelLeftOpen,
+  MapPin,
 } from "lucide-react";
 
-import { NAV_BY_ROLE } from "./navConfig";
+import {
+  getNavigationItems,
+} from "./navConfig";
+
 import { useAuth } from "../../hooks/useAuth";
 
-const STORAGE_KEY = "civicai_sidebar_collapsed";
+const STORAGE_KEY =
+  "civicai_sidebar_collapsed";
 
-const Sidebar = ({ open, onNavigate }) => {
-  const { user, logout } = useAuth();
+const Sidebar = ({
+  open,
+  onNavigate,
+}) => {
+  const { user, logout } =
+    useAuth();
+
   const navigate = useNavigate();
 
-  const items = NAV_BY_ROLE[user?.role] || [];
+  const items =
+    getNavigationItems(user);
 
-  const [collapsed, setCollapsed] = useState(() => {
-    return localStorage.getItem(STORAGE_KEY) === "true";
-  });
+  const [collapsed, setCollapsed] =
+    useState(() => {
+      return (
+        localStorage.getItem(
+          STORAGE_KEY
+        ) === "true"
+      );
+    });
 
   const toggleCollapsed = () => {
-    setCollapsed((previous) => {
-      const next = !previous;
+    setCollapsed(
+      (previous) => {
+        const next = !previous;
 
-      localStorage.setItem(STORAGE_KEY, String(next));
+        localStorage.setItem(
+          STORAGE_KEY,
+          String(next)
+        );
 
-      return next;
-    });
+        return next;
+      }
+    );
   };
 
   const handleLogout = () => {
     logout();
+
     navigate("/login", {
       replace: true,
     });
   };
 
+  const isDistrictAdmin =
+    user?.role === "admin" &&
+    Boolean(user?.district);
+
+  const isSuperAdmin =
+    user?.role === "admin" &&
+    !user?.district;
+
   return (
     <aside
-      className={`sidebar ${open ? "open" : ""} ${
-        collapsed ? "collapsed" : ""
+      className={`sidebar ${
+        open ? "open" : ""
+      } ${
+        collapsed
+          ? "collapsed"
+          : ""
       }`}
     >
-      {/* Sidebar Brand */}
       <div className="sidebar-brand">
         <div className="sidebar-brand-icon">
           <ShieldCheck size={18} />
         </div>
 
-        {!collapsed && <span>CivicAI Nexus</span>}
+        {!collapsed && (
+          <span>
+            CivicAI Nexus
+          </span>
+        )}
 
         <button
           type="button"
           className="sidebar-collapse-btn"
-          onClick={toggleCollapsed}
-          aria-label={
-            collapsed ? "Expand sidebar" : "Collapse sidebar"
+          onClick={
+            toggleCollapsed
           }
-          title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          aria-label={
+            collapsed
+              ? "Expand sidebar"
+              : "Collapse sidebar"
+          }
+          title={
+            collapsed
+              ? "Expand sidebar"
+              : "Collapse sidebar"
+          }
         >
           {collapsed ? (
-            <PanelLeftOpen size={16} />
+            <PanelLeftOpen
+              size={16}
+            />
           ) : (
-            <PanelLeftClose size={16} />
+            <PanelLeftClose
+              size={16}
+            />
           )}
         </button>
       </div>
 
-      {/* Sidebar Navigation */}
-      <nav className="sidebar-nav">
-        {items.map(({ to, label, icon: Icon }) => (
-          <NavLink
-            key={to}
-            to={to}
-            onClick={onNavigate}
-            title={collapsed ? label : undefined}
-            className={({ isActive }) =>
-              `sidebar-link ${isActive ? "active" : ""}`
-            }
+      {!collapsed &&
+        isDistrictAdmin && (
+          <div
+            style={{
+              margin: "8px 12px 12px",
+              padding:
+                "10px 12px",
+              borderRadius: 10,
+              background:
+                "var(--accent-soft)",
+              color:
+                "var(--accent)",
+              fontSize: 12,
+              fontWeight: 700,
+              display: "flex",
+              alignItems: "center",
+              gap: 7,
+            }}
           >
-            <Icon size={17} />
+            <MapPin size={14} />
 
-            {!collapsed && <span>{label}</span>}
-          </NavLink>
-        ))}
+            <span>
+              {user.district}
+            </span>
+          </div>
+        )}
+
+      {!collapsed &&
+        isSuperAdmin && (
+          <div
+            style={{
+              margin: "8px 12px 12px",
+              padding:
+                "10px 12px",
+              borderRadius: 10,
+              background:
+                "var(--accent-soft)",
+              color:
+                "var(--accent)",
+              fontSize: 12,
+              fontWeight: 700,
+              display: "flex",
+              alignItems: "center",
+              gap: 7,
+            }}
+          >
+            <ShieldCheck
+              size={14}
+            />
+
+            <span>
+              Super Admin
+            </span>
+          </div>
+        )}
+
+      <nav className="sidebar-nav">
+        {items.map(
+          ({
+            to,
+            label,
+            icon: Icon,
+          }) => (
+            <NavLink
+              key={to}
+              to={to}
+              onClick={
+                onNavigate
+              }
+              title={
+                collapsed
+                  ? label
+                  : undefined
+              }
+              className={({
+                isActive,
+              }) =>
+                `sidebar-link ${
+                  isActive
+                    ? "active"
+                    : ""
+                }`
+              }
+            >
+              <Icon size={17} />
+
+              {!collapsed && (
+                <span>
+                  {label}
+                </span>
+              )}
+            </NavLink>
+          )
+        )}
       </nav>
 
-      {/* Sidebar Footer */}
       <div className="sidebar-footer">
         <button
           type="button"
           className="btn btn-block sidebar-logout-btn"
-          onClick={handleLogout}
-          title={collapsed ? "Log out" : undefined}
+          onClick={
+            handleLogout
+          }
+          title={
+            collapsed
+              ? "Log out"
+              : undefined
+          }
           style={{
-            justifyContent: collapsed ? "center" : "flex-start",
+            justifyContent:
+              collapsed
+                ? "center"
+                : "flex-start",
           }}
         >
           <LogOut size={16} />
 
-          {!collapsed && <span>Log out</span>}
+          {!collapsed && (
+            <span>
+              Log out
+            </span>
+          )}
         </button>
       </div>
     </aside>
