@@ -99,36 +99,87 @@ const Login = () => {
     return !newErrors.email && !newErrors.password;
   };
 
-  const doLogin = async (loginEmail, loginPassword) => {
-    setLoading(true);
+const doLogin = async (
+  loginEmail,
+  loginPassword
+) => {
+  setLoading(true);
 
-    try {
-      const user = await login(loginEmail, loginPassword);
+  try {
+    const user = await login(
+      loginEmail,
+      loginPassword
+    );
 
-      toast.success(`Welcome back, ${user.name.split(" ")[0]}`);
+    toast.success(
+      `Welcome back, ${
+        user?.name?.split(" ")[0] ||
+        "User"
+      }`
+    );
 
-      const from = location.state?.from?.pathname;
+    /*
+     * =====================================================
+     * DETERMINE THE CORRECT DASHBOARD
+     * =====================================================
+     *
+     * Admin users are divided into:
+     *
+     * 1. Super Admin
+     *    district is empty/null
+     *
+     * 2. District Admin
+     *    district exists
+     *
+     * District admins MUST go directly to:
+     *
+     * /admin/district
+     *
+     * They must never temporarily enter:
+     *
+     * /admin/dashboard
+     */
 
-      let target = roleHome[user.role] || "/";
+    let target = "/";
 
-        if (user.role === "admin") {
-          target = user.district
-            ? "/admin/district"
-            : "/admin/dashboard";
-        } else if (
-          from &&
-          from.startsWith(`/${user.role}`)
-        ) {
-          target = from;
-        }
-
-      navigate(target, { replace: true });
-    } catch (error) {
-      toast.error(getErrorMessage(error));
-    } finally {
-      setLoading(false);
+    if (user?.role === "citizen") {
+      target = "/citizen/dashboard";
     }
-  };
+
+    else if (user?.role === "officer") {
+      target = "/officer/dashboard";
+    }
+
+    else if (user?.role === "admin") {
+
+      /*
+       * District admin
+       */
+      if (
+        user?.district &&
+        String(user.district).trim() !== ""
+      ) {
+        target = "/admin/district";
+      }
+
+      /*
+       * Super admin
+       */
+      else {
+        target = "/admin/dashboard";
+      }
+    }
+
+    window.location.replace(target);
+
+  } catch (error) {
+    toast.error(
+      getErrorMessage(error)
+    );
+  } finally {
+    setLoading(false);
+  }
+};
 
   const handleSubmit = (e) => {
     e.preventDefault();

@@ -20,10 +20,34 @@ const DashboardLayout = () => {
 
   const items = getNavigationItems(user);
 
-  const current =
-    items.find((item) =>
-      location.pathname.startsWith(item.to)
-    );
+  /*
+   * Find the exact navigation item first.
+   * This prevents /admin/district from matching
+   * /admin/district/unassigned.
+   */
+  const exactCurrent = items.find(
+    (item) =>
+      location.pathname === item.to
+  );
+
+  /*
+   * Fallback for deeper pages such as:
+   * /admin/grievances/:id
+   */
+  const parentCurrent =
+    exactCurrent ||
+    items
+      .filter((item) =>
+        location.pathname.startsWith(
+          `${item.to}/`
+        )
+      )
+      .sort(
+        (a, b) =>
+          b.to.length - a.to.length
+      )[0];
+
+  const current = parentCurrent;
 
   const [menuOpen, setMenuOpen] =
     useState(false);

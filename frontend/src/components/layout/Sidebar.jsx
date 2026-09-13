@@ -189,6 +189,7 @@ const Sidebar = ({
             <NavLink
               key={to}
               to={to}
+              end
               onClick={
                 onNavigate
               }
