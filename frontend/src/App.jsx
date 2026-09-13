@@ -1,24 +1,8 @@
-import {
-  BrowserRouter,
-  Routes,
-  Route,
-  Navigate,
-} from "react-router-dom";
-
-import {
-  AuthProvider,
-} from "./context/AuthContext";
-
-import {
-  ThemeProvider,
-} from "./context/ThemeContext";
-
-import {
-  ToastProvider,
-} from "./context/ToastContext";
-
+import { BrowserRouter, Routes, Route, Navigate,} from "react-router-dom";
+import { AuthProvider, } from "./context/AuthContext";
+import { ThemeProvider, } from "./context/ThemeContext";
+import { ToastProvider, } from "./context/ToastContext";
 import ProtectedRoute from "./routes/ProtectedRoute";
-
 import DashboardLayout from "./layouts/DashboardLayout";
 import PublicLayout from "./layouts/PublicLayout";
 
@@ -82,375 +66,93 @@ function App() {
               {/* PUBLIC */}
               {/* ========================= */}
 
-              <Route
-                element={
-                  <PublicLayout />
-                }
-              >
-                <Route
-                  path="/"
-                  element={
-                    <Landing />
-                  }
-                />
-
-                <Route
-                  path="/about"
-                  element={
-                    <About />
-                  }
-                />
-
-                <Route
-                  path="/how-it-works"
-                  element={
-                    <HowItWorks />
-                  }
-                />
-
-                <Route
-                  path="/privacy-policy"
-                  element={
-                    <PrivacyPolicy />
-                  }
-                />
-
-                <Route
-                  path="/terms"
-                  element={
-                    <Terms />
-                  }
-                />
-
-                <Route
-                  path="/cookie-policy"
-                  element={
-                    <CookiePolicy />
-                  }
-                />
+              <Route element={ <PublicLayout />  } >
+                <Route path="/" element={ <Landing /> } />
+                <Route path="/about" element={ <About /> } />
+                <Route  path="/how-it-works" element={  <HowItWorks /> } />
+                <Route path="/privacy-policy" element={ <PrivacyPolicy /> }  />
+                <Route path="/terms" element={ <Terms /> } />
+                <Route path="/cookie-policy" element={ <CookiePolicy /> } />
               </Route>
 
               {/* ========================= */}
               {/* AUTH */}
               {/* ========================= */}
 
-              <Route
-                path="/login"
-                element={
-                  <Login />
-                }
-              />
-
-              <Route
-                path="/register"
-                element={
-                  <Register />
-                }
-              />
-
-              <Route
-                path="/forgot-password"
-                element={
-                  <ForgotPassword />
-                }
-              />
-
-              <Route
-                path="/reset-password"
-                element={
-                  <ResetPassword />
-                }
-              />
-
-              <Route
-                path="/403"
-                element={
-                  <Forbidden />
-                }
-              />
+              <Route path="/login" element={ <Login /> } /> 
+              <Route path="/register" element={ <Register /> } /> 
+              <Route path="/forgot-password" element={ <ForgotPassword /> } />
+              <Route path="/reset-password" element={ <ResetPassword /> } />
+              <Route path="/403" element={ <Forbidden /> } />
 
               {/* ========================= */}
               {/* CITIZEN */}
               {/* ========================= */}
 
-              <Route
-                path="/citizen"
-                element={
-                  <ProtectedRoute
-                    allowedRoles={[
-                      "citizen",
-                    ]}
-                  >
+              <Route path="/citizen" element={
+                  <ProtectedRoute allowedRoles={[ "citizen", ]} >
                     <DashboardLayout />
-                  </ProtectedRoute>
-                }
-              >
-                <Route
-                  index
-                  element={
-                    <Navigate
-                      to="dashboard"
-                      replace
-                    />
-                  }
-                />
-
-                <Route
-                  path="dashboard"
-                  element={
-                    <CitizenDashboard />
-                  }
-                />
-
-                <Route
-                  path="report"
-                  element={
-                    <ReportIssue />
-                  }
-                />
-
-                <Route
-                  path="grievances"
-                  element={
-                    <CitizenGrievances />
-                  }
-                />
-
-                <Route
-                  path="grievances/:grievanceId"
-                  element={
-                    <GrievanceDetail />
-                  }
-                />
-
-                <Route
-                  path="incidents"
-                  element={
-                    <Incidents />
-                  }
-                />
-
-                <Route
-                  path="incidents/:incidentId"
-                  element={
-                    <IncidentDetail />
-                  }
-                />
-
-                <Route
-                  path="assistant"
-                  element={
-                    <AIAssistant />
-                  }
-                />
-
-                <Route
-                  path="notifications"
-                  element={
-                    <Notifications />
-                  }
-                />
-
-                <Route
-                  path="profile"
-                  element={
-                    <Profile />
-                  }
-                />
-
-                <Route
-                  path="settings"
-                  element={
-                    <Settings />
-                  }
-                />
+                  </ProtectedRoute> }>
+                <Route index element={ <Navigate to="dashboard" replace /> } />
+                <Route path="dashboard" element={ <CitizenDashboard /> } />
+                <Route path="report" element={ <ReportIssue /> } />
+                <Route  path="grievances" element={ <CitizenGrievances /> } />
+                <Route path="grievances/:grievanceId" element={  <GrievanceDetail /> }/>
+                <Route path="incidents" element={ <Incidents /> }/>
+                <Route path="incidents/:incidentId" element={ <IncidentDetail />  } />
+                <Route path="assistant" element={  <AIAssistant /> } />
+                <Route path="notifications" element={ <Notifications /> }/>
+                <Route path="profile" element={ <Profile /> } />
+                <Route path="settings" element={ <Settings /> } />
               </Route>
 
               {/* ========================= */}
               {/* OFFICER */}
               {/* ========================= */}
 
-              <Route
-                path="/officer"
-                element={
-                  <ProtectedRoute
-                    allowedRoles={[
-                      "officer",
-                    ]}
-                  >
+              <Route path="/officer" element={ 
+                 <ProtectedRoute allowedRoles={[ "officer" ]} >
                     <DashboardLayout />
-                  </ProtectedRoute>
-                }
-              >
-                <Route
-                  index
-                  element={
-                    <Navigate
-                      to="dashboard"
-                      replace
-                    />
-                  }
-                />
-
-                <Route
-                  path="dashboard"
-                  element={
-                    <OfficerDashboard />
-                  }
-                />
-
-                <Route
-                  path="grievances"
-                  element={
-                    <OfficerGrievances />
-                  }
-                />
-
-                <Route
-                  path="grievances/:grievanceId"
-                  element={
-                    <GrievanceDetail />
-                  }
-                />
-
-                <Route
-                  path="incidents"
-                  element={
-                    <Incidents />
-                  }
-                />
-
-                <Route
-                  path="incidents/:incidentId"
-                  element={
-                    <IncidentDetail />
-                  }
-                />
-
-                <Route
-                  path="copilot"
-                  element={
-                    <AIAssistant />
-                  }
-                />
-
-                <Route
-                  path="assistant"
-                  element={
-                    <AIAssistant />
-                  }
-                />
-
-                <Route
-                  path="analytics"
-                  element={
-                    <OfficerAnalytics />
-                  }
-                />
-
-                <Route
-                  path="notifications"
-                  element={
-                    <Notifications />
-                  }
-                />
-
-                <Route
-                  path="profile"
-                  element={
-                    <Profile />
-                  }
-                />
-
-                <Route
-                  path="settings"
-                  element={
-                    <Settings />
-                  }
-                />
+                  </ProtectedRoute> }>
+                <Route index element={ <Navigate to="dashboard" replace /> } />
+                <Route path="dashboard" element={  <OfficerDashboard />  } />
+                <Route path="grievances" element={<OfficerGrievances /> } />
+                <Route path="grievances/:grievanceId" element={ <GrievanceDetail /> }/>
+                <Route path="incidents" element={ <Incidents /> } />
+                <Route path="incidents/:incidentId" element={ <IncidentDetail />  } />
+                <Route path="copilot" element={ <AIAssistant /> } />
+                <Route path="assistant" element={ <AIAssistant />  } />
+                <Route path="analytics" element={ <OfficerAnalytics /> } />
+                <Route path="notifications" element={ <Notifications /> } />
+                <Route path="profile" element={ <Profile /> } />
+                <Route path="settings" element={ <Settings /> } />
               </Route>
 
               {/* ========================= */}
               {/* ADMIN */}
               {/* ========================= */}
 
-              <Route
-                path="/admin"
-                element={
-                  <ProtectedRoute
-                    allowedRoles={[
-                      "admin",
-                    ]}
-                  >
+              <Route path="/admin" element={
+                  <ProtectedRoute allowedRoles={[ "admin", ]} >
                     <DashboardLayout />
-                  </ProtectedRoute>
-                }
-              >
-
-                {/* Default admin route */}
-                <Route
-                  index
-                  element={
-                    <Navigate
-                      to="dashboard"
-                      replace
-                    />
-                  }
-                />
-
-                {/* ===================== */}
+                  </ProtectedRoute> } >
+                <Route index element={  <Navigate to="dashboard" replace /> } />
                 {/* SUPER ADMIN DASHBOARD */}
-                {/* ===================== */}
 
-                <Route
-                  path="dashboard"
-                  element={
-                    <ProtectedRoute
-                      allowedRoles={[
-                        "admin",
-                      ]}
-                      adminScope="super"
-                    >
+                <Route path="dashboard" element={
+                    <ProtectedRoute allowedRoles={[ "admin", ]} dminScope="super">
                       <AdminDashboard />
-                    </ProtectedRoute>
-                  }
-                />
-
-                {/* ===================== */}
+                    </ProtectedRoute> } />
                 {/* DISTRICT ADMIN */}
-                {/* ===================== */}
-
-                <Route
-                  path="district"
-                  element={
-                    <ProtectedRoute
-                      allowedRoles={[
-                        "admin",
-                      ]}
-                      adminScope="district"
-                    >
+                <Route path="district" element={
+                    <ProtectedRoute allowedRoles={[ "admin", ]} adminScope="district"> 
                       <DistrictAdmin />
-                    </ProtectedRoute>
-                  }
-                />
-
-                <Route
-                  path="district/unassigned"
-                  element={
-                    <ProtectedRoute
-                      allowedRoles={[
-                        "admin",
-                      ]}
-                      adminScope="district"
-                    >
+                    </ProtectedRoute> } />
+                <Route path="district/unassigned" element={
+                    <ProtectedRoute allowedRoles={[  "admin", ]}  adminScope="district">
                       <UnassignedGrievances />
-                    </ProtectedRoute>
-                  }
-                />
-
-                {/* ===================== */}
+                    </ProtectedRoute>  } />
                 {/* SHARED ADMIN */}
-                {/* ===================== */}
 
                 <Route
                   path="grievances"
