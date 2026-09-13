@@ -7,8 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from app.config.database import chat_sessions_collection
 from app.schemas.grievance import AIAnalyzeRequest, ChatRequest
 from app.services.ai_pipeline_service import run_pipeline
-from app.ai.llm import generate_response
-from app.services.rag_service import retrieve_context
+from app.services.agent_service import run_agent_chat
 from app.utils.dependencies import get_current_user
 from app.utils.helpers import serialize_document, serialize_documents
 from app.models.chat_session import chat_session_document, make_title
@@ -47,17 +46,11 @@ def chat(data: ChatRequest, current_user=Depends(get_current_user)):
         result = chat_sessions_collection.insert_one(session)
         session["_id"] = result.inserted_id
 
-    # Build recent conversation context (last 6 turns) so follow-up questions
-    # like "what about tamil?" still make sense to the model.
+    # Recent conversation turns, for the agent's short-term memory.
     recent_turns = session["messages"][-12:]
-    history_text = "\n".join(f"{m['role']}: {m['text']}" for m in recent_turns)
 
-    context_items = retrieve_context(data.message)
-    context_text = "\n".join(item["text"] for item in context_items)
-    if history_text:
-        context_text = f"Recent conversation so far:\n{history_text}\n\n{context_text}"
-
-    response = generate_response(data.message, language=data.language, context=context_text)
+    agent_result = run_agent_chat(data.message, current_user, recent_turns, language=data.language)
+    response = agent_result["response"]
 
     user_message = {"role": "user", "text": data.message, "created_at": now}
     assistant_message = {"role": "assistant", "text": response, "created_at": datetime.utcnow()}
@@ -75,7 +68,7 @@ def chat(data: ChatRequest, current_user=Depends(get_current_user)):
         "success": True,
         "data": {
             "response": response,
-            "sources": [item["source"] for item in context_items],
+            "tool_calls": [{"name": t["name"]} for t in agent_result["tool_calls"]],
             "is_ai_generated": True,
             "session_id": str(session["_id"]),
         },

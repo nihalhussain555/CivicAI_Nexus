@@ -43,6 +43,7 @@ Return ONLY a JSON object (no markdown, no commentary) with exactly these keys:
 
 class BaseAIProvider(ABC):
     name = "base"
+    supports_tools = False
 
     @abstractmethod
     def analyze_grievance(self, text: str, language: str = "English") -> dict:
@@ -55,6 +56,18 @@ class BaseAIProvider(ABC):
     @abstractmethod
     def chat(self, message: str, language: str = "English", context: str = "") -> str:
         ...
+
+    def chat_with_tools(self, messages: list, tools: list):
+        """
+        One round of an agent tool-calling turn. Returns either
+        {"type": "tool_calls", "calls": [{"id", "name", "arguments"}, ...]}
+        or {"type": "text", "content": "..."}.
+        Only real providers that implement native function-calling override
+        this — the mock provider and any provider without tool support
+        simply isn't used for the agent path (see agent_service.py, which
+        falls back to a deterministic rule-based dispatcher instead).
+        """
+        raise NotImplementedError(f"{self.name} does not support tool calling")
 
 
 class MockAIProvider(BaseAIProvider):
@@ -163,6 +176,7 @@ def _extract_json(raw_text: str) -> dict:
 
 class OpenAIProvider(BaseAIProvider):
     name = "openai"
+    supports_tools = True
 
     def __init__(self):
         if not settings.OPENAI_API_KEY:
@@ -231,6 +245,34 @@ class OpenAIProvider(BaseAIProvider):
             temperature=0.4,
         )
         return response.choices[0].message.content
+
+    def chat_with_tools(self, messages: list, tools: list):
+        response = self._client.chat.completions.create(
+            model=self._model,
+            messages=messages,
+            tools=tools,
+            tool_choice="auto",
+            temperature=0.3,
+        )
+        choice = response.choices[0].message
+
+        if choice.tool_calls:
+            return {
+                "type": "tool_calls",
+                "raw_message": choice,  # provider-native shape, needed to reconstruct history
+                "calls": [
+                    {"id": tc.id, "name": tc.function.name, "arguments": tc.function.arguments}
+                    for tc in choice.tool_calls
+                ],
+            }
+        return {"type": "text", "content": choice.content or ""}
+
+    def append_tool_result(self, messages: list, raw_assistant_message, tool_call_id: str, result_json: str):
+        """OpenAI-style history requires the raw assistant tool-call message
+        followed by one 'tool' message per call result."""
+        if not any(m is raw_assistant_message for m in messages):
+            messages.append(raw_assistant_message)
+        messages.append({"role": "tool", "tool_call_id": tool_call_id, "content": result_json})
 
 
 class GeminiProvider(BaseAIProvider):
@@ -302,6 +344,7 @@ class GroqProvider(BaseAIProvider):
     """
 
     name = "groq"
+    supports_tools = True
 
     def __init__(self):
         if not settings.GROQ_API_KEY:
@@ -369,6 +412,32 @@ class GroqProvider(BaseAIProvider):
             temperature=0.4,
         )
         return response.choices[0].message.content
+
+    def chat_with_tools(self, messages: list, tools: list):
+        response = self._client.chat.completions.create(
+            model=self._model,
+            messages=messages,
+            tools=tools,
+            tool_choice="auto",
+            temperature=0.3,
+        )
+        choice = response.choices[0].message
+
+        if choice.tool_calls:
+            return {
+                "type": "tool_calls",
+                "raw_message": choice,
+                "calls": [
+                    {"id": tc.id, "name": tc.function.name, "arguments": tc.function.arguments}
+                    for tc in choice.tool_calls
+                ],
+            }
+        return {"type": "text", "content": choice.content or ""}
+
+    def append_tool_result(self, messages: list, raw_assistant_message, tool_call_id: str, result_json: str):
+        if not any(m is raw_assistant_message for m in messages):
+            messages.append(raw_assistant_message)
+        messages.append({"role": "tool", "tool_call_id": tool_call_id, "content": result_json})
 
 
 _provider_instance = None
