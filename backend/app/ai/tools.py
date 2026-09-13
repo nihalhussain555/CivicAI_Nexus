@@ -214,8 +214,15 @@ TOOL_DEFINITIONS = [
 
 def tools_for_role(role: str) -> list:
     """Only expose tools this role is actually allowed to invoke — the LLM
-    never even sees a tool it couldn't legally call."""
-    return [t for t in TOOL_DEFINITIONS if role in t["roles"]]
+    never even sees a tool it couldn't legally call. Strips the internal
+    "roles" bookkeeping field (a Python set) before returning, since that
+    field isn't part of the OpenAI-style tool schema and isn't JSON
+    serializable — leaving it in breaks the real provider's API call and
+    silently forces a fallback to rule-based dispatch."""
+    return [
+        {"type": t["type"], "function": t["function"]}
+        for t in TOOL_DEFINITIONS if role in t["roles"]
+    ]
 
 
 def tool_names_for_role(role: str) -> set:
