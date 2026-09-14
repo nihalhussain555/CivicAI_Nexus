@@ -1,45 +1,18 @@
 from datetime import datetime, timedelta
+from fastapi import ( APIRouter, Depends, )
+from app.config.database import ( grievances_collection, incidents_collection, users_collection, )
+from app.utils.dependencies import ( require_admin, require_staff,)
+from app.utils.helpers import (serialize_documents,)
 
-from fastapi import (
-    APIRouter,
-    Depends,
-)
-
-from app.config.database import (
-    grievances_collection,
-    incidents_collection,
-    users_collection,
-)
-
-from app.utils.dependencies import (
-    require_admin,
-    require_staff,
-)
-
-from app.utils.helpers import (
-    serialize_documents,
-)
-
-
-router = APIRouter(
-    prefix="/api/analytics",
-    tags=["Analytics"],
-)
-
+router = APIRouter( prefix="/api/analytics", tags=["Analytics"], )
 
 def admin_grievance_query(admin):
     if admin.get("district"):
-        return {
-            "district":
-                admin["district"]
-        }
-
+        return { "district": admin["district"] }
     return {}
 
 
-def incident_ids_for_district(
-    district
-):
+def incident_ids_for_district( district ):
     if not district:
         return None
 
@@ -54,21 +27,10 @@ def incident_ids_for_district(
 
 
 @router.get("/admin/overview")
-def admin_overview(
-    admin=Depends(require_admin)
-):
-    base = admin_grievance_query(
-        admin
-    )
-
-    total = (
-        grievances_collection.count_documents(
-            base
-        )
-    )
-
-    open_count = (
-        grievances_collection.count_documents(
+def admin_overview( admin=Depends(require_admin) ):
+    base = admin_grievance_query( admin )
+    total = ( grievances_collection.count_documents( base))
+    open_count = ( grievances_collection.count_documents(
             {
                 **base,
                 "status": {
@@ -78,8 +40,7 @@ def admin_overview(
         )
     )
 
-    resolved = (
-        grievances_collection.count_documents(
+    resolved = ( grievances_collection.count_documents(
             {
                 **base,
                 "status":
@@ -88,8 +49,7 @@ def admin_overview(
         )
     )
 
-    unassigned = (
-        grievances_collection.count_documents(
+    unassigned = ( grievances_collection.count_documents(
             {
                 **base,
                 "status":
@@ -100,8 +60,7 @@ def admin_overview(
         )
     )
 
-    high_priority = (
-        grievances_collection.count_documents(
+    high_priority = ( grievances_collection.count_documents(
             {
                 **base,
                 "priority": {
@@ -114,8 +73,7 @@ def admin_overview(
         )
     )
 
-    escalated = (
-        grievances_collection.count_documents(
+    escalated = ( grievances_collection.count_documents(
             {
                 **base,
                 "status":
@@ -125,9 +83,7 @@ def admin_overview(
     )
 
     now = datetime.utcnow()
-
-    sla_breaches = (
-        grievances_collection.count_documents(
+    sla_breaches = ( grievances_collection.count_documents(
             {
                 **base,
                 "status": {
