@@ -1,5 +1,5 @@
 import { Bot, RefreshCcw } from "lucide-react";
-import LoadingSpinner from "../common/LoadingSpinner";
+import LoadingSpinner from "../common/LoadingSpinner";  
 import { toDisplayText } from "../../utils/helpers";
 
 const CopilotPanel = ({ brief, loading, onRefresh }) => {

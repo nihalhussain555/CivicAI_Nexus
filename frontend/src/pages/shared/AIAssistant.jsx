@@ -8,7 +8,7 @@ import ChatMessage from "../../components/ai/ChatMessage";
 
 const ROLE_CONTENT = {
   citizen: {
-    title: "Ask CivicAI",
+    title: "CivicAI",
     subtitle: "Questions about reporting an issue, tracking status, or how the platform works.",
     greeting: "Hi, I'm the CivicAI assistant. Ask me how to report an issue, what happens after you submit, or how to track a grievance.",
     suggestions: [
@@ -19,7 +19,7 @@ const ROLE_CONTENT = {
     ],
   },
   officer: {
-    title: "AI Copilot Assistant",
+    title: "CivicAi",
     subtitle: "General guidance on platform behavior — for a specific case's brief, open that grievance directly.",
     greeting: "Hi, I'm the CivicAI assistant. Ask me anything about how the platform triages and routes grievances.",
     suggestions: [
@@ -30,7 +30,7 @@ const ROLE_CONTENT = {
     ],
   },
   admin: {
-    title: "AI Assistant",
+    title: "CivicAi",
     subtitle: "Platform-wide guidance on AI behavior, routing logic, and SLA/escalation rules.",
     greeting: "Hi, I'm the CivicAI assistant. Ask me about routing logic, SLA rules, escalation risk, or incident clustering across the platform.",
     suggestions: [
