@@ -1,10 +1,290 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Bot, Send, Sparkles, Loader2, Plus, MessageSquare, Trash2 } from "lucide-react";
+import { Bot, Send, Sparkles, Plus, MessageSquare, Trash2 } from "lucide-react";
 import { chatWithAssistant, listChatSessions, getChatSession, deleteChatSession, } from "../../services/aiService";
 import { useToast } from "../../context/ToastContext";
 import { useAuth } from "../../hooks/useAuth";
 import { getErrorMessage, formatRelative } from "../../utils/helpers";
 import ChatMessage from "../../components/ai/ChatMessage";
+const AIThinkingLoader = ({ small = false }) => {
+  const [statusIndex, setStatusIndex] = useState(0);
+
+  const statuses = [
+    "Thinking...",
+    "Understanding your question...",
+    "Analyzing information...",
+    "Preparing response...",
+  ];
+
+  useEffect(() => {
+    if (small) return;
+
+    const interval = setInterval(() => {
+      setStatusIndex((prev) => (prev + 1) % statuses.length);
+    }, 1800);
+
+    return () => clearInterval(interval);
+  }, [small]);
+
+  return (
+    <>
+      <div className={`civic-ai-loader ${small ? "civic-ai-loader-small" : ""}`}>
+        <div className="civic-ai-loader-orbit">
+          <span className="civic-ai-loader-dot dot-one"></span>
+          <span className="civic-ai-loader-dot dot-two"></span>
+          <span className="civic-ai-loader-dot dot-three"></span>
+
+          <div className="civic-ai-loader-core">
+            <Sparkles size={small ? 9 : 13} />
+          </div>
+        </div>
+
+        {!small && (
+          <div className="civic-ai-thinking-text">
+            <span className="civic-ai-status">
+              {statuses[statusIndex]}
+            </span>
+
+            <span className="civic-ai-thinking-dots">
+              <i></i>
+              <i></i>
+              <i></i>
+            </span>
+          </div>
+        )}
+      </div>
+
+      <style>{`
+        .civic-ai-loader {
+          display: inline-flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          gap: 8px;
+          padding: 6px 10px;
+        }
+
+        .civic-ai-loader-orbit {
+          width: 42px;
+          height: 42px;
+          position: relative;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .civic-ai-loader-orbit::before {
+          content: "";
+          position: absolute;
+          inset: 1px;
+          border-radius: 50%;
+          border: 2px solid rgba(139, 92, 246, 0.15);
+          border-top-color: #8b5cf6;
+          border-right-color: #a855f7;
+          animation: civicAIOrbit 1.1s linear infinite;
+        }
+
+        .civic-ai-loader-orbit::after {
+          content: "";
+          position: absolute;
+          inset: 7px;
+          border-radius: 50%;
+          border: 1px solid rgba(99, 102, 241, 0.2);
+          border-bottom-color: #6366f1;
+          animation: civicAIOrbitReverse 0.8s linear infinite;
+        }
+
+        .civic-ai-loader-core {
+          width: 18px;
+          height: 18px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: 50%;
+          color: white;
+          background: radial-gradient(
+            circle,
+            #c084fc 0%,
+            #8b5cf6 45%,
+            #6366f1 100%
+          );
+          box-shadow:
+            0 0 8px rgba(139, 92, 246, 0.8),
+            0 0 18px rgba(139, 92, 246, 0.5);
+          animation: civicAICorePulse 1.1s ease-in-out infinite;
+          z-index: 2;
+        }
+
+        .civic-ai-loader-dot {
+          position: absolute;
+          width: 5px;
+          height: 5px;
+          border-radius: 50%;
+          background: #a855f7;
+          box-shadow: 0 0 7px rgba(168, 85, 247, 0.9);
+          z-index: 3;
+        }
+
+        .civic-ai-loader-dot.dot-one {
+          top: 0;
+          left: 18px;
+          animation: civicAIDotPulse 1s ease-in-out infinite;
+        }
+
+        .civic-ai-loader-dot.dot-two {
+          right: 1px;
+          bottom: 9px;
+          animation: civicAIDotPulse 1s ease-in-out 0.25s infinite;
+        }
+
+        .civic-ai-loader-dot.dot-three {
+          left: 1px;
+          bottom: 9px;
+          animation: civicAIDotPulse 1s ease-in-out 0.5s infinite;
+        }
+
+        .civic-ai-thinking-text {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          min-height: 18px;
+          color: var(--text-muted);
+          font-size: 12px;
+          font-weight: 500;
+          transition: opacity 0.3s ease;
+        }
+
+        .civic-ai-status {
+          animation: civicAIStatusFade 0.4s ease;
+        }
+
+        .civic-ai-thinking-dots {
+          display: flex;
+          gap: 3px;
+          margin-left: 4px;
+        }
+
+        .civic-ai-thinking-dots i {
+          width: 3px;
+          height: 3px;
+          border-radius: 50%;
+          background: #8b5cf6;
+          animation: civicAIDotText 1.2s ease-in-out infinite;
+        }
+
+        .civic-ai-thinking-dots i:nth-child(2) {
+          animation-delay: 0.2s;
+        }
+
+        .civic-ai-thinking-dots i:nth-child(3) {
+          animation-delay: 0.4s;
+        }
+
+        .civic-ai-loader-small {
+          padding: 0;
+        }
+
+        .civic-ai-loader-small .civic-ai-loader-orbit {
+          width: 20px;
+          height: 20px;
+        }
+
+        .civic-ai-loader-small .civic-ai-loader-orbit::before {
+          border-width: 1.5px;
+        }
+
+        .civic-ai-loader-small .civic-ai-loader-orbit::after {
+          inset: 4px;
+          border-width: 1px;
+        }
+
+        .civic-ai-loader-small .civic-ai-loader-core {
+          width: 8px;
+          height: 8px;
+        }
+
+        .civic-ai-loader-small .civic-ai-loader-dot {
+          width: 3px;
+          height: 3px;
+        }
+
+        .civic-ai-loader-small .civic-ai-loader-dot.dot-one {
+          left: 8.5px;
+        }
+
+        .civic-ai-loader-small .civic-ai-loader-dot.dot-two {
+          right: 0;
+          bottom: 4px;
+        }
+
+        .civic-ai-loader-small .civic-ai-loader-dot.dot-three {
+          left: 0;
+          bottom: 4px;
+        }
+
+        @keyframes civicAIOrbit {
+          from {
+            transform: rotate(0deg);
+          }
+          to {
+            transform: rotate(360deg);
+          }
+        }
+
+        @keyframes civicAIOrbitReverse {
+          from {
+            transform: rotate(360deg);
+          }
+          to {
+            transform: rotate(0deg);
+          }
+        }
+
+        @keyframes civicAICorePulse {
+          0%, 100% {
+            transform: scale(0.85);
+          }
+          50% {
+            transform: scale(1.1);
+          }
+        }
+
+        @keyframes civicAIDotPulse {
+          0%, 100% {
+            transform: scale(0.6);
+            opacity: 0.4;
+          }
+          50% {
+            transform: scale(1.25);
+            opacity: 1;
+          }
+        }
+
+        @keyframes civicAIDotText {
+          0%, 60%, 100% {
+            transform: translateY(0);
+            opacity: 0.35;
+          }
+          30% {
+            transform: translateY(-3px);
+            opacity: 1;
+          }
+        }
+
+        @keyframes civicAIStatusFade {
+          from {
+            opacity: 0;
+            transform: translateY(3px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+      `}</style>
+    </>
+  );
+};
+
 
 const ROLE_CONTENT = {
   citizen: {
@@ -130,7 +410,7 @@ const AIAssistant = () => {
         <div style={{ flex: 1, overflowY: "auto", padding: 8 }}>
           {sessionsLoading ? (
             <div style={{ padding: 16, textAlign: "center" }}>
-              <Loader2 size={16} style={{ animation: "spin 0.8s linear infinite", color: "var(--text-faint)" }} />
+              <AIThinkingLoader small />
             </div>
           ) : sessions.length === 0 ? (
             <p style={{ fontSize: 12, color: "var(--text-faint)", padding: "8px 6px" }}>No past chats yet.</p>
@@ -185,7 +465,7 @@ const AIAssistant = () => {
               <ChatMessage text={m.text} />
             </div>
           ))}
-          {loading && <div className="message ai-message"><Loader2 size={14} style={{ animation: "spin 0.8s linear infinite" }} /></div>}
+          {loading && <div className="message ai-message"><AIThinkingLoader small /></div>}
           <div ref={endRef} />
         </div>
 
