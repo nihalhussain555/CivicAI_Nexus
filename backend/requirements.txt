@@ -8,8 +8,6 @@ bcrypt==4.2.0
 python-multipart==0.0.20
 pydantic==2.11.7
 email-validator==2.2.0
-scikit-learn==1.7.1
-numpy==2.3.2
 requests==2.32.4
 
 # Real AI provider adapters (optional — only required if AI_PROVIDER=openai/gemini).
