@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Bot, Send, Sparkles, Plus, MessageSquare, Trash2 } from "lucide-react";
+import { Bot, Send, Sparkles, Plus, MessageSquare, Trash2, History, X } from "lucide-react";
 import { chatWithAssistant, listChatSessions, getChatSession, deleteChatSession, } from "../../services/aiService";
 import { useToast } from "../../context/ToastContext";
 import { useAuth } from "../../hooks/useAuth";
@@ -329,6 +329,7 @@ const AIAssistant = () => {
   const [sessions, setSessions] = useState([]);
   const [sessionsLoading, setSessionsLoading] = useState(true);
   const [activeSessionId, setActiveSessionId] = useState(null);
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   const [messages, setMessages] = useState([{ role: "assistant", text: content.greeting }]);
   const [input, setInput] = useState("");
@@ -350,6 +351,7 @@ const AIAssistant = () => {
   const startNewChat = () => {
     setActiveSessionId(null);
     setMessages([{ role: "assistant", text: content.greeting }]);
+    setHistoryOpen(false);
   };
 
   const openSession = async (sessionId) => {
@@ -358,6 +360,7 @@ const AIAssistant = () => {
       const loaded = res.data.messages.map((m) => ({ role: m.role, text: m.text }));
       setMessages(loaded.length ? loaded : [{ role: "assistant", text: content.greeting }]);
       setActiveSessionId(sessionId);
+      setHistoryOpen(false);
     } catch (error) {
       toast.error(getErrorMessage(error));
     }
@@ -393,18 +396,30 @@ const AIAssistant = () => {
   };
 
   return (
-    <div style={{ display: "flex", gap: 18, height: "calc(100vh - 120px)" }}>
-      {/* History sidebar */}
-      <div
-        className="card"
-        style={{
-          width: 240, flexShrink: 0, padding: 0, display: "flex", flexDirection: "column",
-          overflow: "hidden",
-        }}
-      >
-        <div style={{ padding: 12, borderBottom: "1px solid var(--border)" }}>
+    <div className="ai-assistant-shell">
+      {/* Backdrop shown behind the history drawer on mobile */}
+      <button
+        type="button"
+        className={`ai-history-backdrop ${historyOpen ? "open" : ""}`}
+        aria-label="Close chat history"
+        onClick={() => setHistoryOpen(false)}
+      />
+
+      {/* History sidebar — becomes an off-canvas drawer under 768px */}
+      <div className={`card ai-history-panel ${historyOpen ? "open" : ""}`}>
+        <div style={{ padding: 12, borderBottom: "1px solid var(--border)", display: "flex", gap: 8, alignItems: "center" }}>
           <button className="btn btn-primary btn-sm btn-block" onClick={startNewChat}>
             <Plus size={14} /> New chat
+          </button>
+
+          <button
+            type="button"
+            className="icon-button"
+            aria-label="Close chat history"
+            onClick={() => setHistoryOpen(false)}
+            style={{ display: historyOpen ? "flex" : "none", flexShrink: 0 }}
+          >
+            <X size={16} />
           </button>
         </div>
         <div style={{ flex: 1, overflowY: "auto", padding: 8 }}>
@@ -449,13 +464,25 @@ const AIAssistant = () => {
       </div>
 
       {/* Chat window */}
-      <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column" }}>
+      <div className="ai-chat-panel">
         <div className="page-header" style={{ marginBottom: 16 }}>
-          <div>
-            <h1>
-              <Bot size={20} style={{ verticalAlign: "-3px", marginRight: 8, color: "var(--accent)" }} />{content.title}
-            </h1>
-            <p>{content.subtitle}</p>
+          <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+            <button
+              type="button"
+              className="icon-button ai-history-toggle"
+              aria-label="Open chat history"
+              onClick={() => setHistoryOpen(true)}
+              style={{ marginTop: 2 }}
+            >
+              <History size={17} />
+            </button>
+
+            <div>
+              <h1>
+                <Bot size={20} style={{ verticalAlign: "-3px", marginRight: 8, color: "var(--accent)" }} />{content.title}
+              </h1>
+              <p>{content.subtitle}</p>
+            </div>
           </div>
         </div>
 

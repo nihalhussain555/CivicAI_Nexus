@@ -3051,3 +3051,71 @@ body { background: radial-gradient(circle at 72% -20%, rgba(99,102,241,.11), tra
     0 0 0 3px
     rgba(109, 40, 217, 0.10) !important;
 }
+
+/* =========================================================
+   AI ASSISTANT PAGE — responsive layout (mobile drawer for
+   the chat-history panel so the chat window isn't squeezed)
+========================================================= */
+
+.ai-assistant-shell {
+  display: flex;
+  gap: 18px;
+  height: calc(100vh - 120px);
+  position: relative;
+}
+
+.ai-history-panel {
+  width: 240px;
+  flex-shrink: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.ai-history-toggle {
+  display: none;
+}
+
+.ai-history-backdrop {
+  display: none;
+}
+
+.ai-chat-panel {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+@media (max-width: 768px) {
+  .ai-history-panel {
+    position: fixed;
+    top: 0;
+    left: -280px;
+    width: 260px;
+    height: 100vh;
+    z-index: 210;
+    transition: left 0.2s ease;
+    box-shadow: var(--shadow-lg);
+    border-radius: 0;
+  }
+
+  .ai-history-panel.open {
+    left: 0;
+  }
+
+  .ai-history-toggle {
+    display: inline-flex;
+  }
+
+  .ai-history-backdrop.open {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 205;
+    border: 0;
+    background: rgba(5, 8, 20, 0.42);
+    backdrop-filter: blur(2px);
+  }
+}
