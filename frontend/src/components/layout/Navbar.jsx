@@ -8,6 +8,7 @@ import {
   Settings,
   LogOut,
   ChevronDown,
+  Menu,
 } from "lucide-react";
 
 import { useAuth } from "../../hooks/useAuth";
@@ -15,7 +16,7 @@ import ThemeToggle from "../common/ThemeToggle";
 import NotificationBell from "../notifications/NotificationBell";
 import Avatar from "../common/Avatar";
 
-const Topbar = ({ title }) => {
+const Topbar = ({ title, onMenuToggle }) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
@@ -77,6 +78,16 @@ const Topbar = ({ title }) => {
           gap: 12,
         }}
       >
+        {/* Mobile hamburger — opens the sidebar as an off-canvas drawer on small screens */}
+        <button
+          type="button"
+          className="icon-button mobile-menu-button"
+          onClick={onMenuToggle}
+          aria-label="Open navigation menu"
+        >
+          <Menu size={18} />
+        </button>
+
         <span className="topbar-title">{title}</span>
       </div>
 
