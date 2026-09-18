@@ -229,10 +229,7 @@ const Topbar = ({ title }) => {
               <div className="profile-menu-divider" />
 
               {/* Logout */}
-              <button
-                type="button"
-                className="profile-menu-item profile-logout"
-                onClick={handleLogout}
+              <button type="button" className="profile-menu-item profile-logout" onClick={handleLogout}
                 role="menuitem"
               >
                 <LogOut size={17} />
