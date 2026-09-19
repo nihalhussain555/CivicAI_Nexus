@@ -6,6 +6,7 @@ import { useAuth } from "../../hooks/useAuth";
 import GrievanceCard from "../../components/grievances/GrievanceCard";
 import EmptyState from "../../components/common/EmptyState";
 import { SkeletonList } from "../../components/common/Skeleton";
+import RewardsWidget from "../../components/rewards/RewardsWidget";
 
 const Dashboard = () => {
   const { user } = useAuth();
@@ -50,6 +51,8 @@ const Dashboard = () => {
           <span className="stat-value">{stats.resolved}</span>
         </div>
       </div>
+
+      <RewardsWidget />
 
       <div className="section-title" style={{ display: "flex", justifyContent: "space-between" }}>
         <span>Recent grievances</span>

@@ -15,6 +15,7 @@ import {
   Sparkles,
   ShieldCheck,
   UserPlus,
+  Trophy,
 } from "lucide-react";
 
 export const NAV_BY_ROLE = {
@@ -33,6 +34,11 @@ export const NAV_BY_ROLE = {
       to: "/citizen/grievances",
       label: "My Grievances",
       icon: FileText,
+    },
+    {
+      to: "/citizen/rewards",
+      label: "Civic Rewards",
+      icon: Trophy,
     },
     {
       to: "/citizen/incidents",

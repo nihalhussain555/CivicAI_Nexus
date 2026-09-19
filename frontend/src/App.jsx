@@ -26,6 +26,7 @@ import ResetPassword from "./pages/auth/ResetPassword";
 import CitizenDashboard from "./pages/citizen/Dashboard";
 import ReportIssue from "./pages/citizen/ReportIssue";
 import CitizenGrievances from "./pages/citizen/Grievances";
+import Rewards from "./pages/citizen/Rewards";
 
 // Officer
 import OfficerDashboard from "./pages/officer/Dashboard";
@@ -97,6 +98,7 @@ function App() {
                 <Route path="dashboard" element={ <CitizenDashboard /> } />
                 <Route path="report" element={ <ReportIssue /> } />
                 <Route  path="grievances" element={ <CitizenGrievances /> } />
+                <Route path="rewards" element={ <Rewards /> } />
                 <Route path="grievances/:grievanceId" element={  <GrievanceDetail /> }/>
                 <Route path="incidents" element={ <Incidents /> }/>
                 <Route path="incidents/:incidentId" element={ <IncidentDetail />  } />
