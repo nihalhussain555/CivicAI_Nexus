@@ -5,7 +5,10 @@ Supports:
 - OTP verification emails
 - Password reset emails
 - Mock mode for development
-- SMTP mode for real email delivery
+- SMTP mode for real email delivery (raw socket — blocked on some hosts,
+  Render included, which blocks outbound SMTP on every plan)
+- Resend mode for real email delivery over HTTPS (works on hosts, like
+  Render, that block raw outbound SMTP)
 """
 
 import hashlib
@@ -14,6 +17,8 @@ import smtplib
 from datetime import datetime, timedelta
 from email.mime.text import MIMEText
 from email.utils import parseaddr
+
+import requests
 
 from app.config.settings import settings
 
@@ -55,7 +60,7 @@ def make_otp_expiry() -> datetime:
 # ============================================================
 
 def email_config_status() -> dict:
-    """Return email configuration status."""
+    """Return email configuration status — check this via GET /health."""
 
     if settings.EMAIL_PROVIDER == "smtp":
 
@@ -80,6 +85,16 @@ def email_config_status() -> dict:
                 )
                 if not getattr(settings, field)
             ],
+        }
+
+    if settings.EMAIL_PROVIDER == "resend":
+
+        configured = bool(settings.RESEND_API_KEY)
+
+        return {
+            "provider": "resend",
+            "configured": configured,
+            "missing_fields": [] if configured else ["RESEND_API_KEY"],
         }
 
     return {
@@ -112,82 +127,7 @@ def send_otp_email(
         "CivicAI Nexus Team"
     )
 
-    # Mock mode
-    if settings.EMAIL_PROVIDER != "smtp":
-
-        print(
-            "\n--- MOCK EMAIL ---\n"
-            f"To: {to_email}\n"
-            f"Subject: {subject}\n"
-            f"{body}\n"
-            "------------------\n"
-        )
-
-        return {
-            "sent": False,
-            "provider": "mock",
-            "dev_otp": otp,
-        }
-
-    # SMTP configuration check
-    if not (
-        settings.SMTP_HOST
-        and settings.SMTP_USER
-        and settings.SMTP_PASSWORD
-    ):
-
-        print(
-            "ERROR: SMTP configuration is incomplete."
-        )
-
-        return {
-            "sent": False,
-            "provider": "smtp",
-            "error": "SMTP configuration is incomplete",
-        }
-
-    try:
-
-        _send_via_smtp(
-            to_email,
-            subject,
-            body
-        )
-
-        print(
-            f"SUCCESS: Email sent via SMTP to {to_email}"
-        )
-
-        return {
-            "sent": True,
-            "provider": "smtp",
-        }
-
-    except smtplib.SMTPAuthenticationError as error:
-
-        print(
-            f"ERROR: Gmail SMTP authentication failed: "
-            f"{error}"
-        )
-
-        return {
-            "sent": False,
-            "provider": "smtp",
-            "error": "Gmail SMTP authentication failed",
-        }
-
-    except Exception as error:
-
-        print(
-            "ERROR: SMTP send failed: "
-            f"{type(error).__name__}: {error}"
-        )
-
-        return {
-            "sent": False,
-            "provider": "smtp",
-            "error": str(error),
-        }
+    return _dispatch(to_email, subject, body, dev_otp=otp)
 
 
 # ============================================================
@@ -216,86 +156,170 @@ def send_password_reset_email(
         "CivicAI Nexus Team"
     )
 
-    # Mock mode
-    if settings.EMAIL_PROVIDER != "smtp":
-
-        print(
-            "\n--- MOCK PASSWORD RESET EMAIL ---\n"
-            f"To: {to_email}\n"
-            f"Subject: {subject}\n"
-            f"{body}\n"
-            "----------------------------------\n"
-        )
-
-        return {
-            "sent": False,
-            "provider": "mock",
-        }
-
-    # SMTP configuration check
-    if not (
-        settings.SMTP_HOST
-        and settings.SMTP_USER
-        and settings.SMTP_PASSWORD
-    ):
-
-        print(
-            "ERROR: SMTP configuration is incomplete."
-        )
-
-        return {
-            "sent": False,
-            "provider": "smtp",
-            "error": "SMTP configuration is incomplete",
-        }
-
-    try:
-
-        _send_via_smtp(
-            to_email,
-            subject,
-            body
-        )
-
-        print(
-            "SUCCESS: Password reset email sent "
-            f"to {to_email}"
-        )
-
-        return {
-            "sent": True,
-            "provider": "smtp",
-        }
-
-    except smtplib.SMTPAuthenticationError as error:
-
-        print(
-            "ERROR: Gmail SMTP authentication failed: "
-            f"{error}"
-        )
-
-        return {
-            "sent": False,
-            "provider": "smtp",
-            "error": "Gmail SMTP authentication failed",
-        }
-
-    except Exception as error:
-
-        print(
-            "ERROR: Password reset email failed: "
-            f"{type(error).__name__}: {error}"
-        )
-
-        return {
-            "sent": False,
-            "provider": "smtp",
-            "error": str(error),
-        }
+    return _dispatch(to_email, subject, body)
 
 
 # ============================================================
-# SMTP
+# Dispatch — routes to mock / smtp / resend based on EMAIL_PROVIDER
+# ============================================================
+
+def _dispatch(to_email: str, subject: str, body: str, dev_otp: str = None) -> dict:
+
+    # ---------------- Mock mode (local dev) ----------------
+    if settings.EMAIL_PROVIDER == "mock":
+
+        print(
+            "\n--- MOCK EMAIL ---\n"
+            f"To: {to_email}\n"
+            f"Subject: {subject}\n"
+            f"{body}\n"
+            "------------------\n"
+        )
+
+        result = {"sent": False, "provider": "mock"}
+        if dev_otp:
+            result["dev_otp"] = dev_otp
+        return result
+
+    # ---------------- Resend (HTTPS API — works on Render) ----------------
+    if settings.EMAIL_PROVIDER == "resend":
+
+        if not settings.RESEND_API_KEY:
+            print("ERROR: RESEND_API_KEY is not configured.")
+            return {
+                "sent": False,
+                "provider": "resend",
+                "error": "RESEND_API_KEY is not configured",
+            }
+
+        try:
+            _send_via_resend(to_email, subject, body)
+
+            print(f"SUCCESS: Email sent via Resend to {to_email}")
+
+            return {"sent": True, "provider": "resend"}
+
+        except requests.exceptions.RequestException as error:
+
+            print(f"ERROR: Resend request failed: {type(error).__name__}: {error}")
+
+            return {
+                "sent": False,
+                "provider": "resend",
+                "error": f"Resend request failed: {error}",
+            }
+
+        except Exception as error:
+
+            print(f"ERROR: Resend send failed: {type(error).__name__}: {error}")
+
+            return {
+                "sent": False,
+                "provider": "resend",
+                "error": str(error),
+            }
+
+    # ---------------- Raw SMTP (blocked on Render — kept for hosts that
+    # allow outbound SMTP, e.g. a VPS or local self-hosting) ----------------
+    if settings.EMAIL_PROVIDER == "smtp":
+
+        if not (
+            settings.SMTP_HOST
+            and settings.SMTP_USER
+            and settings.SMTP_PASSWORD
+        ):
+
+            print("ERROR: SMTP configuration is incomplete.")
+
+            return {
+                "sent": False,
+                "provider": "smtp",
+                "error": "SMTP configuration is incomplete",
+            }
+
+        try:
+
+            _send_via_smtp(to_email, subject, body)
+
+            print(f"SUCCESS: Email sent via SMTP to {to_email}")
+
+            return {"sent": True, "provider": "smtp"}
+
+        except smtplib.SMTPAuthenticationError as error:
+
+            print(f"ERROR: Gmail SMTP authentication failed: {error}")
+
+            return {
+                "sent": False,
+                "provider": "smtp",
+                "error": "Gmail SMTP authentication failed",
+            }
+
+        except OSError as error:
+
+            # Errno 101 "Network is unreachable" and similar — the host's
+            # firewall is blocking outbound SMTP. Retrying or fixing
+            # credentials won't help; switch EMAIL_PROVIDER to "resend".
+            print(f"ERROR: SMTP network error (host likely blocks outbound SMTP): {error}")
+
+            return {
+                "sent": False,
+                "provider": "smtp",
+                "error": (
+                    "Network error reaching the SMTP server — this host may be "
+                    "blocking outbound SMTP. Consider EMAIL_PROVIDER=resend."
+                ),
+            }
+
+        except Exception as error:
+
+            print(f"ERROR: SMTP send failed: {type(error).__name__}: {error}")
+
+            return {
+                "sent": False,
+                "provider": "smtp",
+                "error": str(error),
+            }
+
+    print(f"ERROR: Unknown EMAIL_PROVIDER '{settings.EMAIL_PROVIDER}'")
+
+    return {
+        "sent": False,
+        "provider": settings.EMAIL_PROVIDER,
+        "error": f"Unknown EMAIL_PROVIDER '{settings.EMAIL_PROVIDER}'",
+    }
+
+
+# ============================================================
+# Resend (HTTPS API)
+# ============================================================
+
+def _send_via_resend(to_email: str, subject: str, body: str):
+    response = requests.post(
+        "https://api.resend.com/emails",
+        headers={
+            "Authorization": f"Bearer {settings.RESEND_API_KEY}",
+            "Content-Type": "application/json",
+        },
+        json={
+            "from": settings.EMAIL_FROM,
+            "to": [to_email],
+            "subject": subject,
+            "text": body,
+        },
+        timeout=15,
+    )
+
+    if response.status_code >= 400:
+        raise RuntimeError(
+            f"Resend API error {response.status_code}: {response.text}"
+        )
+
+    return response.json()
+
+
+# ============================================================
+# SMTP (raw socket)
 # ============================================================
 
 def _send_via_smtp(

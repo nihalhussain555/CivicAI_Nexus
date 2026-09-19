@@ -104,6 +104,8 @@ class Settings:
     )
 
     # --- Email / OTP verification ---
+    # "mock" (dev default), "smtp", or "resend". Render (and several other
+    # hosts) block outbound SMTP entirely — use "resend" there instead.
     EMAIL_PROVIDER = os.getenv(
         "EMAIL_PROVIDER",
         "mock"
@@ -125,6 +127,13 @@ class Settings:
 
     SMTP_PASSWORD = os.getenv(
         "SMTP_PASSWORD",
+        ""
+    )
+
+    # HTTP-based email API — sends over HTTPS, so it works on hosts (like
+    # Render) that block raw outbound SMTP connections.
+    RESEND_API_KEY = os.getenv(
+        "RESEND_API_KEY",
         ""
     )
 
