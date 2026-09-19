@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { MapPin, Clock, Sparkles, ArrowLeft, CheckCircle2, XCircle, PlayCircle, Send, AlertTriangle, ImageIcon, Mic,} from "lucide-react";
-import { getGrievance, acceptCase, startProgress, submitResolution, escalateCase, verifyResolution, getCopilotBrief,} from "../../services/grievanceService";
+import { MapPin, Clock, Sparkles, ArrowLeft, CheckCircle2, XCircle, PlayCircle, Send, AlertTriangle, ImageIcon, Mic, RotateCcw, ShieldQuestion,} from "lucide-react";
+import { getGrievance, acceptCase, startProgress, submitResolution, escalateCase, verifyResolution, requestReopen, reviewReopenRequest, getCopilotBrief,} from "../../services/grievanceService";
 import { uploadsBaseUrl } from "../../services/api";
 import { useAuth } from "../../hooks/useAuth";
 import { useToast } from "../../context/ToastContext";
@@ -35,6 +35,12 @@ const GrievanceDetail = () => {
 
   const [verifyOpen, setVerifyOpen] = useState(null); // true/false
   const [feedback, setFeedback] = useState("");
+
+  const [reopenRequestOpen, setReopenRequestOpen] = useState(false);
+  const [reopenReason, setReopenReason] = useState("");
+
+  const [reopenReviewOpen, setReopenReviewOpen] = useState(null); // true (approve) / false (reject)
+  const [reopenReviewNote, setReopenReviewNote] = useState("");
 
   const load = useCallback(() => {
     getGrievance(grievanceId)
@@ -171,6 +177,27 @@ const GrievanceDetail = () => {
             </div>
           )}
 
+          {grievance.reopen_request_status && (
+            <div className="card" style={{ borderColor: grievance.reopen_request_status === "PENDING" ? "var(--warning)" : "var(--border)" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                <ShieldQuestion size={15} />
+                <strong style={{ fontSize: 14 }}>Reopen Request</strong>
+                <span className={`badge ${
+                  grievance.reopen_request_status === "PENDING" ? "badge-medium" :
+                  grievance.reopen_request_status === "APPROVED" ? "badge-low" : "badge-critical"
+                }`}>
+                  {grievance.reopen_request_status}
+                </span>
+              </div>
+              <p style={{ fontSize: 13, color: "var(--text-muted)", lineHeight: 1.6 }}>{grievance.reopen_reason}</p>
+              {grievance.reopen_review_note && (
+                <p style={{ fontSize: 12.5, color: "var(--text-faint)", marginTop: 10, fontStyle: "italic" }}>
+                  Staff note: "{grievance.reopen_review_note}"
+                </p>
+              )}
+            </div>
+          )}
+
           {isStaff && <CopilotPanel brief={copilotBrief} loading={copilotLoading} onRefresh={loadCopilot} />}
         </div>
 
@@ -211,10 +238,32 @@ const GrievanceDetail = () => {
                   </button>
                 </>
               )}
+              {isOwnerCitizen && grievance.status === "CLOSED" && grievance.reopen_request_status === "PENDING" && (
+                <p style={{ fontSize: 13, color: "var(--text-muted)" }}>
+                  Your request to reopen this case is awaiting staff review.
+                </p>
+              )}
+              {isOwnerCitizen && grievance.status === "CLOSED" && grievance.reopen_request_status !== "PENDING" && (
+                <button className="btn btn-secondary btn-block" onClick={() => setReopenRequestOpen(true)}>
+                  <RotateCcw size={15} /> Request to reopen
+                </button>
+              )}
+              {isStaff && grievance.reopen_request_status === "PENDING" && (
+                <>
+                  <button className="btn btn-primary btn-block" disabled={actionLoading}
+                          onClick={() => setReopenReviewOpen(true)}>
+                    <CheckCircle2 size={15} /> Approve reopen
+                  </button>
+                  <button className="btn btn-secondary btn-block" disabled={actionLoading}
+                          onClick={() => setReopenReviewOpen(false)}>
+                    <XCircle size={15} /> Reject reopen
+                  </button>
+                </>
+              )}
               {!isStaff && !isOwnerCitizen && grievance.status === "CLOSED" && (
                 <p style={{ fontSize: 13, color: "var(--text-muted)" }}>This grievance has been closed.</p>
               )}
-              {isStaff && ["CLOSED", "CITIZEN_VERIFICATION", "RESOLUTION_SUBMITTED"].includes(grievance.status) && (
+              {isStaff && ["CLOSED", "CITIZEN_VERIFICATION", "RESOLUTION_SUBMITTED"].includes(grievance.status) && grievance.reopen_request_status !== "PENDING" && (
                 <p style={{ fontSize: 13, color: "var(--text-muted)" }}>
                   {grievance.status === "CLOSED" ? "Case closed." : "Awaiting citizen verification."}
                 </p>
@@ -295,6 +344,53 @@ const GrievanceDetail = () => {
         </label>
         <textarea className="textarea" value={feedback} onChange={(e) => setFeedback(e.target.value)}
                   placeholder={verifyOpen ? "All good, thanks!" : "Describe what's still not fixed..."} />
+      </Modal>
+
+      <Modal
+        open={reopenRequestOpen}
+        title="Request to reopen this case"
+        onClose={() => setReopenRequestOpen(false)}
+        footer={
+          <>
+            <button className="btn btn-secondary" onClick={() => setReopenRequestOpen(false)}>Cancel</button>
+            <button className="btn btn-primary" disabled={actionLoading || reopenReason.trim().length < 10}
+                    onClick={() => runAction(
+                      () => requestReopen(grievanceId, reopenReason),
+                      "Reopen request submitted — awaiting staff review"
+                    ).then(() => { setReopenRequestOpen(false); setReopenReason(""); })}>
+              Submit request
+            </button>
+          </>
+        }
+      >
+        <label className="form-label">Why isn't this actually resolved?</label>
+        <textarea className="textarea" value={reopenReason} onChange={(e) => setReopenReason(e.target.value)}
+                  placeholder="Describe what's still wrong — this goes to staff for review before the case reopens..." />
+      </Modal>
+
+      <Modal
+        open={reopenReviewOpen !== null}
+        title={reopenReviewOpen ? "Approve reopen request" : "Reject reopen request"}
+        onClose={() => setReopenReviewOpen(null)}
+        footer={
+          <>
+            <button className="btn btn-secondary" onClick={() => setReopenReviewOpen(null)}>Cancel</button>
+            <button className={`btn ${reopenReviewOpen ? "btn-primary" : "btn-danger"}`} disabled={actionLoading}
+                    onClick={() => runAction(
+                      () => reviewReopenRequest(grievanceId, { approve: !!reopenReviewOpen, note: reopenReviewNote }),
+                      reopenReviewOpen ? "Reopen approved — re-routed to department" : "Reopen request rejected"
+                    ).then(() => { setReopenReviewOpen(null); setReopenReviewNote(""); })}>
+              {reopenReviewOpen ? "Approve & reopen" : "Reject request"}
+            </button>
+          </>
+        }
+      >
+        <p style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 10 }}>
+          Citizen's reason: "{grievance.reopen_reason}"
+        </p>
+        <label className="form-label">Note (optional)</label>
+        <textarea className="textarea" value={reopenReviewNote} onChange={(e) => setReopenReviewNote(e.target.value)}
+                  placeholder="Add context for the citizen..." />
       </Modal>
     </div>
   );

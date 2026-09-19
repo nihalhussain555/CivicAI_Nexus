@@ -15,19 +15,21 @@ from app.models.reward import (
     REASON_COMMUNITY_CONFIRM,
     REASON_FIRST_VALID_BONUS,
     REASON_FALSE_REPORT,
+    REASON_REOPENED_REVERSAL,
 )
 
 
 def _already_awarded(citizen_id, grievance_id, reason, meta_key=None, meta_value=None):
-    """Idempotency guard. One award per (citizen, grievance, reason) for
-    grievance-scoped reasons, or per (citizen, reason, meta[meta_key]) for
-    reasons — like community confirmation — that key off something other
-    than a single grievance (an incident, here)."""
-    query = {"citizen_id": citizen_id, "reason": reason}
+    """Idempotency guard. Always scoped to (citizen, grievance, reason);
+    grievance_id is None for reasons — like community confirmation — that
+    key off something other than a single grievance (an incident, here).
+    meta_key/meta_value adds a further constraint, e.g. scoping officer-
+    verified/resolved awards to a specific reopen cycle so a *legitimate*
+    re-resolution after an approved reopen can still earn points, while
+    still blocking the same cycle from being paid twice."""
+    query = {"citizen_id": citizen_id, "reason": reason, "grievance_id": grievance_id}
     if meta_key is not None:
         query[f"meta.{meta_key}"] = meta_value
-    else:
-        query["grievance_id"] = grievance_id
     return reward_ledger_collection.find_one(query) is not None
 
 
@@ -63,19 +65,24 @@ def award_valid_submission(grievance):
         _insert(citizen_id, grievance_id, REASON_FIRST_VALID_BONUS, POINTS_FIRST_VALID_BONUS)
 
 
-def award_officer_verified(citizen_id, grievance_id):
-    """+20 the first time a grievance is accepted / assigned to an officer —
-    an authority has looked at it and treated it as real and actionable."""
-    if _already_awarded(citizen_id, grievance_id, REASON_OFFICER_VERIFIED):
+def award_officer_verified(citizen_id, grievance_id, cycle=0):
+    """+20 the first time, per reopen cycle, that a grievance is accepted
+    or assigned to an officer — an authority has looked at it and treated
+    it as real and actionable. Cycle-scoped so a legitimate reopen-and-
+    reassign still pays out once the case is genuinely looked at again."""
+    if _already_awarded(citizen_id, grievance_id, REASON_OFFICER_VERIFIED, meta_key="cycle", meta_value=cycle):
         return
-    _insert(citizen_id, grievance_id, REASON_OFFICER_VERIFIED, POINTS_OFFICER_VERIFIED)
+    _insert(citizen_id, grievance_id, REASON_OFFICER_VERIFIED, POINTS_OFFICER_VERIFIED, meta={"cycle": cycle})
 
 
-def award_resolved(citizen_id, grievance_id):
-    """+30 once, when the citizen confirms the resolution (status -> CLOSED)."""
-    if _already_awarded(citizen_id, grievance_id, REASON_RESOLVED):
+def award_resolved(citizen_id, grievance_id, cycle=0):
+    """+30 once per reopen cycle, when the citizen confirms the resolution
+    (status -> CLOSED). Cycle-scoped for the same reason as above — see
+    reverse_resolution_points for what happens if that cycle's resolution
+    later turns out to have been premature."""
+    if _already_awarded(citizen_id, grievance_id, REASON_RESOLVED, meta_key="cycle", meta_value=cycle):
         return
-    _insert(citizen_id, grievance_id, REASON_RESOLVED, POINTS_RESOLVED)
+    _insert(citizen_id, grievance_id, REASON_RESOLVED, POINTS_RESOLVED, meta={"cycle": cycle})
 
 
 def award_community_confirmations(incident, citizen_ids):
@@ -117,6 +124,37 @@ def flag_false_report(grievance, actor):
     return _insert(
         citizen_id, grievance_id, REASON_FALSE_REPORT, -POINTS_FALSE_REPORT_PENALTY,
         actor_id=actor["_id"],
+    )
+
+
+def reverse_resolution_points(grievance):
+    """Claws back the +30 'resolved' points for the current reopen cycle
+    (and only those — submission and officer-verification points stand,
+    since the report itself was still real) when an approved reopen
+    request shows the case wasn't actually fixed. Cycle-scoped so that if
+    the case is resolved and reopened more than once, each cycle's award
+    is reversed independently rather than only ever the first. Idempotent
+    per cycle, and a no-op if that cycle's resolved award was never made."""
+    citizen_id = grievance["citizen_id"]
+    grievance_id = grievance["grievance_id"]
+    cycle = grievance.get("reopen_count", 0)
+
+    already_resolved_award = reward_ledger_collection.find_one({
+        "citizen_id": citizen_id,
+        "grievance_id": grievance_id,
+        "reason": REASON_RESOLVED,
+        "meta.cycle": cycle,
+    })
+    if not already_resolved_award:
+        return None
+
+    if _already_awarded(citizen_id, grievance_id, REASON_REOPENED_REVERSAL, meta_key="cycle", meta_value=cycle):
+        return None
+
+    return _insert(
+        citizen_id, grievance_id, REASON_REOPENED_REVERSAL, -POINTS_RESOLVED,
+        message="Case was reopened after being marked resolved — resolution points reversed.",
+        meta={"cycle": cycle},
     )
 
 

@@ -27,8 +27,16 @@ VALID_TRANSITIONS = {
     "CITIZEN_VERIFICATION": {"CLOSED", "REOPENED"},
     "REOPENED": {"DEPARTMENT_ASSIGNED", "OFFICER_ACCEPTED", "IN_PROGRESS"},
     "ESCALATED": {"OFFICER_ACCEPTED", "IN_PROGRESS", "DEPARTMENT_ASSIGNED"},
-    "CLOSED": set(),
+    # A CLOSED case can only move to REOPENED via an approved reopen
+    # request (see routes/grievances.py reopen-request endpoints) — never
+    # directly by the citizen, and never back to any other state.
+    "CLOSED": {"REOPENED"},
 }
+
+# --- Reopen-request policy (guards against gaming the civic rewards
+# system by closing then instantly re-requesting a fresh resolution) ---
+REOPEN_WINDOW_DAYS = 30      # can only request reopen within this many days of resolution
+MAX_REOPEN_REQUESTS = 3      # lifetime cap per grievance
 
 
 def grievance_document(
@@ -104,6 +112,15 @@ def grievance_document(
         "citizen_verified": None,       # True / False / None
         "citizen_feedback": None,
         "reopen_count": 0,
+
+        # --- reopen requests (citizen asking to reopen a CLOSED case) ---
+        "reopen_request_status": None,  # None | PENDING | APPROVED | REJECTED
+        "reopen_reason": None,
+        "reopen_requested_at": None,
+        "reopen_reviewed_by": None,
+        "reopen_reviewed_by_name": None,
+        "reopen_reviewed_at": None,
+        "reopen_review_note": None,
 
         # --- civic rewards integrity flag ---
         "flagged_invalid": False,       # staff-marked false/misleading (blocks further points)

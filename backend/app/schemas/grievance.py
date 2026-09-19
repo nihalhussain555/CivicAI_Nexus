@@ -63,6 +63,15 @@ class VerificationRequest(BaseModel):
     feedback: Optional[str] = None
 
 
+class ReopenRequestCreate(BaseModel):
+    reason: str = Field(..., min_length=10, max_length=1000)
+
+
+class ReopenReviewRequest(BaseModel):
+    approve: bool
+    note: Optional[str] = Field(None, max_length=1000)
+
+
 class AssignOfficerRequest(BaseModel):
     officer_id: str
 

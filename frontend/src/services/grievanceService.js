@@ -166,3 +166,27 @@ export const verifyResolution = async (
 
   return response.data;
 };
+
+export const requestReopen = async (
+  grievanceId,
+  reason
+) => {
+  const response = await api.post(
+    `/grievances/${grievanceId}/reopen-request`,
+    { reason }
+  );
+
+  return response.data;
+};
+
+export const reviewReopenRequest = async (
+  grievanceId,
+  { approve, note }
+) => {
+  const response = await api.put(
+    `/grievances/${grievanceId}/reopen-request/review`,
+    { approve, note }
+  );
+
+  return response.data;
+};
