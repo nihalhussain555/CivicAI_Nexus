@@ -3,12 +3,13 @@ from datetime import datetime
 
 from fastapi import HTTPException
 
-from app.config.database import grievances_collection, users_collection
+from app.config.database import grievances_collection, users_collection, incidents_collection
 from app.models.grievance import grievance_document, VALID_TRANSITIONS
 from app.services.ai_pipeline_service import run_pipeline
 from app.services.incident_service import cluster_grievance
 from app.services.notification_service import notify
 from app.services.audit_service import log_action
+from app.services.reward_service import award_valid_submission, award_community_confirmations
 from app.utils.geo import make_point
 
 
@@ -94,10 +95,30 @@ def create_grievance(current_user: dict, data) -> dict:
 
     grievances_collection.insert_one(grievance)
 
+    # Civic rewards: +10 for a genuine, non-duplicate submission (and the
+    # one-time first-valid-grievance bonus). Duplicates earn nothing — see
+    # award_valid_submission for the exact gating.
+    award_valid_submission(grievance)
+
     # community incident clustering (requires the grievance to already exist)
     incident = cluster_grievance(grievance)
     if incident:
         grievance["incident_id"] = incident["incident_id"]
+
+        # Re-fetch so we have the authoritative, post-clustering member list
+        # regardless of which branch cluster_grievance took internally.
+        fresh_incident = incidents_collection.find_one({"incident_id": incident["incident_id"]})
+        if fresh_incident:
+            member_docs = grievances_collection.find(
+                {"grievance_id": {"$in": fresh_incident.get("grievance_ids", [])}},
+                {"citizen_id": 1},
+            )
+            distinct_citizens = {doc["citizen_id"] for doc in member_docs}
+            # +5 "community confirms" to every distinct citizen behind the
+            # incident, once each — never farmable by resubmitting, since
+            # it's driven entirely by the existing geo/category clustering
+            # across *different* citizen accounts.
+            award_community_confirmations(fresh_incident, distinct_citizens)
 
     notify(
         current_user["_id"],

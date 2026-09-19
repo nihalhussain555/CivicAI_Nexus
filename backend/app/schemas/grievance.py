@@ -58,7 +58,6 @@ class ResolutionSubmitRequest(BaseModel):
     resolution_note: str = Field(..., min_length=5, max_length=2000)
     resolution_evidence: List[str] = []
 
-
 class VerificationRequest(BaseModel):
     verified: bool
     feedback: Optional[str] = None
@@ -66,6 +65,10 @@ class VerificationRequest(BaseModel):
 
 class AssignOfficerRequest(BaseModel):
     officer_id: str
+
+
+class FlagInvalidRequest(BaseModel):
+    reason: str = Field(..., min_length=5, max_length=500)
 
 
 class AIAnalyzeRequest(BaseModel):

@@ -105,6 +105,12 @@ def grievance_document(
         "citizen_feedback": None,
         "reopen_count": 0,
 
+        # --- civic rewards integrity flag ---
+        "flagged_invalid": False,       # staff-marked false/misleading (blocks further points)
+        "flagged_reason": None,
+        "flagged_by": None,
+        "flagged_at": None,
+
         "created_at": now,
         "updated_at": now,
     }

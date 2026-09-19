@@ -20,6 +20,7 @@ from app.schemas.grievance import (
     ResolutionSubmitRequest,
     VerificationRequest,
     AssignOfficerRequest,
+    FlagInvalidRequest,
 )
 
 from app.services.ai_pipeline_service import (
@@ -41,6 +42,16 @@ from app.services.copilot_service import (
 
 from app.services.notification_service import (
     notify,
+)
+
+from app.services.audit_service import (
+    log_action,
+)
+
+from app.services.reward_service import (
+    award_officer_verified,
+    award_resolved,
+    flag_false_report,
 )
 
 from app.utils.dependencies import (
@@ -596,6 +607,13 @@ def accept_case(
             ),
         )
 
+    # Civic rewards: +20 the first time a grievance is accepted by an
+    # officer — an authority has now treated it as real and actionable.
+    award_officer_verified(
+        grievance["citizen_id"],
+        grievance_id,
+    )
+
     updated = (
         get_grievance_or_404(
             grievance_id
@@ -817,6 +835,13 @@ def assign_officer(
                 "already assigned"
             ),
         )
+
+    # Civic rewards: same +20 "verified by authority" trigger as the
+    # officer self-take path above.
+    award_officer_verified(
+        grievance["citizen_id"],
+        grievance_id,
+    )
 
     notify(
         officer["_id"],
@@ -1052,6 +1077,14 @@ def verify_resolution(
             },
         )
 
+        # Civic rewards: +30 once the citizen confirms the case is
+        # actually resolved — this is the outcome-weighted payoff, not
+        # just "an officer said so".
+        award_resolved(
+            grievance["citizen_id"],
+            grievance_id,
+        )
+
         return {
             "success": True,
             "message":
@@ -1112,4 +1145,77 @@ def verify_resolution(
             serialize_document(
                 updated
             ),
+    }
+
+
+@router.put("/{grievance_id}/flag-invalid")
+def flag_invalid_report(
+    grievance_id: str,
+    data: FlagInvalidRequest,
+    current_user=Depends(require_staff),
+):
+    """Staff-only: mark a grievance as false or misleading. Reverses any
+    civic-reward points already earned for it (idempotent — flagging the
+    same case twice only deducts once) and blocks it from earning more."""
+    grievance = get_grievance_or_404(grievance_id)
+    assert_can_view(grievance, current_user)
+
+    if grievance.get("flagged_invalid"):
+        raise HTTPException(
+            status_code=400,
+            detail="This grievance has already been flagged.",
+        )
+
+    now = datetime.utcnow()
+
+    grievances_collection.update_one(
+        {"grievance_id": grievance_id},
+        {
+            "$set": {
+                "flagged_invalid": True,
+                "flagged_reason": data.reason,
+                "flagged_by": current_user["_id"],
+                "flagged_at": now,
+                "updated_at": now,
+            },
+            "$push": {
+                "history": {
+                    "status": grievance["status"],
+                    "message": f"Flagged as false/misleading: {data.reason}",
+                    "actor_role": current_user["role"],
+                    "timestamp": now,
+                }
+            },
+        },
+    )
+
+    flag_false_report(grievance, current_user)
+
+    notify(
+        grievance["citizen_id"],
+        "Grievance Flagged",
+        (
+            f"Grievance {grievance_id} was reviewed by staff and marked "
+            "false or misleading. Any civic points earned for it have "
+            "been reversed."
+        ),
+        notification_type="INFO",
+        related_grievance_id=grievance_id,
+    )
+
+    log_action(
+        current_user["_id"],
+        current_user["role"],
+        "GRIEVANCE_FLAGGED_INVALID",
+        "grievance",
+        grievance_id,
+        {"reason": data.reason},
+    )
+
+    updated = get_grievance_or_404(grievance_id)
+
+    return {
+        "success": True,
+        "message": "Grievance flagged as false/misleading; points reversed.",
+        "data": serialize_document(updated),
     }

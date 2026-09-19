@@ -24,6 +24,7 @@ from app.routes.incidents import router as incidents_router
 from app.routes.notifications import router as notifications_router
 from app.routes.analytics import router as analytics_router
 from app.routes.uploads import router as uploads_router
+from app.routes.rewards import router as rewards_router
 
 
 @asynccontextmanager
@@ -106,6 +107,7 @@ app.include_router(incidents_router)
 app.include_router(notifications_router)
 app.include_router(analytics_router)
 app.include_router(uploads_router)
+app.include_router(rewards_router)
 
 os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
 app.mount("/uploads", StaticFiles(directory=settings.UPLOAD_DIR), name="uploads")
