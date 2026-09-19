@@ -52,6 +52,11 @@ const DashboardLayout = () => {
   const [menuOpen, setMenuOpen] =
     useState(false);
 
+  // Whichever account is currently logged in — set server-side at login
+  // for the pre-seeded demo accounts (see main.py's demo_mode_guard).
+  // Real accounts are never affected, whoever else is using the site.
+  const isDemoAccount = !!user?.is_demo;
+
   return (
     <div className="app-shell">
       <Sidebar
@@ -85,6 +90,12 @@ const DashboardLayout = () => {
             )
           }
         />
+
+        {isDemoAccount && (
+          <div className="demo-mode-banner">
+            🔒 Demo account — actions are turned off. Feel free to explore every page; nothing you click changes real data.
+          </div>
+        )}
 
         <div className="app-content">
           <Outlet />

@@ -1,3 +1,4 @@
+import { Suspense, lazy } from "react";
 import { BrowserRouter, Routes, Route, Navigate,} from "react-router-dom";
 import { AuthProvider, } from "./context/AuthContext";
 import { ThemeProvider, } from "./context/ThemeContext";
@@ -6,54 +7,66 @@ import ProtectedRoute from "./routes/ProtectedRoute";
 import DashboardLayout from "./layouts/DashboardLayout";
 import PublicLayout from "./layouts/PublicLayout";
 
+// Every page below is lazy-loaded so the initial bundle only ships what's
+// needed for whichever page the person actually lands on — heavy
+// dependencies (leaflet/react-leaflet for maps, recharts for analytics,
+// react-markdown for the AI assistant) only download when their page is
+// visited, instead of being bundled into every single page load.
+
 // Public
-import Landing from "./pages/public/Landing";
-import About from "./pages/public/About";
-import HowItWorks from "./pages/public/HowItWorks";
-import NotFound from "./pages/public/NotFound";
-import Forbidden from "./pages/public/Forbidden";
-import PrivacyPolicy from "./pages/public/PrivacyPolicy";
-import Terms from "./pages/public/Terms";
-import CookiePolicy from "./pages/public/CookiePolicy";
+const Landing = lazy(() => import("./pages/public/Landing"));
+const About = lazy(() => import("./pages/public/About"));
+const HowItWorks = lazy(() => import("./pages/public/HowItWorks"));
+const NotFound = lazy(() => import("./pages/public/NotFound"));
+const Forbidden = lazy(() => import("./pages/public/Forbidden"));
+const PrivacyPolicy = lazy(() => import("./pages/public/PrivacyPolicy"));
+const Terms = lazy(() => import("./pages/public/Terms"));
+const CookiePolicy = lazy(() => import("./pages/public/CookiePolicy"));
 
 // Auth
-import Login from "./pages/auth/Login";
-import Register from "./pages/auth/Register";
-import ForgotPassword from "./pages/auth/ForgotPassword";
-import ResetPassword from "./pages/auth/ResetPassword";
+const Login = lazy(() => import("./pages/auth/Login"));
+const Register = lazy(() => import("./pages/auth/Register"));
+const ForgotPassword = lazy(() => import("./pages/auth/ForgotPassword"));
+const ResetPassword = lazy(() => import("./pages/auth/ResetPassword"));
 
 // Citizen
-import CitizenDashboard from "./pages/citizen/Dashboard";
-import ReportIssue from "./pages/citizen/ReportIssue";
-import CitizenGrievances from "./pages/citizen/Grievances";
-import Rewards from "./pages/citizen/Rewards";
+const CitizenDashboard = lazy(() => import("./pages/citizen/Dashboard"));
+const ReportIssue = lazy(() => import("./pages/citizen/ReportIssue"));
+const CitizenGrievances = lazy(() => import("./pages/citizen/Grievances"));
+const Rewards = lazy(() => import("./pages/citizen/Rewards"));
 
 // Officer
-import OfficerDashboard from "./pages/officer/Dashboard";
-import OfficerGrievances from "./pages/officer/Grievances";
-import OfficerAnalytics from "./pages/officer/Analytics";
+const OfficerDashboard = lazy(() => import("./pages/officer/Dashboard"));
+const OfficerGrievances = lazy(() => import("./pages/officer/Grievances"));
+const OfficerAnalytics = lazy(() => import("./pages/officer/Analytics"));
 
 // Admin
-import AdminDashboard from "./pages/admin/Dashboard";
-import AdminGrievances from "./pages/admin/Grievances";
-import AdminDepartments from "./pages/admin/Departments";
-import AdminOfficers from "./pages/admin/Officers";
-import AdminOfficerDetail from "./pages/admin/OfficerDetail";
-import AdminAdmins from "./pages/admin/Admins";
-import AdminAnalytics from "./pages/admin/Analytics";
-import AdminMap from "./pages/admin/Map";
-import AdminAIInsights from "./pages/admin/AIInsights";
-import DistrictAdmin from "./pages/admin/DistrictAdmin";
-import UnassignedGrievances from "./pages/admin/UnassignedGrievances";
+const AdminDashboard = lazy(() => import("./pages/admin/Dashboard"));
+const AdminGrievances = lazy(() => import("./pages/admin/Grievances"));
+const AdminDepartments = lazy(() => import("./pages/admin/Departments"));
+const AdminOfficers = lazy(() => import("./pages/admin/Officers"));
+const AdminOfficerDetail = lazy(() => import("./pages/admin/OfficerDetail"));
+const AdminAdmins = lazy(() => import("./pages/admin/Admins"));
+const AdminAnalytics = lazy(() => import("./pages/admin/Analytics"));
+const AdminMap = lazy(() => import("./pages/admin/Map"));
+const AdminAIInsights = lazy(() => import("./pages/admin/AIInsights"));
+const DistrictAdmin = lazy(() => import("./pages/admin/DistrictAdmin"));
+const UnassignedGrievances = lazy(() => import("./pages/admin/UnassignedGrievances"));
 
 // Shared
-import GrievanceDetail from "./pages/shared/GrievanceDetail";
-import Incidents from "./pages/shared/Incidents";
-import IncidentDetail from "./pages/shared/IncidentDetail";
-import Notifications from "./pages/shared/Notifications";
-import Profile from "./pages/shared/Profile";
-import Settings from "./pages/shared/Settings";
-import AIAssistant from "./pages/shared/AIAssistant";
+const GrievanceDetail = lazy(() => import("./pages/shared/GrievanceDetail"));
+const Incidents = lazy(() => import("./pages/shared/Incidents"));
+const IncidentDetail = lazy(() => import("./pages/shared/IncidentDetail"));
+const Notifications = lazy(() => import("./pages/shared/Notifications"));
+const Profile = lazy(() => import("./pages/shared/Profile"));
+const Settings = lazy(() => import("./pages/shared/Settings"));
+const AIAssistant = lazy(() => import("./pages/shared/AIAssistant"));
+
+const RouteLoader = () => (
+  <div className="route-loader">
+    <div className="route-loader-spinner" />
+  </div>
+);
 
 function App() {
   return (
@@ -61,6 +74,7 @@ function App() {
       <ToastProvider>
         <AuthProvider>
           <BrowserRouter>
+            <Suspense fallback={<RouteLoader />}>
             <Routes>
 
               {/* ========================= */}
@@ -290,6 +304,7 @@ function App() {
               />
 
             </Routes>
+            </Suspense>
           </BrowserRouter>
         </AuthProvider>
       </ToastProvider>

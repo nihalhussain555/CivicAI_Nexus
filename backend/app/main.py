@@ -12,6 +12,7 @@ import os
 from app.config.database import check_database_connection, create_indexes
 from app.config.settings import settings
 from app.services.email_service import email_config_status
+from app.utils.security import decode_token
 
 from app.routes.auth import router as auth_router
 from app.routes.users import router as users_router
@@ -79,6 +80,56 @@ app.add_middleware(
 )
 
 
+# --- Demo mode: specific pre-seeded demo accounts (citizen@demo.com,
+# officer@demo.com, admin@demo.com by default) can log in and browse
+# everything, but every mutating request they make is blocked. Real
+# accounts are completely unaffected — this is per-login-token, not a
+# site-wide switch. settings.DEMO_MODE remains available as an optional
+# global override if you ever want to lock the entire site instead. ---
+DEMO_MODE_ALLOWED_REQUESTS = {
+    ("POST", "/api/auth/login"),
+}
+
+DEMO_MODE_MESSAGE = (
+    "This is a demo account — actions are turned off. "
+    "Feel free to explore every page; nothing you click changes real data."
+)
+
+
+def _request_is_from_demo_account(request) -> bool:
+    auth_header = request.headers.get("authorization", "")
+    if not auth_header.lower().startswith("bearer "):
+        return False
+
+    token = auth_header[7:]
+    payload = decode_token(token)
+
+    return bool(payload and payload.get("demo"))
+
+
+@app.middleware("http")
+async def demo_mode_guard(request, call_next):
+    if (
+        request.method in ("POST", "PUT", "PATCH", "DELETE")
+        and (request.method, request.url.path) not in DEMO_MODE_ALLOWED_REQUESTS
+        and (settings.DEMO_MODE or _request_is_from_demo_account(request))
+    ):
+        # Returned directly (not raised as HTTPException) so the response
+        # shape is guaranteed regardless of middleware/exception-handler
+        # ordering, and matches the shape the frontend already expects
+        # from http_exception_handler below.
+        return JSONResponse(
+            status_code=403,
+            content={
+                "success": False,
+                "error": {"code": 403, "message": DEMO_MODE_MESSAGE},
+                "demo_mode": True,
+            },
+        )
+
+    return await call_next(request)
+
+
 @app.exception_handler(StarletteHTTPException)
 async def http_exception_handler(request, exc):
     return JSONResponse(
@@ -130,5 +181,6 @@ def health():
             # Lets you confirm from the browser (no server-log digging)
             # whether real email sending is actually configured.
             "email": email_config_status(),
+            "demo_mode": settings.DEMO_MODE,
         },
     }

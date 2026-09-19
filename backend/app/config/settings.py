@@ -162,6 +162,30 @@ class Settings:
         os.getenv("OTP_MAX_ATTEMPTS", "5")
     )
 
+    # --- Demo mode ---
+    # DEMO_MODE=true blocks mutating requests for EVERY user (a full
+    # site-wide lock). DEMO_ACCOUNT_EMAILS instead blocks them only for
+    # whoever logs in with one of these specific emails — the pre-seeded
+    # demo accounts — while every other account works normally. Login
+    # embeds a "demo" claim in that user's token; see main.py's
+    # demo_mode_guard, which checks both.
+    DEMO_MODE = (
+        os.getenv(
+            "DEMO_MODE",
+            "false"
+        ).lower()
+        == "true"
+    )
+
+    DEMO_ACCOUNT_EMAILS = {
+        email.strip().lower()
+        for email in os.getenv(
+            "DEMO_ACCOUNT_EMAILS",
+            "citizen@demo.com,officer@demo.com,admin@demo.com",
+        ).split(",")
+        if email.strip()
+    }
+
     # --- Password reset ---
     PASSWORD_RESET_EXPIRE_MINUTES = int(
         os.getenv(

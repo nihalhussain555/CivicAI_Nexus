@@ -25,6 +25,7 @@ from app.services.auth_service import (
 from app.utils.security import create_access_token
 from app.utils.dependencies import get_current_user
 from app.utils.helpers import serialize_document
+from app.config.settings import settings
 
 
 router = APIRouter(
@@ -216,9 +217,12 @@ def login(
             ),
         )
 
+    is_demo_account = user["email"].strip().lower() in settings.DEMO_ACCOUNT_EMAILS
+
     token = create_access_token(
         str(user["_id"]),
-        user["role"]
+        user["role"],
+        is_demo=is_demo_account,
     )
 
     return {
@@ -236,6 +240,7 @@ def login(
                     "language",
                     "English"
                 ),
+                "is_demo": is_demo_account,
             },
         },
     }
@@ -255,6 +260,10 @@ def me(
     user.pop(
         "password_hash",
         None
+    )
+
+    user["is_demo"] = (
+        user.get("email", "").strip().lower() in settings.DEMO_ACCOUNT_EMAILS
     )
 
     return {
