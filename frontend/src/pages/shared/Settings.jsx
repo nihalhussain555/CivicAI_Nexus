@@ -22,6 +22,7 @@ import {
   Save,
   Settings as SettingsIcon,
   Activity,
+  Sparkles,
 } from "lucide-react";
 
 import { changePassword, updateProfile } from "../../services/authService";
@@ -31,6 +32,7 @@ import { useAuth } from "../../hooks/useAuth";
 import { getErrorMessage } from "../../utils/helpers";
 import { LANGUAGES } from "../../utils/constants";
 import ThemeToggle from "../../components/common/ThemeToggle";
+import { resetTour } from "../../components/onboarding/tourStorage";
 
 const Settings = () => {
   const toast = useToast();
@@ -410,6 +412,51 @@ const Settings = () => {
             <div className="settings-theme-control">
               <ThemeToggle />
             </div>
+
+          </div>
+
+        </div>
+
+      </section>
+
+
+      {/* =====================================================
+          HELP & ONBOARDING
+      ====================================================== */}
+
+      <section className="settings-section">
+
+        <SectionHeading
+          title="Help"
+          description="Replay the quick walkthrough of what you can do here."
+        />
+
+        <div className="settings-card">
+
+          <div className="settings-card-row">
+
+            <div className="settings-card-left">
+
+              <div className="settings-icon-box">
+                <Sparkles size={21} />
+              </div>
+
+              <div>
+                <h3> Getting started tour </h3>
+                <p> See the "what can I do here" walkthrough again </p>
+              </div>
+            </div>
+
+            <button
+              className="btn btn-secondary"
+              onClick={() => {
+                if (!user) return;
+                resetTour(user.id);
+                window.location.reload();
+              }}
+            >
+              Replay tour
+            </button>
 
           </div>
 

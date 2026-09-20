@@ -13,6 +13,8 @@ import {
 } from "../components/layout/navConfig";
 
 import { useAuth } from "../hooks/useAuth";
+import OnboardingTour from "../components/onboarding/OnboardingTour";
+import { hasTourBeenSeen, markTourSeen } from "../components/onboarding/tourStorage";
 
 const DashboardLayout = () => {
   const { user } = useAuth();
@@ -56,6 +58,15 @@ const DashboardLayout = () => {
   // for the pre-seeded demo accounts (see main.py's demo_mode_guard).
   // Real accounts are never affected, whoever else is using the site.
   const isDemoAccount = !!user?.is_demo;
+
+  const [showTour, setShowTour] = useState(
+    () => !!user && !hasTourBeenSeen(user.id)
+  );
+
+  const finishTour = () => {
+    if (user) markTourSeen(user.id);
+    setShowTour(false);
+  };
 
   return (
     <div className="app-shell">
@@ -101,6 +112,10 @@ const DashboardLayout = () => {
           <Outlet />
         </div>
       </div>
+
+      {showTour && user && (
+        <OnboardingTour role={user.role} onFinish={finishTour} />
+      )}
     </div>
   );
 };
