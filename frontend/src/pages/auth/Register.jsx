@@ -2,7 +2,6 @@ import { useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   ShieldCheck,
-  Loader2,
   UserRound,
   Mail,
   Phone,
@@ -18,6 +17,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "../../hooks/useAuth";
 import { useToast } from "../../context/ToastContext";
+import CivicLoader from "../../components/common/CivicLoader";
 import { getErrorMessage } from "../../utils/helpers";
 import {
   verifyOtp,
@@ -615,13 +615,7 @@ const Register = () => {
                   disabled={loading}
                 >
                   {loading ? (
-                    <Loader2
-                      size={16}
-                      style={{
-                        animation:
-                          "spin 0.8s linear infinite",
-                      }}
-                    />
+                    <CivicLoader size={16} />
                   ) : (
                     <>
                       Create account
@@ -736,13 +730,7 @@ const Register = () => {
                   disabled={verifying}
                 >
                   {verifying ? (
-                    <Loader2
-                      size={16}
-                      style={{
-                        animation:
-                          "spin 0.8s linear infinite",
-                      }}
-                    />
+                    <CivicLoader size={16} />
                   ) : (
                     <>
                       Verify & continue

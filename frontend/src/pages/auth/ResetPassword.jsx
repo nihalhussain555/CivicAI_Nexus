@@ -11,13 +11,13 @@ import {
   Eye,
   EyeOff,
   ArrowRight,
-  Loader2,
   CheckCircle2,
   Sparkles,
 } from "lucide-react";
 
 import api from "../../services/api";
 import { getErrorMessage } from "../../utils/helpers";
+import CivicLoader from "../../components/common/CivicLoader";
 
 
 const ResetPassword = () => {
@@ -284,13 +284,7 @@ const ResetPassword = () => {
 
                   {loading ? (
                     <>
-                      <Loader2
-                        size={16}
-                        style={{
-                          animation:
-                            "spin 0.8s linear infinite",
-                        }}
-                      />
+                      <CivicLoader size={16} />
 
                       Updating...
                     </>

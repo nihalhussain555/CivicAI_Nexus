@@ -2,7 +2,6 @@ import { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import {
   ShieldCheck,
-  Loader2,
   UserRound,
   ClipboardList,
   Shield,
@@ -18,6 +17,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "../../hooks/useAuth";
 import { useToast } from "../../context/ToastContext";
+import CivicLoader from "../../components/common/CivicLoader";
 import { getErrorMessage } from "../../utils/helpers";
 import SocialLoginButtons from "../../pages/auth/SocialLoginButtons";
 
@@ -326,13 +326,7 @@ const doLogin = async (
               }
             >
               {loading ? (
-                <Loader2
-                  size={16}
-                  style={{
-                    animation:
-                      "spin 0.8s linear infinite",
-                  }}
-                />
+                <CivicLoader size={16} />
               ) : (
                 <>
                   <Zap size={15} />
@@ -489,13 +483,7 @@ const doLogin = async (
               disabled={loading}
             >
               {loading ? (
-                <Loader2
-                  size={16}
-                  style={{
-                    animation:
-                      "spin 0.8s linear infinite",
-                  }}
-                />
+                <CivicLoader size={16} />
               ) : (
                 <>
                   Sign in
