@@ -1,36 +1,96 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { MapPin, Loader2, Sparkles, ArrowLeft, Send, AlertCircle } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { MapPin, Loader2, Sparkles, ArrowLeft, Send, AlertCircle, Mic, Square, Check } from "lucide-react";
 import { previewAnalysis, submitGrievance } from "../../services/grievanceService";
+import { uploadImage } from "../../services/uploadService";
 import { reverseGeocode } from "../../services/geocodeService";
 import { LANGUAGES, DISTRICTS } from "../../utils/constants";
 import { useToast } from "../../context/ToastContext";
-import { getErrorMessage } from "../../utils/helpers";
+import { getErrorMessage, toDisplayText } from "../../utils/helpers";
 import AIAnalysisPanel from "../../components/ai/AIAnalysisPanel";
-import VoiceRecorder from "../../components/grievances/VoiceRecorder";
+import AIProcessingAnimation from "../../components/ai/AIProcessingAnimation";
 import ImageUploader from "../../components/grievances/ImageUploader";
 import LocationPicker from "../../components/grievances/LocationPicker";
+
+const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+// Keep the citizen's title in sync with their description until they
+// deliberately edit the title themselves — the conversational flow only
+// asks "tell us what happened", so the title is derived rather than a
+// separate field they have to fill in.
+const deriveTitle = (description) => {
+  const words = description.trim().split(/\s+/).slice(0, 10).join(" ");
+  return words.length > 0 ? (words.length < description.trim().length ? `${words}...` : words) : "";
+};
 
 const STEPS = ["Describe", "AI Review", "Submitted"];
 
 const ReportIssue = () => {
+  const routerLocation = useLocation();
+  const prefill = routerLocation.state || {};
+
   const [step, setStep] = useState(0);
   const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
+  const [titleTouched, setTitleTouched] = useState(false);
+  const [description, setDescription] = useState(prefill.prefillDescription || "");
   const [language, setLanguage] = useState("English");
   const [voiceTranscript, setVoiceTranscript] = useState("");
+  const [recording, setRecording] = useState(false);
   const [attachments, setAttachments] = useState([]);
+  const [prefillUploading, setPrefillUploading] = useState(!!prefill.prefillFile);
   const [location, setLocation] = useState(null); // { latitude, longitude, address, district }
   const [locating, setLocating] = useState(false);
   const [resolvingPin, setResolvingPin] = useState(false);
   const [districtWasGuessed, setDistrictWasGuessed] = useState(false);
   const [analysis, setAnalysis] = useState(null);
   const [analyzing, setAnalyzing] = useState(false);
+  const [analysisReady, setAnalysisReady] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(null);
 
   const toast = useToast();
   const navigate = useNavigate();
+  const recognitionRef = useRef(null);
+
+  // A photo attached from the dashboard's quick-start box arrives as a raw
+  // File — upload it the same way ImageUploader would, once, on mount.
+  useEffect(() => {
+    if (!prefill.prefillFile) return;
+    uploadImage(prefill.prefillFile)
+      .then((res) => setAttachments((prev) => [...prev, res.data]))
+      .catch(() => toast.error("Couldn't attach the photo from your quick note — please add it again below."))
+      .finally(() => setPrefillUploading(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Keep title derived from description unless the citizen has typed into
+  // the title field themselves.
+  useEffect(() => {
+    if (!titleTouched) setTitle(deriveTitle(description));
+  }, [description, titleTouched]);
+
+  const toggleVoice = () => {
+    if (!SpeechRecognition) return;
+    if (recording) {
+      recognitionRef.current?.stop();
+      setRecording(false);
+      return;
+    }
+    const recognition = new SpeechRecognition();
+    recognition.lang = { English: "en-IN", Hindi: "hi-IN", Tamil: "ta-IN" }[language] || "en-IN";
+    recognition.interimResults = false;
+    recognition.continuous = false;
+    recognition.onresult = (event) => {
+      const transcript = Array.from(event.results).map((r) => r[0].transcript).join(" ");
+      setDescription((prev) => (prev ? prev + " " : "") + transcript);
+      setVoiceTranscript((prev) => (prev ? prev + " " : "") + transcript);
+    };
+    recognition.onend = () => setRecording(false);
+    recognition.onerror = () => setRecording(false);
+    recognitionRef.current = recognition;
+    recognition.start();
+    setRecording(true);
+  };
 
   // Location is mandatory: an officer can only be matched to a report
   // through its district, so we can't let one through without both a
@@ -92,7 +152,7 @@ const ReportIssue = () => {
 
   const runAnalysis = async () => {
     if (title.trim().length < 3 || description.trim().length < 5) {
-      toast.error("Please add a short title and a description of at least 5 characters.");
+      toast.error("Please add a little more detail — at least a few words describing the issue.");
       return;
     }
     if (!isLocationComplete) {
@@ -100,13 +160,19 @@ const ReportIssue = () => {
       return;
     }
     setAnalyzing(true);
+    setAnalysisReady(false);
     try {
       const res = await previewAnalysis({ title, description, language });
       setAnalysis(res.data);
-      setStep(1);
+      setAnalysisReady(true);
+      // Let the processing animation land on "done" for a beat before
+      // advancing, so it doesn't feel like it was skipped.
+      setTimeout(() => {
+        setStep(1);
+        setAnalyzing(false);
+      }, 500);
     } catch (error) {
       toast.error(getErrorMessage(error));
-    } finally {
       setAnalyzing(false);
     }
   };
@@ -145,13 +211,6 @@ const ReportIssue = () => {
 
   return (
     <div style={{ maxWidth: 720, margin: "0 auto" }}>
-      <div className="page-header">
-        <div>
-          <h1>Report an issue</h1>
-          <p>Describe the problem — AI will analyze it before you submit.</p>
-        </div>
-      </div>
-
       <div className="tabs">
         {STEPS.map((label, i) => (
           <div key={label} className={`tab ${step === i ? "active" : ""}`} style={{ cursor: "default" }}>
@@ -160,19 +219,48 @@ const ReportIssue = () => {
         ))}
       </div>
 
-      {step === 0 && (
-        <div className="card" style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-          <div className="form-group">
-            <label className="form-label" htmlFor="title">Title</label>
-            <input id="title" className="input" value={title} onChange={(e) => setTitle(e.target.value)}
-                   placeholder="e.g. Overflowing garbage bin near market" maxLength={200} />
+      {step === 0 && !analyzing && (
+        <div className="card ai-assistant-card" style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+            <Sparkles size={17} color="var(--accent)" />
+            <strong style={{ fontSize: 15.5 }}>CivicAI Assistant</strong>
           </div>
+          <p style={{ fontSize: 13.5, color: "var(--text-muted)", marginBottom: 10 }}>Tell me what happened.</p>
 
           <div className="form-group">
-            <label className="form-label" htmlFor="description">Description</label>
-            <textarea id="description" className="textarea" value={description}
+            <textarea id="description" className="textarea" value={description} rows={4}
                       onChange={(e) => setDescription(e.target.value)}
                       placeholder="Describe what's wrong, where exactly, and since when." maxLength={5000} />
+          </div>
+
+          <div style={{ display: "flex", justifyContent: "center", marginBottom: 6 }}>
+            {SpeechRecognition ? (
+              <button
+                type="button"
+                className={`hero-input-icon-btn ${recording ? "is-recording" : ""}`}
+                onClick={toggleVoice}
+              >
+                {recording ? <Square size={13} /> : <Mic size={13} />}
+                {recording ? "Listening... tap to stop" : "Hold to speak"}
+              </button>
+            ) : (
+              <p className="form-hint">Voice input isn't supported in this browser — you can type instead.</p>
+            )}
+          </div>
+
+          {prefillUploading && (
+            <p className="form-hint" style={{ textAlign: "center" }}>
+              <Loader2 size={12} style={{ animation: "spin 0.8s linear infinite", verticalAlign: "-2px" }} /> Attaching your photo...
+            </p>
+          )}
+
+          <div className="form-group" style={{ marginTop: 6 }}>
+            <label className="form-label" htmlFor="title">
+              Title <span style={{ fontWeight: 400, color: "var(--text-faint)" }}>(auto-filled from your description — edit if you'd like)</span>
+            </label>
+            <input id="title" className="input" value={title}
+                   onChange={(e) => { setTitle(e.target.value); setTitleTouched(true); }}
+                   placeholder="e.g. Overflowing garbage bin near market" maxLength={200} />
           </div>
 
           <div className="form-row">
@@ -232,19 +320,12 @@ const ReportIssue = () => {
           )}
 
           <div className="form-group">
-            <label className="form-label">Voice note (optional)</label>
-            <VoiceRecorder value={voiceTranscript} onChange={setVoiceTranscript} language={language} />
-          </div>
-
-          <div className="form-group">
             <label className="form-label">Photos (optional)</label>
             <ImageUploader attachments={attachments} onChange={setAttachments} />
           </div>
 
           <button className="btn btn-primary btn-block" onClick={runAnalysis} disabled={analyzing || !isLocationComplete}>
-            {analyzing
-              ? <><Loader2 size={16} style={{ animation: "spin 0.8s linear infinite" }} /> Analyzing with AI...</>
-              : <><Sparkles size={16} /> Analyze with AI</>}
+            <Sparkles size={16} /> Analyze with AI
           </button>
           {!isLocationComplete && (
             <p className="form-hint" style={{ textAlign: "center", marginTop: 6 }}>
@@ -254,19 +335,49 @@ const ReportIssue = () => {
         </div>
       )}
 
+      {step === 0 && analyzing && (
+        <AIProcessingAnimation done={analysisReady} />
+      )}
+
       {step === 1 && analysis && (
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          <div className="card" style={{ borderColor: "var(--accent)" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
+              <Sparkles size={16} color="var(--accent)" />
+              <strong style={{ fontSize: 14 }}>AI Understanding</strong>
+            </div>
+            <div className="ai-understanding-list">
+              <div className="ai-understanding-row">
+                <span className="ai-understanding-check"><Check size={12} /></span>
+                <span className="ai-understanding-label">Language</span>
+                <span className="ai-understanding-value">{toDisplayText(language)}</span>
+              </div>
+              <div className="ai-understanding-row">
+                <span className="ai-understanding-check"><Check size={12} /></span>
+                <span className="ai-understanding-label">Department</span>
+                <span className="ai-understanding-value">{toDisplayText(analysis.department || analysis.recommended_department)}</span>
+              </div>
+              <div className="ai-understanding-row">
+                <span className="ai-understanding-check"><Check size={12} /></span>
+                <span className="ai-understanding-label">Priority</span>
+                <span className="ai-understanding-value">{toDisplayText(analysis.priority)}</span>
+              </div>
+              <div className="ai-understanding-row">
+                <span className="ai-understanding-check"><Check size={12} /></span>
+                <span className="ai-understanding-label">Location</span>
+                <span className="ai-understanding-value">{toDisplayText(location?.address)} · {toDisplayText(location?.district)}</span>
+              </div>
+            </div>
+          </div>
+
           <AIAnalysisPanel analysis={analysis} />
+
           <div className="card">
             <div className="section-title">Your report</div>
             <p style={{ fontWeight: 700, marginBottom: 6 }}>{title}</p>
             <p style={{ fontSize: 13.5, color: "var(--text-muted)" }}>{description}</p>
-            {location && (
-              <p style={{ fontSize: 12.5, color: "var(--text-faint)", marginTop: 10, display: "flex", alignItems: "center", gap: 5 }}>
-                <MapPin size={12} /> {location.address} · {location.district}
-              </p>
-            )}
           </div>
+
           <div style={{ display: "flex", gap: 10 }}>
             <button className="btn btn-secondary" onClick={() => setStep(0)}>
               <ArrowLeft size={15} /> Edit
@@ -274,7 +385,7 @@ const ReportIssue = () => {
             <button className="btn btn-primary btn-block" onClick={handleSubmit} disabled={submitting}>
               {submitting
                 ? <><Loader2 size={16} style={{ animation: "spin 0.8s linear infinite" }} /> Submitting...</>
-                : <><Send size={15} /> Submit grievance</>}
+                : <><Send size={15} /> Confirm & submit</>}
             </button>
           </div>
         </div>
@@ -301,7 +412,7 @@ const ReportIssue = () => {
               View grievance
             </button>
             <button className="btn btn-primary" onClick={() => {
-              setStep(0); setTitle(""); setDescription(""); setAnalysis(null);
+              setStep(0); setTitle(""); setTitleTouched(false); setDescription(""); setAnalysis(null);
               setSubmitted(null); setAttachments([]); setVoiceTranscript(""); setLocation(null);
               setDistrictWasGuessed(false);
             }}>

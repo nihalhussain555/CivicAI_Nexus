@@ -3299,3 +3299,383 @@ body { background: radial-gradient(circle at 72% -20%, rgba(99,102,241,.11), tra
 @keyframes route-loader-spin {
   to { transform: rotate(360deg); }
 }
+
+
+/* =========================================================
+   COMPLAINT TIMELINE (visual progress steps)
+========================================================= */
+
+.complaint-timeline {
+  display: flex;
+  flex-direction: column;
+}
+
+.timeline-step {
+  display: flex;
+  gap: 14px;
+}
+
+.timeline-step-rail {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.timeline-step-dot {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  background: var(--surface);
+  color: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
+.timeline-step-done .timeline-step-dot {
+  background: var(--priority-low, #16a34a);
+  border-color: var(--priority-low, #16a34a);
+  color: white;
+}
+
+.timeline-step-active .timeline-step-dot {
+  border-color: var(--accent);
+  background: var(--accent);
+  box-shadow: 0 0 0 4px var(--accent-soft);
+}
+
+.timeline-step-line {
+  width: 2px;
+  flex: 1;
+  min-height: 26px;
+  background: var(--border);
+}
+
+.timeline-step-done .timeline-step-line {
+  background: var(--priority-low, #16a34a);
+}
+
+.timeline-step-body {
+  padding-bottom: 22px;
+  flex: 1;
+}
+
+.timeline-step-label {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--text-faint);
+  text-align: left;
+}
+
+.timeline-step-done .timeline-step-label,
+.timeline-step-active .timeline-step-label {
+  color: var(--text);
+}
+
+.timeline-step-active .timeline-step-label {
+  color: var(--accent);
+}
+
+.timeline-step-details {
+  margin-top: 8px;
+  background: var(--accent-soft);
+  border-radius: 10px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.timeline-step-detail-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 12.5px;
+  color: var(--text-muted);
+}
+
+.timeline-step-detail-time {
+  color: var(--text-faint);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* =========================================================
+   AI PROCESSING ANIMATION
+========================================================= */
+
+.ai-processing-card {
+  border-color: var(--accent);
+}
+
+.ai-processing-step {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 0;
+  font-size: 13.5px;
+  color: var(--text-faint);
+}
+
+.ai-processing-step.is-done {
+  color: var(--text);
+}
+
+.ai-processing-step.is-active {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.ai-processing-step-icon {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border: 1.5px solid var(--border);
+}
+
+.ai-processing-step.is-done .ai-processing-step-icon {
+  background: var(--priority-low, #16a34a);
+  border-color: var(--priority-low, #16a34a);
+  color: white;
+}
+
+.ai-processing-step.is-active .ai-processing-step-icon {
+  border-color: var(--accent);
+}
+
+.ai-processing-spin {
+  animation: spin 0.8s linear infinite;
+}
+
+/* =========================================================
+   AI UNDERSTANDING checklist (report step 1)
+========================================================= */
+
+.ai-understanding-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ai-understanding-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13.5px;
+}
+
+.ai-understanding-check {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--priority-low, #16a34a);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.ai-understanding-label {
+  color: var(--text-muted);
+  min-width: 90px;
+}
+
+.ai-understanding-value {
+  font-weight: 700;
+}
+
+/* =========================================================
+   CITIZEN DASHBOARD — hero input, stats pills, complaint cards
+========================================================= */
+
+.dashboard-hero-greeting {
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.3px;
+  margin-bottom: 2px;
+}
+
+.dashboard-hero-subtitle {
+  color: var(--text-muted);
+  font-size: 14px;
+  margin-bottom: 20px;
+}
+
+.hero-input-card {
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 18px 20px;
+  background: linear-gradient(135deg, var(--accent-soft), transparent 60%);
+  margin-bottom: 24px;
+}
+
+.hero-input-card textarea {
+  width: 100%;
+  border: none;
+  background: transparent;
+  resize: none;
+  font-size: 15px;
+  font-family: inherit;
+  color: var(--text);
+  min-height: 54px;
+  outline: none;
+}
+
+.hero-input-card textarea::placeholder {
+  color: var(--text-faint);
+}
+
+.hero-input-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 10px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.hero-input-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.hero-input-icon-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 7px 13px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.hero-input-icon-btn.is-recording {
+  background: var(--danger-soft);
+  color: var(--danger);
+  border-color: var(--danger);
+}
+
+.hero-input-submit {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  flex-shrink: 0;
+}
+
+.hero-input-submit:disabled {
+  opacity: 0.4;
+}
+
+.stats-pill-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-bottom: 24px;
+  font-size: 14px;
+}
+
+.stats-pill {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.stats-pill strong {
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.stats-pill span {
+  color: var(--text-muted);
+  font-size: 12.5px;
+}
+
+.stats-pill-divider {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--border);
+}
+
+.complaint-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 14px;
+}
+
+.complaint-card {
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 16px;
+  background: var(--surface);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  text-decoration: none;
+  color: inherit;
+}
+
+.complaint-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm);
+}
+
+.complaint-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.complaint-card-title {
+  font-weight: 700;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.complaint-card-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--text-faint);
+}
+
+.complaint-card-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.ai-assistant-card {
+  border-color: var(--accent);
+  background: linear-gradient(180deg, var(--accent-soft), var(--surface) 40%);
+}

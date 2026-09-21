@@ -9,7 +9,7 @@ import { getErrorMessage, formatDateTime } from "../../utils/helpers";
 import { CATEGORY_LABELS } from "../../utils/constants";
 import PriorityBadge from "../../components/grievances/PriorityBadge";
 import StatusBadge from "../../components/grievances/StatusBadge";
-import StatusTimeline from "../../components/grievances/StatusTimeline";
+import ComplaintTimeline from "../../components/grievances/ComplaintTimeline";
 import CopilotPanel from "../../components/ai/CopilotPanel";
 import LoadingSpinner from "../../components/common/LoadingSpinner";
 import ErrorState from "../../components/common/ErrorState";
@@ -294,8 +294,8 @@ const GrievanceDetail = () => {
           </div>
 
           <div className="card">
-            <div className="section-title">Timeline</div>
-            <StatusTimeline history={grievance.history} />
+            <div className="section-title">Progress</div>
+            <ComplaintTimeline status={grievance.status} history={grievance.history} />
           </div>
         </div>
       </div>
