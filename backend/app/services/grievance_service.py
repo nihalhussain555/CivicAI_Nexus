@@ -62,6 +62,8 @@ def create_grievance(current_user: dict, data) -> dict:
         "priority": ai_result["priority"],
         "priority_score": ai_result["priority_score"],
         "confidence": ai_result["confidence"],
+        "needs_department_review": ai_result["needs_department_review"],
+        "ai_reason": ai_result["ai_reason"],
         "sentiment": ai_result["sentiment"],
         "ai_summary": ai_result["ai_summary"],
         "recommended_action": ai_result["recommended_action"],

@@ -18,27 +18,10 @@ import re
 from abc import ABC, abstractmethod
 
 from app.config.settings import settings
+from app.ai.prompts import build_analysis_prompt
 from app.services.classification_service import classify_complaint
 from app.services.priority_service import predict_priority
 from app.services.sentiment_service import analyze_sentiment
-
-
-ANALYSIS_JSON_SCHEMA_HINT = """
-Return ONLY a JSON object (no markdown, no commentary) with exactly these keys:
-{
-  "category": string,
-  "subcategory": string or null,
-  "severity": "LOW" | "MEDIUM" | "HIGH" | "CRITICAL",
-  "urgency_score": integer 0-100,
-  "priority": "LOW" | "MEDIUM" | "HIGH" | "CRITICAL",
-  "priority_score": integer 0-100,
-  "confidence": number 0-1,
-  "sentiment": "POSITIVE" | "NEUTRAL" | "NEGATIVE",
-  "recommended_department": string,
-  "summary": string (1-2 sentences, plain language),
-  "recommended_action": string (1 sentence, actionable for a government officer)
-}
-"""
 
 
 class BaseAIProvider(ABC):
@@ -114,6 +97,15 @@ class MockAIProvider(BaseAIProvider):
             f"{priority['priority'].lower()} priority."
         )
 
+        matched = priority.get("matched_keywords") or []
+        reason = (
+            f"Matched keyword(s) {', '.join(matched[:3])} strongly associated with "
+            f"{classification['department']}."
+            if matched
+            else f"Best keyword match against the {classification['department']} category "
+                 "with no strong signal for a more specific department."
+        )
+
         return {
             "category": classification["category"],
             "subcategory": None,
@@ -124,6 +116,7 @@ class MockAIProvider(BaseAIProvider):
             "confidence": confidence,
             "sentiment": sentiment,
             "recommended_department": classification["department"],
+            "reason": reason,
             "summary": summary,
             "recommended_action": recommended_action_map[priority["priority"]],
             "provider": self.name,
@@ -192,12 +185,7 @@ class OpenAIProvider(BaseAIProvider):
         self._model = settings.OPENAI_MODEL
 
     def analyze_grievance(self, text: str, language: str = "English") -> dict:
-        prompt = (
-            "You are CivicAI, an AI system that triages citizen civic grievances "
-            "for a government department. Analyze the grievance below and produce "
-            f"structured output. {ANALYSIS_JSON_SCHEMA_HINT}\n\n"
-            f"Language: {language}\nGrievance text:\n{text}"
-        )
+        prompt = build_analysis_prompt(text, language)
 
         response = self._client.chat.completions.create(
             model=self._model,
@@ -293,12 +281,7 @@ class GeminiProvider(BaseAIProvider):
         self._model = genai.GenerativeModel(settings.GEMINI_MODEL)
 
     def analyze_grievance(self, text: str, language: str = "English") -> dict:
-        prompt = (
-            "You are CivicAI, an AI system that triages citizen civic grievances "
-            "for a government department. Analyze the grievance below and produce "
-            f"structured output. {ANALYSIS_JSON_SCHEMA_HINT}\n\n"
-            f"Language: {language}\nGrievance text:\n{text}"
-        )
+        prompt = build_analysis_prompt(text, language)
         response = self._model.generate_content(prompt)
         data = _extract_json(response.text)
         data["provider"] = self.name
@@ -360,12 +343,7 @@ class GroqProvider(BaseAIProvider):
         self._model = settings.GROQ_MODEL
 
     def analyze_grievance(self, text: str, language: str = "English") -> dict:
-        prompt = (
-            "You are CivicAI, an AI system that triages citizen civic grievances "
-            "for a government department. Analyze the grievance below and produce "
-            f"structured output. {ANALYSIS_JSON_SCHEMA_HINT}\n\n"
-            f"Language: {language}\nGrievance text:\n{text}"
-        )
+        prompt = build_analysis_prompt(text, language)
         response = self._client.chat.completions.create(
             model=self._model,
             messages=[{"role": "user", "content": prompt}],

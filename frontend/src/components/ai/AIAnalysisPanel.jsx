@@ -1,7 +1,7 @@
-import { Sparkles, MapPin, Clock, ShieldAlert, Layers } from "lucide-react";
+import { Sparkles, MapPin, Clock, ShieldAlert, Layers, AlertTriangle, Lightbulb } from "lucide-react";
 import PriorityBadge from "../grievances/PriorityBadge";
 import { CATEGORY_LABELS } from "../../utils/constants";
-import { toDisplayText } from "../../utils/helpers";
+import { toDisplayText, formatRelative } from "../../utils/helpers";
 
 const AIAnalysisPanel = ({ analysis }) => {
   if (!analysis || typeof analysis !== "object" || Array.isArray(analysis)) {
@@ -14,6 +14,7 @@ const AIAnalysisPanel = ({ analysis }) => {
   }
 
   const summary = toDisplayText(analysis.ai_summary ?? analysis.description, "");
+  const incident = analysis.possible_related_incident;
 
   return (
     <div className="card" style={{ borderColor: "var(--accent)" }}>
@@ -24,6 +25,13 @@ const AIAnalysisPanel = ({ analysis }) => {
         </div>
         <span className="ai-tag">AI generated · not final</span>
       </div>
+
+      {analysis.needs_department_review && (
+        <div className="ai-review-warning">
+          <AlertTriangle size={14} />
+          <span>Our AI wasn't fully confident about this department — an admin will double-check the routing.</span>
+        </div>
+      )}
 
       <div className="grid grid-2" style={{ marginBottom: 14 }}>
         <div>
@@ -45,12 +53,19 @@ const AIAnalysisPanel = ({ analysis }) => {
       </div>
 
       {summary && (
-        <p style={{ fontSize: 13.5, color: "var(--text-muted)", marginBottom: 14, lineHeight: 1.6 }}>
+        <p style={{ fontSize: 13.5, color: "var(--text-muted)", marginBottom: 10, lineHeight: 1.6 }}>
           {summary}
         </p>
       )}
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 10, fontSize: 13 }}>
+      {analysis.ai_reason && (
+        <div className="ai-reason-box">
+          <Lightbulb size={13} />
+          <span><strong>Reason:</strong> {analysis.ai_reason}</span>
+        </div>
+      )}
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 10, fontSize: 13, marginTop: 14 }}>
         <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
           <MapPin size={14} style={{ marginTop: 2, flexShrink: 0, color: "var(--text-faint)" }} />
           <span>Will be routed to <strong>{toDisplayText(analysis.department || analysis.recommended_department)}</strong></span>
@@ -76,6 +91,22 @@ const AIAnalysisPanel = ({ analysis }) => {
           </div>
         )}
       </div>
+
+      {incident && (
+        <div className="related-incident-card">
+          <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 8 }}>
+            <Layers size={15} color="var(--warning)" />
+            <strong style={{ fontSize: 13.5 }}>Possible Related Incident</strong>
+          </div>
+          <ul className="related-incident-list">
+            <li><strong>{incident.report_count}</strong> complaints already reported nearby</li>
+            <li>Area: <strong>{toDisplayText(incident.area)}</strong></li>
+            <li>Department: <strong>{toDisplayText(incident.department)}</strong></li>
+            <li>First reported: <strong>{formatRelative(incident.first_reported_at)}</strong></li>
+            <li>Severity: <strong>{toDisplayText(incident.risk_level)}</strong></li>
+          </ul>
+        </div>
+      )}
     </div>
   );
 };

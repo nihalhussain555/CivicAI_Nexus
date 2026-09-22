@@ -4,7 +4,9 @@ SUPPORTED_LANGUAGES = {
 
     "Hindi": "hi",
 
-    "Tamil": "ta"
+    "Tamil": "ta",
+
+    "Malayalam": "ml"
 }
 
 
@@ -28,6 +30,14 @@ def detect_language(text):
     ):
 
         return "Tamil"
+
+    # Malayalam Unicode range
+    if any(
+        "\u0D00" <= char <= "\u0D7F"
+        for char in text
+    ):
+
+        return "Malayalam"
 
     # Hindi / Devanagari
     if any(

@@ -139,6 +139,47 @@ def cluster_grievance(grievance: dict) -> dict | None:
     return incident
 
 
+def preview_matching_incident(category: str, location: dict) -> dict | None:
+    """Read-only check for whether a draft complaint (not yet submitted)
+    would land near an existing active incident of the same category —
+    lets the citizen see "N complaints already reported nearby" before
+    they submit, without creating or modifying anything. Mirrors the
+    "attach to existing incident" branch of cluster_grievance() exactly,
+    just without the writes."""
+    if not location or "coordinates" not in location:
+        return None
+
+    lat, lon = point_lat_lon(location)
+    if lat is None:
+        return None
+
+    candidates = incidents_collection.find(
+        {"category": category, "status": {"$in": ["ACTIVE", "MONITORING"]}}
+    )
+
+    for incident in candidates:
+        c_lat, c_lon = point_lat_lon(incident["center"])
+        if c_lat is None:
+            continue
+        distance = haversine_km(lat, lon, c_lat, c_lon)
+        if distance <= settings.INCIDENT_CLUSTER_RADIUS_KM:
+            first_grievance = grievances_collection.find_one(
+                {"grievance_id": {"$in": incident.get("grievance_ids", [])}},
+                sort=[("created_at", 1)],
+            )
+            return {
+                "incident_id": incident["incident_id"],
+                "title": incident["title"],
+                "report_count": incident["report_count"],
+                "area": incident["center"].get("address") or "this area",
+                "department": incident.get("department"),
+                "risk_level": incident["risk_level"],
+                "first_reported_at": first_grievance["created_at"] if first_grievance else incident["created_at"],
+            }
+
+    return None
+
+
 def _guess_root_cause(category):
     guesses = {
         "WASTE": "Missed or infrequent collection schedule in this zone.",

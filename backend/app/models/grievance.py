@@ -67,6 +67,8 @@ def grievance_document(
         "priority": "LOW",              # LOW | MEDIUM | HIGH | CRITICAL
         "priority_score": 0,            # 0-100
         "confidence": 0.0,              # 0-1 AI confidence
+        "needs_department_review": False,  # true when confidence < 0.5 at submission
+        "ai_reason": None,              # 1-sentence explanation of the AI's department/priority call
         "sentiment": "NEUTRAL",
         "ai_summary": None,
         "recommended_action": None,

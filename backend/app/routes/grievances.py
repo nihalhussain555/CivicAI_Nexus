@@ -72,6 +72,8 @@ from app.utils.helpers import (
     serialize_documents,
 )
 
+from app.utils.geo import make_point
+
 
 router = APIRouter(
     prefix="/api/grievances",
@@ -86,10 +88,19 @@ def preview_analysis(
         get_current_user
     ),
 ):
+    location_point = None
+    if data.location:
+        location_point = make_point(
+            data.location.latitude,
+            data.location.longitude,
+            data.location.address,
+        )
+
     result = run_pipeline(
         f"{data.title}. {data.description}",
         language=data.language,
         citizen_id=current_user["_id"],
+        location=location_point,
     )
 
     result.pop(

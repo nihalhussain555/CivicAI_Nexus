@@ -3719,3 +3719,57 @@ body { background: radial-gradient(circle at 72% -20%, rgba(99,102,241,.11), tra
   0% { transform: scale(1); opacity: 0.65; }
   75%, 100% { transform: scale(2.9); opacity: 0; }
 }
+
+/* =========================================================
+   AI ANALYSIS PANEL — review warning, reason box, related incident
+========================================================= */
+
+.ai-review-warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  background: var(--warning-soft, #fef3c7);
+  color: var(--warning, #d97706);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 12.5px;
+  font-weight: 600;
+  margin-bottom: 14px;
+}
+
+.ai-reason-box {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  background: var(--accent-soft);
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.ai-reason-box svg {
+  color: var(--accent);
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.related-incident-card {
+  margin-top: 16px;
+  border: 1px solid color-mix(in srgb, var(--warning, #d97706) 35%, var(--border));
+  background: var(--warning-soft, #fef3c7);
+  border-radius: 12px;
+  padding: 14px 16px;
+}
+
+.related-incident-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 12.5px;
+  color: var(--text-muted);
+}

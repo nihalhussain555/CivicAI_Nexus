@@ -77,7 +77,7 @@ const ReportIssue = () => {
       return;
     }
     const recognition = new SpeechRecognition();
-    recognition.lang = { English: "en-IN", Hindi: "hi-IN", Tamil: "ta-IN" }[language] || "en-IN";
+    recognition.lang = { English: "en-IN", Hindi: "hi-IN", Tamil: "ta-IN", Malayalam: "ml-IN" }[language] || "en-IN";
     recognition.interimResults = false;
     recognition.continuous = false;
     recognition.onresult = (event) => {

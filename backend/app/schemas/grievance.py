@@ -47,6 +47,10 @@ class GrievancePreviewRequest(BaseModel):
     title: str = Field(..., min_length=3, max_length=200)
     description: str = Field(..., min_length=5, max_length=5000)
     language: str = "Auto"
+    # Optional — when the citizen has already pinned a location, passing
+    # it lets the preview also check for a matching nearby community
+    # incident before they submit (see incident_service.preview_matching_incident).
+    location: Optional[LocationInput] = None
 
 
 class GrievanceStatusUpdate(BaseModel):

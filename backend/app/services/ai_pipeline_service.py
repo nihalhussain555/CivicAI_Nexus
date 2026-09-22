@@ -33,6 +33,10 @@ from app.services.translation_service import (
     translate_text,
 )
 
+from app.services.incident_service import (
+    preview_matching_incident,
+)
+
 
 def run_pipeline(
     text: str,
@@ -74,8 +78,17 @@ def run_pipeline(
     )
 
     # ---------------------------------------------------------
-    # 3. Department normalization
+    # 3. Department normalization + ensemble cross-check
     # ---------------------------------------------------------
+    # The LLM can confidently return a WRONG but still valid canonical
+    # department name (e.g. "Municipal Corporation" for a water outage) —
+    # that's syntactically fine, so normalize_department() alone can't
+    # catch it. Cross-check against the deterministic local keyword
+    # classifier (run on the ORIGINAL text so native-script Tamil/Hindi
+    # keywords and direct-phrase rules still match, regardless of
+    # translation quality). A strong local match (a direct-phrase hit,
+    # score >= 100) overrides the LLM; any other disagreement just lowers
+    # reported confidence rather than silently trusting either signal.
 
     predicted_department = normalize_department(
         analysis.get(
@@ -83,21 +96,52 @@ def run_pipeline(
         )
     )
 
-    # If the LLM gives an unknown department,
-    # use the deterministic local classifier.
+    local_classification = classify_complaint(text)
+    local_department = local_classification["department"]
+    local_score = local_classification["scores"].get(local_department, 0)
+    STRONG_LOCAL_MATCH = 100  # direct_rules hits add +100; ordinary keyword hits are 1-10
+
     if not predicted_department:
-        local_classification = classify_complaint(
-            text
-        )
-
-        predicted_department = (
-            local_classification["department"]
-        )
-
+        # LLM gave nothing usable — fall back entirely to the local classifier.
+        predicted_department = local_department
         if not analysis.get("category"):
-            analysis["category"] = (
-                local_classification["category"]
-            )
+            analysis["category"] = local_classification["category"]
+        analysis["confidence"] = local_classification["confidence"]
+        analysis["reason"] = analysis.get("reason") or (
+            f"AI provider did not return a usable department; matched local keyword "
+            f"rules for {local_department} instead."
+        )
+
+    elif local_score >= STRONG_LOCAL_MATCH and predicted_department != local_department:
+        # LLM and a strong, unambiguous local phrase match disagree —
+        # trust the deterministic match over the LLM's guess.
+        analysis["reason"] = (
+            f"Overridden: complaint text strongly and unambiguously matches "
+            f"{local_department} (AI had suggested {predicted_department})."
+        )
+        predicted_department = local_department
+        analysis["confidence"] = max(analysis.get("confidence", 0.5), 0.85)
+
+    elif predicted_department != local_department:
+        # Ordinary disagreement (weak/no local signal either way) — keep
+        # the LLM's department, but don't overstate confidence.
+        analysis["confidence"] = min(analysis.get("confidence", 0.5), 0.6)
+
+    final_confidence = analysis.get("confidence", 0.5)
+
+    # < 50% confidence: still auto-route so the pipeline never stalls, but
+    # flag it clearly for admin/staff review instead of pretending we're sure.
+    needs_department_review = final_confidence < 0.5
+
+    # ---------------------------------------------------------
+    # 3b. Possible related incident (read-only preview)
+    # ---------------------------------------------------------
+
+    possible_related_incident = None
+    if location:
+        possible_related_incident = preview_matching_incident(
+            analysis.get("category", "GENERAL"), location
+        )
 
     # ---------------------------------------------------------
     # 4. Duplicate detection
@@ -207,6 +251,14 @@ def run_pipeline(
             "confidence",
             0.5,
         ),
+
+        "needs_department_review": needs_department_review,
+
+        "ai_reason": analysis.get(
+            "reason"
+        ),
+
+        "possible_related_incident": possible_related_incident,
 
         "sentiment": analysis.get(
             "sentiment",
