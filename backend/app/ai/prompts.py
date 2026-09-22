@@ -44,6 +44,10 @@ Departments that are frequently confused — read carefully:
 - "Police" = crime, theft, threats, traffic violations/accidents. A
   broken traffic SIGNAL LIGHT (the electrical fixture itself) is
   "Electricity", not Police — but someone ignoring a signal is Police.
+  Cybercrime, hacking, online fraud, phishing, and OTP/account scams are
+  ALSO Police — there is no separate cyber-crime department in this
+  system, and these should NEVER default to "Municipal Corporation"
+  just because no more specific department seems to fit.
 - "Electricity" = power cuts, broken streetlights, transformers, wiring.
 """.strip()
 
@@ -153,6 +157,18 @@ FEW_SHOT_EXAMPLES = [
         "text": "someone broke into my shop last night and stole cash, please help",
         "department": "Police", "category": "SAFETY", "priority": "HIGH",
         "reason": "Reports theft/burglary — a crime, handled by Police.",
+    },
+    {
+        "language": "English",
+        "text": "I have been hacked by an unknown individual and money was taken from my bank account",
+        "department": "Police", "category": "CYBER_CRIME", "priority": "HIGH",
+        "reason": "Hacking and unauthorized account access is a cybercrime — handled by Police, not a civic-services department. There is no separate cybersecurity department, so this must NOT default to Municipal Corporation.",
+    },
+    {
+        "language": "English",
+        "text": "got a call saying I won a lottery, they took my OTP and now my account is empty",
+        "department": "Police", "category": "CYBER_CRIME", "priority": "HIGH",
+        "reason": "OTP/phishing scam resulting in financial loss — a cyber-fraud crime handled by Police.",
     },
     {
         "language": "English",
