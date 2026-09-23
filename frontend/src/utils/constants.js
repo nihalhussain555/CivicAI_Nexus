@@ -57,6 +57,7 @@ export const STATUSES = [
   "CLOSED",
   "REOPENED",
   "ESCALATED",
+  "WITHDRAWN",
 ];
 
 export const STATUS_LABELS = {
@@ -70,6 +71,7 @@ export const STATUS_LABELS = {
   CLOSED: "Closed",
   REOPENED: "Reopened",
   ESCALATED: "Escalated",
+  WITHDRAWN: "Deleted",
 };
 
 export const PRIORITIES = [

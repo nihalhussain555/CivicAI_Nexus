@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { MapPin, Clock, Sparkles, ArrowLeft, CheckCircle2, XCircle, PlayCircle, Send, AlertTriangle, ImageIcon, Mic, RotateCcw, ShieldQuestion,} from "lucide-react";
-import { getGrievance, acceptCase, startProgress, submitResolution, escalateCase, verifyResolution, requestReopen, reviewReopenRequest, getCopilotBrief,} from "../../services/grievanceService";
+import { MapPin, Clock, Sparkles, ArrowLeft, CheckCircle2, XCircle, PlayCircle, Send, AlertTriangle, ImageIcon, Mic, RotateCcw, ShieldQuestion, Trash2,} from "lucide-react";
+import { getGrievance, acceptCase, startProgress, submitResolution, escalateCase, verifyResolution, requestReopen, reviewReopenRequest, deleteGrievance, getCopilotBrief,} from "../../services/grievanceService";
 import { uploadsBaseUrl } from "../../services/api";
 import { useAuth } from "../../hooks/useAuth";
 import { useToast } from "../../context/ToastContext";
@@ -41,6 +41,8 @@ const GrievanceDetail = () => {
 
   const [reopenReviewOpen, setReopenReviewOpen] = useState(null); // true (approve) / false (reject)
   const [reopenReviewNote, setReopenReviewNote] = useState("");
+
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
 
   const load = useCallback(() => {
     getGrievance(grievanceId)
@@ -228,6 +230,14 @@ const GrievanceDetail = () => {
                   <AlertTriangle size={15} /> Escalate
                 </button>
               )}
+              {isOwnerCitizen
+                && ["SUBMITTED", "AI_ANALYZED", "DEPARTMENT_ASSIGNED"].includes(grievance.status)
+                && !grievance.assigned_officer && (
+                <button className="btn btn-danger btn-block" disabled={actionLoading}
+                        onClick={() => setDeleteConfirmOpen(true)}>
+                  <Trash2 size={15} /> Delete grievance
+                </button>
+              )}
               {isOwnerCitizen && grievance.status === "CITIZEN_VERIFICATION" && (
                 <>
                   <button className="btn btn-primary btn-block" onClick={() => setVerifyOpen(true)}>
@@ -391,6 +401,38 @@ const GrievanceDetail = () => {
         <label className="form-label">Note (optional)</label>
         <textarea className="textarea" value={reopenReviewNote} onChange={(e) => setReopenReviewNote(e.target.value)}
                   placeholder="Add context for the citizen..." />
+      </Modal>
+
+      <Modal
+        open={deleteConfirmOpen}
+        title="Delete this grievance?"
+        onClose={() => setDeleteConfirmOpen(false)}
+        footer={
+          <>
+            <button className="btn btn-secondary" onClick={() => setDeleteConfirmOpen(false)}>Cancel</button>
+            <button className="btn btn-danger" disabled={actionLoading}
+                    onClick={async () => {
+                      setActionLoading(true);
+                      try {
+                        await deleteGrievance(grievanceId);
+                        toast.success("Grievance deleted");
+                        navigate(roleBasePath[user.role] || "/");
+                      } catch (err) {
+                        toast.error(getErrorMessage(err));
+                      } finally {
+                        setActionLoading(false);
+                        setDeleteConfirmOpen(false);
+                      }
+                    }}>
+              <Trash2 size={15} /> Delete
+            </button>
+          </>
+        }
+      >
+        <p style={{ fontSize: 13.5, color: "var(--text-muted)", lineHeight: 1.6 }}>
+          This can't be undone. Once an officer accepts this case, it can no longer be deleted —
+          only while it's still waiting to be picked up.
+        </p>
       </Modal>
     </div>
   );

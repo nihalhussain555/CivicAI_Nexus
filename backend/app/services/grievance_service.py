@@ -389,6 +389,11 @@ def build_list_query(
 
     if status:
         query["status"] = status
+    elif role == "citizen":
+        # Deleted/withdrawn grievances shouldn't linger in the citizen's
+        # own list by default — that's the whole point of deleting one.
+        # Still fully queryable by explicitly filtering status=WITHDRAWN.
+        query["status"] = {"$ne": "WITHDRAWN"}
 
     if category:
         query["category"] = category

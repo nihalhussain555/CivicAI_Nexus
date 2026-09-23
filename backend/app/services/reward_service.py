@@ -16,6 +16,8 @@ from app.models.reward import (
     REASON_FIRST_VALID_BONUS,
     REASON_FALSE_REPORT,
     REASON_REOPENED_REVERSAL,
+    REASON_SUBMISSION_REVERSAL,
+    REASON_FIRST_BONUS_REVERSAL,
 )
 
 
@@ -156,6 +158,37 @@ def reverse_resolution_points(grievance):
         message="Case was reopened after being marked resolved — resolution points reversed.",
         meta={"cycle": cycle},
     )
+
+
+def reverse_submission_points(grievance):
+    """Claws back the +10 valid-submission award (and the +25 first-valid
+    bonus, if this grievance is what triggered it) when the citizen
+    deletes/withdraws their own report before any officer has looked at
+    it. Without this, submit-then-delete would be a free way to farm
+    points for reports that were never actually reviewed."""
+    citizen_id = grievance["citizen_id"]
+    grievance_id = grievance["grievance_id"]
+
+    submission_award = reward_ledger_collection.find_one(
+        {"citizen_id": citizen_id, "grievance_id": grievance_id, "reason": REASON_VALID_SUBMISSION}
+    )
+    if not submission_award:
+        return
+
+    if not _already_awarded(citizen_id, grievance_id, REASON_SUBMISSION_REVERSAL):
+        _insert(
+            citizen_id, grievance_id, REASON_SUBMISSION_REVERSAL, -submission_award["points"],
+            message="Grievance deleted before officer review — submission points reversed.",
+        )
+
+    bonus_award = reward_ledger_collection.find_one(
+        {"citizen_id": citizen_id, "grievance_id": grievance_id, "reason": REASON_FIRST_VALID_BONUS}
+    )
+    if bonus_award and not _already_awarded(citizen_id, grievance_id, REASON_FIRST_BONUS_REVERSAL):
+        _insert(
+            citizen_id, grievance_id, REASON_FIRST_BONUS_REVERSAL, -bonus_award["points"],
+            message="First-valid-grievance bonus reversed — the grievance was deleted before review.",
+        )
 
 
 def get_total_points(citizen_id):

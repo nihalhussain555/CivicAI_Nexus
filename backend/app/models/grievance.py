@@ -18,9 +18,9 @@ GRIEVANCE_STATES = [
 # Allowed forward transitions. Kept explicit so the API can reject
 # a status change that doesn't make sense for the domain.
 VALID_TRANSITIONS = {
-    "SUBMITTED": {"AI_ANALYZED"},
-    "AI_ANALYZED": {"DEPARTMENT_ASSIGNED"},
-    "DEPARTMENT_ASSIGNED": {"OFFICER_ACCEPTED", "ESCALATED"},
+    "SUBMITTED": {"AI_ANALYZED", "WITHDRAWN"},
+    "AI_ANALYZED": {"DEPARTMENT_ASSIGNED", "WITHDRAWN"},
+    "DEPARTMENT_ASSIGNED": {"OFFICER_ACCEPTED", "ESCALATED", "WITHDRAWN"},
     "OFFICER_ACCEPTED": {"IN_PROGRESS", "ESCALATED"},
     "IN_PROGRESS": {"RESOLUTION_SUBMITTED", "ESCALATED"},
     "RESOLUTION_SUBMITTED": {"CITIZEN_VERIFICATION"},
@@ -31,7 +31,15 @@ VALID_TRANSITIONS = {
     # request (see routes/grievances.py reopen-request endpoints) — never
     # directly by the citizen, and never back to any other state.
     "CLOSED": {"REOPENED"},
+    # Terminal — a citizen can only delete/withdraw a grievance before an
+    # officer has accepted it (see the DELETE endpoint). No transitions
+    # out of WITHDRAWN; if the issue still needs reporting, file a new one.
+    "WITHDRAWN": set(),
 }
+
+# Statuses in which no officer has accepted the case yet — a citizen may
+# still delete/withdraw the grievance during any of these.
+DELETABLE_STATUSES = {"SUBMITTED", "AI_ANALYZED", "DEPARTMENT_ASSIGNED"}
 
 # --- Reopen-request policy (guards against gaming the civic rewards
 # system by closing then instantly re-requesting a fresh resolution) ---

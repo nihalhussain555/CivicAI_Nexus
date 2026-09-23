@@ -20,7 +20,11 @@ const stageIndexForStatus = (status) => {
   return i === -1 ? 0 : i;
 };
 
-const ComplaintTimeline = ({ status, history = [] }) => {
+const ComplaintTimeline = ({ status, history }) => {
+  // Default params only cover `undefined` — guard against `null` too,
+  // and against a non-array value in general, since a .filter() call on
+  // anything else throws and would blank the whole page.
+  const safeHistory = Array.isArray(history) ? history : [];
   const currentIndex = stageIndexForStatus(status);
   const [openIndex, setOpenIndex] = useState(null);
 
@@ -28,7 +32,7 @@ const ComplaintTimeline = ({ status, history = [] }) => {
     <div className="complaint-timeline">
       {STAGES.map((stage, i) => {
         const state = i < currentIndex ? "done" : i === currentIndex ? "active" : "pending";
-        const matches = history.filter((h) => stage.statuses.includes(h.status));
+        const matches = safeHistory.filter((h) => stage.statuses.includes(h?.status));
         const isOpen = openIndex === i;
 
         return (
@@ -59,8 +63,8 @@ const ComplaintTimeline = ({ status, history = [] }) => {
                 <div className="timeline-step-details">
                   {matches.map((h, idx) => (
                     <div key={idx} className="timeline-step-detail-row">
-                      <span>{h.message}</span>
-                      <span className="timeline-step-detail-time">{formatRelative(h.timestamp)}</span>
+                      <span>{h?.message}</span>
+                      <span className="timeline-step-detail-time">{formatRelative(h?.timestamp)}</span>
                     </div>
                   ))}
                 </div>

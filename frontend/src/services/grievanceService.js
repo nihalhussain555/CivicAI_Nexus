@@ -190,3 +190,11 @@ export const reviewReopenRequest = async (
 
   return response.data;
 };
+
+export const deleteGrievance = async ( grievanceId ) => {
+  const response = await api.delete(
+    `/grievances/${grievanceId}`
+  );
+
+  return response.data;
+};

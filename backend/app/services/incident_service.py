@@ -180,6 +180,30 @@ def preview_matching_incident(category: str, location: dict) -> dict | None:
     return None
 
 
+def remove_grievance_from_incident(grievance: dict) -> None:
+    """If a grievance being deleted/withdrawn had already been clustered
+    into a community incident, pull it back out and recompute the
+    incident's report count so deleted reports don't inflate incident
+    stats admins rely on."""
+    incident_id = grievance.get("incident_id")
+    if not incident_id:
+        return
+
+    incident = incidents_collection.find_one({"incident_id": incident_id})
+    if not incident:
+        return
+
+    new_count = max(0, incident.get("report_count", 1) - 1)
+
+    incidents_collection.update_one(
+        {"incident_id": incident_id},
+        {
+            "$pull": {"grievance_ids": grievance["grievance_id"]},
+            "$set": {"report_count": new_count, "risk_level": _risk_level(new_count), "updated_at": datetime.utcnow()},
+        },
+    )
+
+
 def _guess_root_cause(category):
     guesses = {
         "WASTE": "Missed or infrequent collection schedule in this zone.",

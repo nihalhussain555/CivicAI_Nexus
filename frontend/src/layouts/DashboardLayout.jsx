@@ -15,6 +15,7 @@ import {
 import { useAuth } from "../hooks/useAuth";
 import OnboardingTour from "../components/onboarding/OnboardingTour";
 import { hasTourBeenSeen, markTourSeen } from "../components/onboarding/tourStorage";
+import ErrorBoundary from "../components/common/ErrorBoundary";
 
 const DashboardLayout = () => {
   const { user } = useAuth();
@@ -109,7 +110,9 @@ const DashboardLayout = () => {
         )}
 
         <div className="app-content">
-          <Outlet />
+          <ErrorBoundary key={location.pathname}>
+            <Outlet />
+          </ErrorBoundary>
         </div>
       </div>
 
