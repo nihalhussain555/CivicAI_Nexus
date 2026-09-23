@@ -16,6 +16,7 @@ import { useAuth } from "../hooks/useAuth";
 import OnboardingTour from "../components/onboarding/OnboardingTour";
 import { hasTourBeenSeen, markTourSeen } from "../components/onboarding/tourStorage";
 import ErrorBoundary from "../components/common/ErrorBoundary";
+import InstallAppPrompt from "../components/common/InstallAppPrompt";
 
 const DashboardLayout = () => {
   const { user } = useAuth();
@@ -108,6 +109,8 @@ const DashboardLayout = () => {
             🔒 Demo account — actions are turned off. Feel free to explore every page; nothing you click changes real data.
           </div>
         )}
+
+        <InstallAppPrompt />
 
         <div className="app-content">
           <ErrorBoundary key={location.pathname}>

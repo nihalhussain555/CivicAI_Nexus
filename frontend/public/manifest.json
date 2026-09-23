@@ -1,0 +1,46 @@
+{
+  "name": "CivicAI Nexus",
+  "short_name": "CivicAI",
+  "description": "Report civic issues, track resolution, and earn civic rewards — powered by AI.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#f5f6fb",
+  "theme_color": "#7C3AED",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "categories": ["government", "utilities", "productivity"],
+  "shortcuts": [
+    {
+      "name": "Report an issue",
+      "short_name": "Report",
+      "url": "/citizen/report",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "My Grievances",
+      "short_name": "My Reports",
+      "url": "/citizen/grievances",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}
