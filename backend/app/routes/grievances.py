@@ -28,6 +28,7 @@ from app.schemas.grievance import (
 from app.models.grievance import (
     REOPEN_WINDOW_DAYS,
     MAX_REOPEN_REQUESTS,
+    DELETABLE_STATUSES,
 )
 
 from app.services.ai_pipeline_service import (
@@ -60,6 +61,11 @@ from app.services.reward_service import (
     award_resolved,
     flag_false_report,
     reverse_resolution_points,
+    reverse_submission_points,
+)
+
+from app.services.incident_service import (
+    remove_grievance_from_incident,
 )
 
 from app.utils.dependencies import (
@@ -1472,5 +1478,51 @@ def review_reopen_request(
     return {
         "success": True,
         "message": "Reopen request rejected.",
+        "data": serialize_document(updated),
+    }
+
+
+@router.delete("/{grievance_id}")
+def delete_grievance(
+    grievance_id: str,
+    current_user=Depends(get_current_user),
+):
+    """Citizen-only: delete/withdraw a grievance they filed, but ONLY
+    before any officer has accepted it. Implemented as a soft delete
+    (status -> WITHDRAWN) rather than removing the document, since the
+    grievance may already be referenced by the rewards ledger, an
+    incident cluster, or audit logs — those need something real to point
+    at. Reverses any submission points already earned, so this can't be
+    used to farm points on reports that were never actually reviewed."""
+    grievance = get_grievance_or_404(grievance_id)
+
+    if current_user["role"] != "citizen" or grievance["citizen_id"] != current_user["_id"]:
+        raise HTTPException(
+            status_code=403,
+            detail="Only the reporting citizen can delete this grievance",
+        )
+
+    if grievance["status"] not in DELETABLE_STATUSES or grievance.get("assigned_officer"):
+        raise HTTPException(
+            status_code=400,
+            detail="This grievance can no longer be deleted — an officer has already accepted it",
+        )
+
+    updated = transition_status(
+        grievance, "WITHDRAWN", current_user,
+        message="Deleted by the citizen before officer review",
+    )
+
+    reverse_submission_points(grievance)
+    remove_grievance_from_incident(grievance)
+
+    log_action(
+        current_user["_id"], current_user["role"], "GRIEVANCE_DELETED",
+        "grievance", grievance_id, {"status_at_deletion": grievance["status"]},
+    )
+
+    return {
+        "success": True,
+        "message": "Grievance deleted.",
         "data": serialize_document(updated),
     }
