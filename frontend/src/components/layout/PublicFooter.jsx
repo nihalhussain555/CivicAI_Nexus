@@ -3,17 +3,12 @@ import { Link } from "react-router-dom";
 
 const PublicFooter = () => (
   <footer className="footer">
-    <div
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: 8,
-        fontWeight: 700,
-      }}
-    >
-      <ShieldCheck size={16} />
-      CivicAI Nexus
-    </div>
+    <div className="auth-topline">
+            <Link to="/" className="auth-logo">
+              <img src="/logo.png" alt="CivicAI Nexus" className="auth-logo-icon" />
+              CivicAI <span>Nexus</span>
+            </Link>
+            </div>
 
     <span>
       © {new Date().getFullYear()} CivicAI Nexus — Predictive Multimodal

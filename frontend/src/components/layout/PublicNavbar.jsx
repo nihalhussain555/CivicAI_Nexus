@@ -13,10 +13,12 @@ const PublicNavbar = () => {
 
   return (
     <nav className="navbar">
-      <Link to="/" className="logo">
-        <div className="logo-icon"><ShieldCheck size={20} /></div>
-        <span>CivicAI Nexus</span>
-      </Link>
+      <div className="auth-topline">
+            <Link to="/" className="auth-logo">
+              <img src="/logo.png" alt="CivicAI Nexus" className="auth-logo-icon" />
+              CivicAI <span>Nexus</span>
+            </Link>
+        </div>
 
       <div className="nav-links">
         {LINKS.map((l) => (
