@@ -6,7 +6,6 @@ import {
 } from "react-router-dom";
 
 import {
-  ShieldCheck,
   LockKeyhole,
   Eye,
   EyeOff,
@@ -118,7 +117,7 @@ const ResetPassword = () => {
               to="/"
               className="auth-logo"
             >
-              <ShieldCheck size={21} />
+              <img src="/logo.png" alt="CivicAI Nexus" className="auth-logo-icon" />
               CivicAI <span>Nexus</span>
             </Link>
 

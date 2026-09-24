@@ -85,7 +85,7 @@ const Sidebar = ({
     >
       <div className="sidebar-brand">
         <div className="sidebar-brand-icon">
-          <ShieldCheck size={18} />
+          <img src="/logo.png" alt="CivicAI Nexus" />
         </div>
 
         {!collapsed && (

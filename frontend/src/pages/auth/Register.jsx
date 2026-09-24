@@ -1,7 +1,6 @@
 import { useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
-  ShieldCheck,
   UserRound,
   Mail,
   Phone,
@@ -360,7 +359,7 @@ const Register = () => {
               to="/"
               className="auth-logo"
             >
-              <ShieldCheck size={21} />
+              <img src="/logo.png" alt="CivicAI Nexus" className="auth-logo-icon" />
               CivicAI <span>Nexus</span>
             </Link>
 

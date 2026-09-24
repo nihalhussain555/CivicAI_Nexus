@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import {
-  ShieldCheck,
   Mail,
   ArrowRight,
   CheckCircle2,
@@ -61,7 +60,7 @@ const ForgotPassword = () => {
               to="/"
               className="auth-logo"
             >
-              <ShieldCheck size={21} />
+              <img src="/logo.png" alt="CivicAI Nexus" className="auth-logo-icon" />
               CivicAI <span>Nexus</span>
             </Link>
 

@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import {
-  ShieldCheck,
   UserRound,
   ClipboardList,
   Shield,
@@ -258,7 +257,7 @@ const doLogin = async (
 
           <div className="auth-topline">
             <Link to="/" className="auth-logo">
-              <ShieldCheck size={21} />
+              <img src="/logo.png" alt="CivicAI Nexus" className="auth-logo-icon" />
               CivicAI <span>Nexus</span>
             </Link>
 
