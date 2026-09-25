@@ -3,9 +3,9 @@ import { createPortal } from "react-dom";
 import { getTourSteps } from "./tourSteps";
 import "./OnboardingTour.css";
 
-const GAP = 18;
 const MODAL_WIDTH = 420;
-const VIEWPORT_PADDING = 20;
+const GAP = 18;
+const PADDING = 16;
 
 const OnboardingTour = ({ role, onFinish }) => {
   const steps = getTourSteps(role);
@@ -15,12 +15,8 @@ const OnboardingTour = ({ role, onFinish }) => {
   const step = steps[index];
   const isFirst = index === 0;
   const isLast = index === steps.length - 1;
-
   const Icon = step?.icon;
 
-  /**
-   * Find the element that belongs to the current tour step.
-   */
   const findTarget = () => {
     if (!step?.target) {
       setTargetRect(null);
@@ -39,16 +35,13 @@ const OnboardingTour = ({ role, onFinish }) => {
     setTargetRect({
       top: rect.top,
       left: rect.left,
-      width: rect.width,
-      height: rect.height,
       right: rect.right,
       bottom: rect.bottom,
+      width: rect.width,
+      height: rect.height,
     });
   };
 
-  /**
-   * Scroll target into view when moving to a step.
-   */
   useLayoutEffect(() => {
     if (!step?.target) {
       setTargetRect(null);
@@ -61,7 +54,6 @@ const OnboardingTour = ({ role, onFinish }) => {
       target.scrollIntoView({
         behavior: "smooth",
         block: "nearest",
-        inline: "nearest",
       });
     }
 
@@ -70,9 +62,6 @@ const OnboardingTour = ({ role, onFinish }) => {
     });
   }, [index, step]);
 
-  /**
-   * Keep spotlight synchronized while the window changes.
-   */
   useEffect(() => {
     const update = () => findTarget();
 
@@ -85,44 +74,33 @@ const OnboardingTour = ({ role, onFinish }) => {
     };
   }, [index, step]);
 
-  /**
-   * Lock page scrolling while the tour is open.
-   */
   useEffect(() => {
-    const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
 
     return () => {
-      document.body.style.overflow = previousOverflow;
+      document.body.style.overflow = "";
     };
   }, []);
 
-  /**
-   * Add the active-tour class to the highlighted element.
-   */
   useEffect(() => {
     const target = step?.target
       ? document.querySelector(step.target)
       : null;
 
     if (target) {
-      target.classList.add("civic-tour-target");
+      target.classList.add("civic-tour-highlight");
     }
 
     return () => {
       if (target) {
-        target.classList.remove("civic-tour-target");
+        target.classList.remove("civic-tour-highlight");
       }
     };
   }, [step]);
 
-  const finish = () => {
-    onFinish();
-  };
-
   const next = () => {
     if (isLast) {
-      finish();
+      onFinish();
       return;
     }
 
@@ -135,11 +113,7 @@ const OnboardingTour = ({ role, onFinish }) => {
     }
   };
 
-  /**
-   * Calculate modal position.
-   */
-  const getModalPosition = () => {
-    // First / welcome screen = centered.
+  const getCardPosition = () => {
     if (!targetRect) {
       return {
         top: "50%",
@@ -154,168 +128,183 @@ const OnboardingTour = ({ role, onFinish }) => {
     let left;
     let top;
 
-    const targetCenter = targetRect.left + targetRect.width / 2;
-
-    /**
-     * Sidebar targets:
-     * Put the modal to the right of the highlighted navigation item.
+    /*
+     * Sidebar item:
+     * place the tour card to the right of the item.
      */
-    if (targetRect.right + GAP + MODAL_WIDTH <= viewportWidth - VIEWPORT_PADDING) {
+    if (
+      targetRect.right + GAP + MODAL_WIDTH <=
+      viewportWidth - PADDING
+    ) {
       left = targetRect.right + GAP;
     } else {
-      left = targetRect.left;
+      left =
+        targetRect.left -
+        MODAL_WIDTH -
+        GAP;
     }
 
-    /**
-     * Vertically align modal approximately with target.
+    /*
+     * Align vertically with the selected item.
      */
-    top = targetRect.top + targetRect.height / 2 - 150;
+    top =
+      targetRect.top +
+      targetRect.height / 2 -
+      150;
 
-    // Keep modal inside viewport.
-    if (top < VIEWPORT_PADDING) {
-      top = VIEWPORT_PADDING;
+    /*
+     * Keep inside viewport.
+     */
+    if (top < PADDING) {
+      top = PADDING;
     }
 
-    const estimatedHeight = 330;
+    const estimatedHeight = 360;
 
-    if (top + estimatedHeight > viewportHeight - VIEWPORT_PADDING) {
-      top = viewportHeight - estimatedHeight - VIEWPORT_PADDING;
-    }
-
-    // If modal would still overlap target, move it to the other side.
     if (
-      left < targetRect.right &&
-      left + MODAL_WIDTH > targetRect.left
+      top + estimatedHeight >
+      viewportHeight - PADDING
     ) {
-      if (targetRect.left - GAP - MODAL_WIDTH >= VIEWPORT_PADDING) {
-        left = targetRect.left - GAP - MODAL_WIDTH;
-      } else {
-        left = Math.max(
-          VIEWPORT_PADDING,
-          (viewportWidth - MODAL_WIDTH) / 2
-        );
-      }
+      top =
+        viewportHeight -
+        estimatedHeight -
+        PADDING;
+    }
+
+    /*
+     * Mobile / narrow screens.
+     */
+    if (viewportWidth < 720) {
+      return {
+        top: "50%",
+        left: "50%",
+        transform: "translate(-50%, -50%)",
+      };
     }
 
     return {
       top,
-      left,
+      left: Math.max(PADDING, left),
       transform: "none",
     };
   };
 
-  const modalPosition = getModalPosition();
-
-  if (!steps.length) {
+  if (!step) {
     return null;
   }
 
   return createPortal(
     <div className="civic-tour-root">
-      {/* Dark overlay */}
+
       <div className="civic-tour-overlay" />
 
-      {/* Spotlight cutout */}
       {targetRect && (
         <div
           className="civic-tour-spotlight"
           style={{
-            top: targetRect.top - 6,
-            left: targetRect.left - 6,
-            width: targetRect.width + 12,
-            height: targetRect.height + 12,
+            top: targetRect.top - 5,
+            left: targetRect.left - 5,
+            width: targetRect.width + 10,
+            height: targetRect.height + 10,
           }}
         />
       )}
 
-      {/* Tour modal */}
       <div
         className={`civic-tour-card ${
-          targetRect ? "has-target" : "welcome-step"
+          targetRect
+            ? "civic-tour-context"
+            : "civic-tour-welcome"
         }`}
-        style={modalPosition}
+        style={getCardPosition()}
       >
-        {/* Header */}
+
+        {/* HEADER */}
+
         <div className="civic-tour-header">
-          <span className="civic-tour-header-title">
+          <span>
             Getting started
           </span>
 
           <button
             type="button"
             className="civic-tour-close"
-            onClick={finish}
+            onClick={onFinish}
             aria-label="Close tour"
           >
             ×
           </button>
         </div>
 
-        {/* Content */}
+        {/* CONTENT */}
+
         <div className="civic-tour-content">
+
           <div className="civic-tour-icon">
-            {Icon && <Icon size={27} strokeWidth={2} />}
+            {Icon && (
+              <Icon
+                size={27}
+                strokeWidth={2}
+              />
+            )}
           </div>
 
-          <h2>{step.title}</h2>
+          <h2>
+            {step.title}
+          </h2>
 
-          <p>{step.description}</p>
+          <p>
+            {step.description}
+          </p>
 
-          {/* Progress */}
+          {/* PROGRESS */}
+
           <div className="civic-tour-progress">
             {steps.map((_, i) => (
               <span
                 key={i}
-                className={`civic-tour-dot ${
-                  i === index ? "active" : ""
-                }`}
+                className={
+                  i === index
+                    ? "civic-tour-dot active"
+                    : "civic-tour-dot"
+                }
               />
             ))}
           </div>
         </div>
 
-        {/* Footer */}
+        {/* FOOTER */}
+
         <div className="civic-tour-footer">
-          {!isFirst ? (
-            <button
-              type="button"
-              className="civic-tour-skip"
-              onClick={previous}
-            >
-              ← Previous
-            </button>
-          ) : (
-            <button
-              type="button"
-              className="civic-tour-skip"
-              onClick={finish}
-            >
-              Skip tour
-            </button>
-          )}
 
-          <div className="civic-tour-step-count">
+          <button
+            type="button"
+            className="civic-tour-secondary"
+            onClick={
+              isFirst
+                ? onFinish
+                : previous
+            }
+          >
+            {isFirst
+              ? "Skip tour"
+              : "← Previous"}
+          </button>
+
+          <span className="civic-tour-counter">
             {index + 1} of {steps.length}
-          </div>
+          </span>
 
-          {!isLast ? (
-            <button
-              type="button"
-              className="civic-tour-next"
-              onClick={next}
-            >
-              Next
-              <span>→</span>
-            </button>
-          ) : (
-            <button
-              type="button"
-              className="civic-tour-next"
-              onClick={finish}
-            >
-              Got it
-            </button>
-          )}
+          <button
+            type="button"
+            className="civic-tour-primary"
+            onClick={next}
+          >
+            {isLast
+              ? "Got it"
+              : "Next →"}
+          </button>
+
         </div>
       </div>
     </div>,
