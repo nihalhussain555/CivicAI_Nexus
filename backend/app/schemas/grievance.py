@@ -80,6 +80,15 @@ class AssignOfficerRequest(BaseModel):
     officer_id: str
 
 
+class BulkGrievanceIdsRequest(BaseModel):
+    grievance_ids: List[str] = Field(..., min_length=1, max_length=50)
+
+
+class BulkAssignRequest(BaseModel):
+    grievance_ids: List[str] = Field(..., min_length=1, max_length=50)
+    officer_id: str
+
+
 class FlagInvalidRequest(BaseModel):
     reason: str = Field(..., min_length=5, max_length=500)
 

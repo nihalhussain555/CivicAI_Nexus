@@ -11,11 +11,15 @@ import {
   AlertTriangle,
   RefreshCw,
   UserCheck,
+  CheckSquare,
+  Square,
+  Users,
 } from "lucide-react";
 
 import {
   getUnassignedGrievances,
   assignOfficer,
+  bulkAssignOfficer,
 } from "../../services/grievanceService";
 
 import {
@@ -60,6 +64,13 @@ const UnassignedGrievances = () => {
 
   const [assigning, setAssigning] =
     useState(false);
+
+  const [selected, setSelected] = useState(() => new Set());
+  const [bulkModalOpen, setBulkModalOpen] = useState(false);
+  const [bulkOfficers, setBulkOfficers] = useState([]);
+  const [bulkOfficer, setBulkOfficer] = useState("");
+  const [bulkAssigning, setBulkAssigning] = useState(false);
+  const [bulkResult, setBulkResult] = useState(null);
 
   const load = async () => {
     try {
@@ -171,6 +182,68 @@ const UnassignedGrievances = () => {
       }
     };
 
+  const toggleOne = (id) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const allSelected = items.length > 0 && items.every((g) => selected.has(g.grievance_id));
+
+  const toggleAll = () => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (allSelected) {
+        items.forEach((g) => next.delete(g.grievance_id));
+      } else {
+        items.forEach((g) => next.add(g.grievance_id));
+      }
+      return next;
+    });
+  };
+
+  const selectedItems = items.filter((g) => selected.has(g.grievance_id));
+  const selectedDepartments = new Set(selectedItems.map((g) => g.department));
+  const sameDepartment = selectedDepartments.size === 1;
+
+  const openBulkModal = async () => {
+    if (!sameDepartment) return;
+    try {
+      const first = selectedItems[0];
+      const response = await getOfficers({ department: first.department, district: first.district });
+      const available = (response.data || []).filter((officer) => officer.active !== false);
+      setBulkOfficers(available);
+      setBulkOfficer("");
+      setBulkModalOpen(true);
+    } catch (error) {
+      toast.error(getErrorMessage(error));
+    }
+  };
+
+  const closeBulkModal = () => {
+    if (bulkAssigning) return;
+    setBulkModalOpen(false);
+    setBulkOfficer("");
+  };
+
+  const handleBulkAssign = async () => {
+    if (!bulkOfficer) return;
+    try {
+      setBulkAssigning(true);
+      const res = await bulkAssignOfficer(Array.from(selected), bulkOfficer);
+      setBulkModalOpen(false);
+      setBulkResult(res.data);
+      setSelected(new Set());
+      await load();
+    } catch (error) {
+      toast.error(getErrorMessage(error));
+    } finally {
+      setBulkAssigning(false);
+    }
+  };
+
   if (
     user?.role !== "admin" ||
     !user?.district
@@ -275,6 +348,29 @@ const UnassignedGrievances = () => {
         </div>
       </div>
 
+      {items.length > 0 && (
+        <div className="bulk-action-bar">
+          <button type="button" className="bulk-select-all" onClick={toggleAll}>
+            {allSelected ? <CheckSquare size={16} /> : <Square size={16} />}
+            Select all
+          </button>
+          {selected.size > 0 && (
+            <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+              <span style={{ fontSize: 13, color: "var(--text-muted)" }}>{selected.size} selected</span>
+              <button className="btn btn-secondary btn-sm" onClick={() => setSelected(new Set())}>Clear</button>
+              <button className="btn btn-primary btn-sm" disabled={!sameDepartment} onClick={openBulkModal}>
+                <Users size={14} /> Assign selected to officer
+              </button>
+              {!sameDepartment && (
+                <span style={{ fontSize: 12, color: "var(--warning)" }}>
+                  Select cases from one department to bulk-assign
+                </span>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
       {loading ? (
         <SkeletonList rows={6} />
       ) : items.length === 0 ? (
@@ -310,6 +406,16 @@ const UnassignedGrievances = () => {
                     "wrap",
                 }}
               >
+                <div style={{ display: "flex", alignItems: "center", gap: 14, flex: 1, minWidth: 280 }}>
+                  <button
+                    type="button"
+                    className="bulk-checkbox"
+                    aria-label={selected.has(grievance.grievance_id) ? "Deselect" : "Select"}
+                    onClick={() => toggleOne(grievance.grievance_id)}
+                  >
+                    {selected.has(grievance.grievance_id) ? <CheckSquare size={18} /> : <Square size={18} />}
+                  </button>
+
                 <div
                   style={{
                     flex: 1,
@@ -416,6 +522,7 @@ const UnassignedGrievances = () => {
                       grievance.grievance_id
                     }
                   </div>
+                </div>
                 </div>
 
                 <button
@@ -599,6 +706,74 @@ const UnassignedGrievances = () => {
               )}
             </div>
           </>
+        )}
+      </Modal>
+
+      <Modal
+        open={bulkModalOpen}
+        title={`Assign ${selected.size} case(s) to an officer`}
+        onClose={closeBulkModal}
+        footer={
+          <>
+            <button className="btn btn-secondary" onClick={closeBulkModal} disabled={bulkAssigning}>Cancel</button>
+            <button className="btn btn-primary" disabled={bulkAssigning || !bulkOfficer || bulkOfficers.length === 0}
+                    onClick={handleBulkAssign}>
+              {bulkAssigning ? "Assigning..." : `Assign ${selected.size} case(s)`}
+            </button>
+          </>
+        }
+      >
+        <p style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 14 }}>
+          All {selected.size} selected cases are in <strong>{selectedItems[0]?.department}</strong>.
+          Choose one officer to assign them all to — any case someone else takes in the
+          meantime will be skipped automatically.
+        </p>
+
+        <div className="form-group">
+          <label className="form-label">Select Officer</label>
+          {bulkOfficers.length === 0 ? (
+            <div className="card" style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <AlertTriangle size={17} />
+              <span style={{ fontSize: 13 }}>No active officer is available for this department and district.</span>
+            </div>
+          ) : (
+            <select className="select" value={bulkOfficer} onChange={(e) => setBulkOfficer(e.target.value)}>
+              <option value="">Select an officer</option>
+              {bulkOfficers.map((officer) => (
+                <option key={officer._id} value={officer._id}>
+                  {officer.name} — {officer.open_cases ?? 0} open cases
+                </option>
+              ))}
+            </select>
+          )}
+        </div>
+      </Modal>
+
+      <Modal
+        open={!!bulkResult}
+        title="Bulk assign results"
+        onClose={() => setBulkResult(null)}
+        footer={<button className="btn btn-primary" onClick={() => setBulkResult(null)}>Done</button>}
+      >
+        {bulkResult && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            <p style={{ fontSize: 13.5 }}>
+              <strong style={{ color: "var(--priority-low)" }}>{bulkResult.assigned.length}</strong> assigned
+              {bulkResult.skipped.length > 0 && (
+                <> · <strong style={{ color: "var(--warning)" }}>{bulkResult.skipped.length}</strong> skipped</>
+              )}
+            </p>
+            {bulkResult.skipped.length > 0 && (
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                {bulkResult.skipped.map((s) => (
+                  <div key={s.grievance_id} style={{ display: "flex", justifyContent: "space-between", fontSize: 12.5, color: "var(--text-muted)" }}>
+                    <span style={{ fontFamily: "monospace" }}>{s.grievance_id}</span>
+                    <span>{s.reason}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         )}
       </Modal>
     </div>
