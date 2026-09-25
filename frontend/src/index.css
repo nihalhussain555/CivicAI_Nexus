@@ -705,8 +705,11 @@ input, select, textarea { font-family: inherit; }
   width: 36px; height: 36px;
   display: flex; align-items: center; justify-content: center;
   border-radius: 10px;
-  background: var(--accent); color: white;
+  background: white; color: white;
+  overflow: hidden;
+  flex-shrink: 0;
 }
+.logo-icon img { width: 100%; height: 100%; object-fit: contain; }
 
 .nav-links { display: flex; align-items: center; gap: 24px; font-size: 14px; }
 .nav-links a { color: var(--text-muted); }
@@ -717,6 +720,43 @@ input, select, textarea { font-family: inherit; }
   background: var(--accent); color: white; font-weight: 600;
 }
 .nav-button:hover { background: var(--accent-hover); }
+
+/* Mobile nav — hidden by default, CSS below reveals it under the
+   breakpoint alongside the hamburger toggle. */
+.navbar-mobile-toggle { display: none; }
+
+.navbar-mobile-menu {
+  position: absolute;
+  top: 72px;
+  left: 0;
+  right: 0;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  box-shadow: var(--shadow-lg);
+  display: flex;
+  flex-direction: column;
+  padding: 10px 7% 20px;
+  gap: 4px;
+  z-index: 49;
+}
+
+.navbar-mobile-menu a {
+  padding: 12px 8px;
+  border-radius: 10px;
+  color: var(--text-muted);
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.navbar-mobile-menu a:hover { background: var(--surface-hover); }
+.navbar-mobile-menu a.active { color: var(--text); font-weight: 700; }
+.navbar-mobile-menu a.nav-button { color: white; text-align: center; margin-top: 6px; }
+
+.navbar-mobile-menu-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 6px 0;
+}
 
 .hero {
   max-width: 1250px; margin: auto; padding: 100px 40px;
@@ -3818,4 +3858,23 @@ body { background: radial-gradient(circle at 72% -20%, rgba(99,102,241,.11), tra
 
 .install-app-banner-text span {
   color: var(--text-muted);
+}
+
+/* =========================================================
+   PUBLIC PAGES — mobile responsiveness (navbar + section padding).
+   Hero/features/role-cards/steps grids already collapse via the
+   existing @media (max-width: 900px)/(max-width: 560px) rules above;
+   this only adds what wasn't covered: the navbar's mobile menu and
+   .section's padding, which stayed a flat 40px on every screen size.
+========================================================= */
+
+@media (max-width: 860px) {
+  .nav-links-desktop { display: none; }
+  .navbar-mobile-toggle { display: flex; }
+  .navbar { padding: 0 5%; }
+
+  .section { padding: 20px 5% 60px; }
+
+  .hero-buttons { justify-content: center; }
+  .hero-card { text-align: left; }
 }

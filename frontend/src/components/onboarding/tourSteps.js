@@ -13,11 +13,11 @@ import {
   ShieldCheck,
 } from "lucide-react";
 
-// One short walkthrough per role, shown once on first login (see
-// OnboardingTour.jsx + DashboardLayout.jsx). Keep each step to a single,
-// concrete idea — this is a "here's what you can do" tour, not documentation.
-
 export const TOUR_STEPS_BY_ROLE = {
+  /* =====================================================
+     CITIZEN
+     ===================================================== */
+
   citizen: [
     {
       icon: Sparkles,
@@ -25,115 +25,158 @@ export const TOUR_STEPS_BY_ROLE = {
       description:
         "This is a quick tour of what you can do here — it only takes a minute. You can restart it anytime from Settings.",
     },
+
     {
       icon: FilePlus2,
       title: "Report an issue",
       description:
-        "Describe a civic problem — a pothole, broken streetlight, garbage pileup — and add a photo by uploading one or taking it right from your camera. Our AI classifies and routes it to the right department automatically.",
+        "Describe a civic problem such as a pothole, broken streetlight, garbage pileup, or water issue. Add a photo or use your camera. CivicAI analyzes and routes the report to the appropriate department.",
+      target: '[data-tour="report-issue"]',
     },
+
     {
       icon: FileText,
       title: "Track every report",
       description:
-        "\"My Grievances\" shows the live status of everything you've reported — submitted, assigned, in progress, or resolved — with the full history of what happened.",
+        "My Grievances shows the live status of everything you've reported — submitted, assigned, in progress, or resolved — together with the history of what happened.",
+      target: '[data-tour="my-grievances"]',
     },
+
     {
       icon: Trophy,
       title: "Earn Civic Points",
       description:
-        "Points are earned for real outcomes — a verified, resolved report — not just for submitting a lot of them. Reach milestones to unlock certificates, badges, and rewards.",
+        "Earn Civic Points through meaningful participation and verified outcomes. Reach milestones to unlock badges, certificates, and rewards.",
+      target: '[data-tour="civic-rewards"]',
     },
+
     {
       icon: AlertTriangle,
       title: "Community Incidents",
       description:
-        "If several people report the same problem nearby, we group it into a community incident — so you can see if others are dealing with the same issue.",
+        "When several people report the same problem nearby, CivicAI can group those reports into a community incident so you can see the bigger picture.",
+      target: '[data-tour="community-incidents"]',
     },
+
     {
       icon: Bot,
       title: "Ask CivicAI",
       description:
-        "Have a question about reporting, tracking, or how the platform works? Ask the assistant any time from the sidebar.",
+        "Need help understanding a report, tracking a grievance, or using the platform? Ask CivicAI directly from the sidebar.",
+      target: '[data-tour="ask-civicai"]',
     },
   ],
+
+  /* =====================================================
+     OFFICER
+     ===================================================== */
 
   officer: [
     {
       icon: Sparkles,
       title: "Welcome, Officer",
       description:
-        "A quick tour of your workspace — it only takes a minute. Restart it any time from Settings.",
+        "A quick tour of your workspace — it only takes a minute. You can restart it anytime from Settings.",
     },
+
     {
       icon: ListChecks,
       title: "Your queue",
       description:
-        "See every grievance assigned to your department, sorted by priority. Accept a case to start working it, or escalate it if it needs another department's attention.",
+        "View grievances assigned to your department and district, prioritize active cases, and accept cases that require your action.",
+      target: '[data-tour="officer-queue"]',
     },
+
     {
       icon: FileText,
       title: "Resolve with evidence",
       description:
-        "When you fix an issue, submit a resolution note and evidence — the citizen is notified and asked to confirm before the case closes.",
+        "When an issue is resolved, add a clear resolution note and supporting evidence so the citizen can follow what happened.",
+      target: '[data-tour="officer-grievances"]',
     },
+
     {
       icon: AlertTriangle,
       title: "Community Incidents",
       description:
-        "Multiple reports of the same real-world problem are grouped automatically, so you can spot patterns instead of handling duplicates one by one.",
+        "Multiple reports describing the same real-world problem can be grouped together, helping you identify recurring issues and hotspots.",
+      target: '[data-tour="officer-incidents"]',
     },
+
     {
       icon: BarChart3,
       title: "Your analytics",
       description:
-        "Track your resolution times and case load over time from the Analytics page.",
+        "Monitor case volume, resolution progress, response times, and other performance indicators from the analytics area.",
+      target: '[data-tour="officer-analytics"]',
     },
+
     {
       icon: Bot,
       title: "AI Copilot",
       description:
-        "Open any case and check the AI-generated brief for a fast summary of what's happened and what to do next.",
+        "Use AI assistance inside supported cases to quickly understand the complaint, summarize the history, and identify useful next actions.",
+      target: '[data-tour="officer-ai"]',
     },
   ],
+
+  /* =====================================================
+     ADMIN
+     ===================================================== */
 
   admin: [
     {
       icon: Sparkles,
       title: "Welcome, Admin",
       description:
-        "A quick tour of the admin tools — it only takes a minute. Restart it any time from Settings.",
+        "A quick tour of the CivicAI administration workspace — it only takes a minute. You can restart it anytime from Settings.",
     },
+
     {
       icon: Building2,
       title: "Departments & routing",
       description:
-        "Manage which departments exist and how grievances get routed to them based on category.",
+        "Manage departments and configure how grievances are categorized and routed through the CivicAI workflow.",
+      target: '[data-tour="admin-departments"]',
     },
+
     {
       icon: Users,
       title: "Officers",
       description:
-        "Add officers, assign them to departments and districts, and keep an eye on their case load and performance.",
+        "Create and manage officers, departments, districts, assignments, and operational access.",
+      target: '[data-tour="admin-officers"]',
     },
+
     {
       icon: Map,
       title: "Live map & incidents",
       description:
-        "See every open grievance and community incident plotted geographically, so you can spot hotspots at a glance.",
+        "Monitor grievances and community incidents geographically to identify clusters and areas requiring attention.",
+      target: '[data-tour="admin-map"]',
     },
+
     {
       icon: BarChart3,
       title: "Analytics & AI Insights",
       description:
-        "City-wide trends, resolution times, and AI-surfaced patterns across every department and district.",
+        "Review city-wide trends, grievance volumes, resolution times, department activity, and AI-generated insights.",
+      target: '[data-tour="admin-analytics"]',
     },
+
     {
       icon: ShieldCheck,
       title: "Oversight",
       description:
-        "Review flagged or disputed grievances, approve reopen requests, and keep the whole system accountable.",
+        "Review flagged cases, disputed grievances, reopen requests, and other administrative actions that require oversight.",
+      target: '[data-tour="admin-oversight"]',
     },
   ],
 };
 
-export const getTourSteps = (role) => TOUR_STEPS_BY_ROLE[role] || TOUR_STEPS_BY_ROLE.citizen;
+export const getTourSteps = (role) => {
+  return (
+    TOUR_STEPS_BY_ROLE[role] ||
+    TOUR_STEPS_BY_ROLE.citizen
+  );
+};

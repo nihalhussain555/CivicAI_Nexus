@@ -1,0 +1,435 @@
+/* =========================================================
+   CIVICAI NEXUS — PRODUCT ONBOARDING TOUR
+   ========================================================= */
+
+.civic-tour-root {
+  position: fixed;
+  inset: 0;
+  z-index: 999999;
+  pointer-events: none;
+  font-family: inherit;
+}
+
+/* ---------------------------------------------------------
+   DARK BACKGROUND
+   --------------------------------------------------------- */
+
+.civic-tour-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 14, 24, 0.58);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  pointer-events: auto;
+}
+
+/* ---------------------------------------------------------
+   SPOTLIGHT
+   --------------------------------------------------------- */
+
+.civic-tour-spotlight {
+  position: fixed;
+  z-index: 1000000;
+
+  border-radius: 14px;
+
+  background: transparent;
+
+  box-shadow:
+    0 0 0 4px rgba(99, 82, 246, 0.35),
+    0 0 0 8px rgba(255, 255, 255, 0.96),
+    0 0 28px rgba(99, 82, 246, 0.55);
+
+  pointer-events: none;
+
+  transition:
+    top 0.3s ease,
+    left 0.3s ease,
+    width 0.3s ease,
+    height 0.3s ease;
+
+  animation: civicTourPulse 2s ease-in-out infinite;
+}
+
+@keyframes civicTourPulse {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 4px rgba(99, 82, 246, 0.32),
+      0 0 0 8px rgba(255, 255, 255, 0.95),
+      0 0 24px rgba(99, 82, 246, 0.42);
+  }
+
+  50% {
+    box-shadow:
+      0 0 0 5px rgba(99, 82, 246, 0.45),
+      0 0 0 9px rgba(255, 255, 255, 0.98),
+      0 0 34px rgba(99, 82, 246, 0.62);
+  }
+}
+
+/* ---------------------------------------------------------
+   HIGHLIGHTED ELEMENT
+   --------------------------------------------------------- */
+
+.civic-tour-target {
+  position: relative !important;
+  z-index: 1000001 !important;
+
+  background: white !important;
+
+  box-shadow:
+    0 0 0 3px rgba(91, 229, 216, 0.9),
+    0 0 20px rgba(91, 229, 216, 0.55) !important;
+
+  border-radius: 12px !important;
+
+  transition:
+    background 0.25s ease,
+    box-shadow 0.25s ease;
+}
+
+/* ---------------------------------------------------------
+   TOUR CARD
+   --------------------------------------------------------- */
+
+.civic-tour-card {
+  position: fixed;
+
+  width: min(420px, calc(100vw - 40px));
+
+  background: #ffffff;
+
+  border: 1px solid rgba(226, 232, 240, 0.9);
+
+  border-radius: 18px;
+
+  overflow: hidden;
+
+  box-shadow:
+    0 25px 70px rgba(15, 23, 42, 0.28),
+    0 8px 30px rgba(15, 23, 42, 0.12);
+
+  pointer-events: auto;
+
+  z-index: 1000002;
+
+  animation: civicTourCardIn 0.3s ease;
+}
+
+.civic-tour-card.welcome-step {
+  width: min(540px, calc(100vw - 40px));
+}
+
+@keyframes civicTourCardIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+/* ---------------------------------------------------------
+   HEADER
+   --------------------------------------------------------- */
+
+.civic-tour-header {
+  height: 68px;
+
+  padding: 0 22px;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  border-bottom: 1px solid #edf0f4;
+}
+
+.civic-tour-header-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: #171b24;
+}
+
+.civic-tour-close {
+  width: 40px;
+  height: 40px;
+
+  border: 1px solid #e1e5eb;
+
+  background: #ffffff;
+
+  border-radius: 11px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  font-size: 25px;
+  line-height: 1;
+
+  color: #667085;
+
+  cursor: pointer;
+
+  transition:
+    background 0.2s ease,
+    color 0.2s ease,
+    border-color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.civic-tour-close:hover {
+  background: #f8f9fb;
+  color: #171b24;
+  border-color: #cfd5df;
+  transform: rotate(3deg);
+}
+
+/* ---------------------------------------------------------
+   CONTENT
+   --------------------------------------------------------- */
+
+.civic-tour-content {
+  padding: 30px 34px 26px;
+
+  text-align: center;
+}
+
+.civic-tour-icon {
+  width: 64px;
+  height: 64px;
+
+  margin: 0 auto 20px;
+
+  border-radius: 50%;
+
+  background: #eef0ff;
+
+  color: #5846e8;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  box-shadow:
+    inset 0 0 0 1px rgba(88, 70, 232, 0.08);
+}
+
+.civic-tour-content h2 {
+  margin: 0 0 10px;
+
+  color: #171b24;
+
+  font-size: 22px;
+  line-height: 1.3;
+
+  font-weight: 750;
+
+  letter-spacing: -0.025em;
+}
+
+.civic-tour-content p {
+  margin: 0 auto;
+
+  max-width: 390px;
+
+  color: #687386;
+
+  font-size: 14.5px;
+
+  line-height: 1.65;
+}
+
+/* ---------------------------------------------------------
+   PROGRESS DOTS
+   --------------------------------------------------------- */
+
+.civic-tour-progress {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  gap: 6px;
+
+  margin-top: 23px;
+
+  min-height: 7px;
+}
+
+.civic-tour-dot {
+  width: 6px;
+  height: 6px;
+
+  border-radius: 999px;
+
+  background: #dfe3ea;
+
+  transition:
+    width 0.25s ease,
+    background 0.25s ease;
+}
+
+.civic-tour-dot.active {
+  width: 22px;
+
+  background: #5b4bea;
+}
+
+/* ---------------------------------------------------------
+   FOOTER
+   --------------------------------------------------------- */
+
+.civic-tour-footer {
+  min-height: 82px;
+
+  padding: 16px 22px;
+
+  display: flex;
+  align-items: center;
+
+  gap: 12px;
+
+  border-top: 1px solid #edf0f4;
+
+  background: #ffffff;
+}
+
+.civic-tour-skip {
+  border: 0;
+
+  background: transparent;
+
+  color: #202532;
+
+  font-size: 14px;
+  font-weight: 600;
+
+  padding: 11px 14px;
+
+  border-radius: 9px;
+
+  cursor: pointer;
+
+  transition: background 0.2s ease;
+}
+
+.civic-tour-skip:hover {
+  background: #f4f5f7;
+}
+
+.civic-tour-step-count {
+  margin-left: auto;
+
+  color: #667085;
+
+  font-size: 13px;
+  font-weight: 500;
+
+  white-space: nowrap;
+}
+
+.civic-tour-next {
+  border: 0;
+
+  background: linear-gradient(
+    135deg,
+    #6347ed,
+    #4f37d8
+  );
+
+  color: #ffffff;
+
+  min-height: 44px;
+
+  padding: 0 18px;
+
+  border-radius: 11px;
+
+  font-size: 14px;
+  font-weight: 700;
+
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  cursor: pointer;
+
+  box-shadow:
+    0 7px 18px rgba(91, 75, 234, 0.25);
+
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.civic-tour-next:hover {
+  transform: translateY(-1px);
+
+  box-shadow:
+    0 10px 24px rgba(91, 75, 234, 0.34);
+}
+
+.civic-tour-next:active {
+  transform: translateY(0);
+}
+
+/* ---------------------------------------------------------
+   MOBILE
+   --------------------------------------------------------- */
+
+@media (max-width: 700px) {
+  .civic-tour-card,
+  .civic-tour-card.welcome-step {
+    width: calc(100vw - 28px) !important;
+
+    left: 14px !important;
+    right: 14px !important;
+
+    top: 50% !important;
+
+    transform: translateY(-50%) !important;
+  }
+
+  .civic-tour-content {
+    padding: 25px 22px 22px;
+  }
+
+  .civic-tour-content h2 {
+    font-size: 20px;
+  }
+
+  .civic-tour-content p {
+    font-size: 14px;
+  }
+
+  .civic-tour-footer {
+    padding: 14px;
+  }
+
+  .civic-tour-step-count {
+    font-size: 12px;
+  }
+
+  .civic-tour-next {
+    padding: 0 15px;
+  }
+
+  .civic-tour-spotlight {
+    border-radius: 10px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .civic-tour-spotlight,
+  .civic-tour-card {
+    animation: none;
+  }
+
+  .civic-tour-spotlight {
+    transition: none;
+  }
+}
