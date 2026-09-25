@@ -1,14 +1,18 @@
-import { ShieldCheck } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const PublicFooter = () => (
   <footer className="footer">
-    <div className="auth-topline">
-            <Link to="/" className="auth-logo">
-              <img src="/logo.png" alt="CivicAI Nexus" className="auth-logo-icon" />
-              CivicAI <span>Nexus</span>
-            </Link>
-            </div>
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 8,
+        fontWeight: 700,
+      }}
+    >
+      <img src="/logo.png" alt="" style={{ width: 18, height: 18, objectFit: "contain" }} />
+      CivicAI Nexus
+    </div>
 
     <span>
       © {new Date().getFullYear()} CivicAI Nexus — Predictive Multimodal

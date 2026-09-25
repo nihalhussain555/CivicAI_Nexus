@@ -3878,3 +3878,45 @@ body { background: radial-gradient(circle at 72% -20%, rgba(99,102,241,.11), tra
   .hero-buttons { justify-content: center; }
   .hero-card { text-align: left; }
 }
+
+/* =========================================================
+   BULK ACTIONS — selection bar and checkboxes
+========================================================= */
+
+.bulk-action-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 10px 14px;
+  margin-bottom: 14px;
+}
+
+.bulk-select-all {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.bulk-select-all:hover { color: var(--text); }
+
+.bulk-checkbox {
+  background: none;
+  border: none;
+  padding: 4px;
+  color: var(--text-faint);
+  flex-shrink: 0;
+  display: flex;
+}
+
+.bulk-checkbox:hover { color: var(--accent); }
