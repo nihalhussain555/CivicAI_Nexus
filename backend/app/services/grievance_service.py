@@ -1,4 +1,5 @@
 import uuid
+import re
 from datetime import datetime
 
 from fastapi import HTTPException
@@ -408,9 +409,14 @@ def build_list_query(
         query["priority"] = priority
 
     if search:
-        query["$text"] = {
-            "$search": search
-        }
+        # Match either a keyword in the title/description (via the text
+        # index) OR the grievance's reference ID directly — officers get
+        # quoted IDs like "CIV-2026-3F7BDDD8" over the phone constantly,
+        # and a text index alone won't match those.
+        query["$or"] = [
+            {"$text": {"$search": search}},
+            {"grievance_id": {"$regex": re.escape(search), "$options": "i"}},
+        ]
 
     return query
 

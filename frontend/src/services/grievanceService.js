@@ -191,9 +191,34 @@ export const reviewReopenRequest = async (
   return response.data;
 };
 
-export const deleteGrievance = async ( grievanceId ) => {
+export const deleteGrievance = async (
+  grievanceId
+) => {
   const response = await api.delete(
     `/grievances/${grievanceId}`
+  );
+
+  return response.data;
+};
+
+export const bulkAcceptCases = async (
+  grievanceIds
+) => {
+  const response = await api.post(
+    "/grievances/bulk-accept",
+    { grievance_ids: grievanceIds }
+  );
+
+  return response.data;
+};
+
+export const bulkAssignOfficer = async (
+  grievanceIds,
+  officerId
+) => {
+  const response = await api.post(
+    "/grievances/bulk-assign",
+    { grievance_ids: grievanceIds, officer_id: officerId }
   );
 
   return response.data;

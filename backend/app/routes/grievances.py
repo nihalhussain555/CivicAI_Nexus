@@ -1,4 +1,5 @@
 from datetime import datetime
+import re
 
 from bson import ObjectId
 from bson.errors import InvalidId
@@ -23,6 +24,8 @@ from app.schemas.grievance import (
     FlagInvalidRequest,
     ReopenRequestCreate,
     ReopenReviewRequest,
+    BulkGrievanceIdsRequest,
+    BulkAssignRequest,
 )
 
 from app.models.grievance import (
@@ -158,6 +161,7 @@ def submit_grievance(
 @router.get("/my")
 def my_grievances(
     status: str = None,
+    search: str = None,
     page: int = 1,
     limit: int = 20,
     current_user=Depends(
@@ -167,6 +171,7 @@ def my_grievances(
     query = build_list_query(
         current_user,
         status=status,
+        search=search,
     )
 
     result = paginate(
@@ -194,6 +199,7 @@ def unassigned_grievances(
     limit: int = 50,
     department: str = None,
     priority: str = None,
+    search: str = None,
     current_user=Depends(
         get_current_user
     ),
@@ -228,6 +234,12 @@ def unassigned_grievances(
         query["priority"] = (
             priority
         )
+
+    if search:
+        query["$or"] = [
+            {"$text": {"$search": search}},
+            {"grievance_id": {"$regex": re.escape(search), "$options": "i"}},
+        ]
 
     page = max(1, page)
     limit = max(
@@ -289,6 +301,7 @@ def unassigned_grievances(
 def priority_queue(
     page: int = 1,
     limit: int = 20,
+    search: str = None,
     current_user=Depends(
         require_staff
     ),
@@ -318,6 +331,12 @@ def priority_queue(
                     None,
                 ]
             }
+
+    if search:
+        query["$or"] = [
+            {"$text": {"$search": search}},
+            {"grievance_id": {"$regex": re.escape(search), "$options": "i"}},
+        ]
 
     items = list(
         grievances_collection.find(
@@ -371,6 +390,7 @@ def priority_queue(
 @router.get("/assigned")
 def my_assigned_cases(
     status: str = None,
+    search: str = None,
     page: int = 1,
     limit: int = 20,
     current_user=Depends(
@@ -384,6 +404,12 @@ def my_assigned_cases(
 
     if status:
         query["status"] = status
+
+    if search:
+        query["$or"] = [
+            {"$text": {"$search": search}},
+            {"grievance_id": {"$regex": re.escape(search), "$options": "i"}},
+        ]
 
     result = paginate(
         grievances_collection,
@@ -442,6 +468,196 @@ def list_all_grievances(
     return {
         "success": True,
         "data": result,
+    }
+
+
+@router.post("/bulk-accept")
+def bulk_accept_cases(
+    data: BulkGrievanceIdsRequest,
+    current_user=Depends(require_staff),
+):
+    """Officer-only: self-assign several queued cases at once instead of
+    one at a time. Reuses the same atomic-update guard as the single
+    /accept endpoint (status + assigned_officer=None in the filter) so a
+    race with another officer taking the same case is handled the same
+    way — silently skipped for this request, not an error."""
+    if current_user["role"] != "officer":
+        raise HTTPException(
+            status_code=403,
+            detail="Only officers can bulk-accept cases",
+        )
+
+    accepted, skipped = [], []
+
+    for gid in data.grievance_ids:
+        grievance = grievances_collection.find_one({"grievance_id": gid})
+
+        if not grievance:
+            skipped.append({"grievance_id": gid, "reason": "Not found"})
+            continue
+
+        if grievance.get("department") != current_user.get("department"):
+            skipped.append({"grievance_id": gid, "reason": "Different department"})
+            continue
+
+        now = datetime.utcnow()
+
+        result = grievances_collection.update_one(
+            {"grievance_id": gid, "status": "DEPARTMENT_ASSIGNED", "assigned_officer": None},
+            {
+                "$set": {
+                    "status": "OFFICER_ACCEPTED",
+                    "assigned_officer": current_user["_id"],
+                    "assigned_officer_name": current_user.get("name"),
+                    "assigned_at": now,
+                    "updated_at": now,
+                },
+                "$push": {
+                    "history": {
+                        "status": "OFFICER_ACCEPTED",
+                        "message": "Bulk-accepted by officer",
+                        "actor_role": "officer",
+                        "timestamp": now,
+                    }
+                },
+            },
+        )
+
+        if result.modified_count == 0:
+            skipped.append({"grievance_id": gid, "reason": "Already taken by another officer"})
+            continue
+
+        award_officer_verified(
+            grievance["citizen_id"], gid,
+            cycle=grievance.get("reopen_count", 0),
+        )
+
+        notify(
+            grievance["citizen_id"],
+            "Officer Assigned",
+            f"An officer has been assigned to grievance {gid}.",
+            notification_type="STATUS_CHANGE",
+            related_grievance_id=gid,
+        )
+
+        log_action(
+            current_user["_id"], current_user["role"], "GRIEVANCE_BULK_ACCEPTED",
+            "grievance", gid, {},
+        )
+
+        accepted.append(gid)
+
+    return {
+        "success": True,
+        "message": f"Accepted {len(accepted)} of {len(data.grievance_ids)} case(s).",
+        "data": {"accepted": accepted, "skipped": skipped},
+    }
+
+
+@router.post("/bulk-assign")
+def bulk_assign_officer(
+    data: BulkAssignRequest,
+    current_user=Depends(require_staff),
+):
+    """Admin-only: assign several unassigned cases to one officer at once,
+    for clearing a backlog quickly instead of one-by-one from the
+    unassigned queue. Same per-item validation as the single /assign
+    endpoint, applied in a loop — partial success is reported back rather
+    than the whole batch failing over one bad item."""
+    if current_user["role"] != "admin":
+        raise HTTPException(
+            status_code=403,
+            detail="Only admins can bulk-assign cases",
+        )
+
+    try:
+        officer_oid = ObjectId(data.officer_id)
+    except (InvalidId, TypeError):
+        raise HTTPException(status_code=400, detail="Invalid officer ID")
+
+    officer = users_collection.find_one({"_id": officer_oid, "role": "officer"})
+    if not officer:
+        raise HTTPException(status_code=404, detail="Officer not found")
+
+    admin_district = current_user.get("district")
+    assigned, skipped = [], []
+
+    for gid in data.grievance_ids:
+        grievance = grievances_collection.find_one({"grievance_id": gid})
+
+        if not grievance:
+            skipped.append({"grievance_id": gid, "reason": "Not found"})
+            continue
+
+        if grievance.get("assigned_officer") or grievance.get("status") != "DEPARTMENT_ASSIGNED":
+            skipped.append({"grievance_id": gid, "reason": "Already assigned"})
+            continue
+
+        if admin_district and grievance.get("district") != admin_district:
+            skipped.append({"grievance_id": gid, "reason": "Outside your district"})
+            continue
+
+        now = datetime.utcnow()
+
+        result = grievances_collection.update_one(
+            {"grievance_id": gid, "assigned_officer": None},
+            {
+                "$set": {
+                    "status": "OFFICER_ACCEPTED",
+                    "assigned_officer": officer["_id"],
+                    "assigned_officer_name": officer["name"],
+                    "assigned_at": now,
+                    "assigned_by": current_user["_id"],
+                    "assigned_by_name": current_user.get("name"),
+                    "updated_at": now,
+                },
+                "$push": {
+                    "history": {
+                        "status": "OFFICER_ACCEPTED",
+                        "message": f"Bulk-assigned to {officer['name']} by admin",
+                        "actor_role": "admin",
+                        "timestamp": now,
+                    }
+                },
+            },
+        )
+
+        if result.modified_count == 0:
+            skipped.append({"grievance_id": gid, "reason": "Already taken"})
+            continue
+
+        award_officer_verified(
+            grievance["citizen_id"], gid,
+            cycle=grievance.get("reopen_count", 0),
+        )
+
+        notify(
+            officer["_id"],
+            "New Case Assigned",
+            f"Grievance {gid} has been assigned to you.",
+            notification_type="INFO",
+            related_grievance_id=gid,
+        )
+
+        notify(
+            grievance["citizen_id"],
+            "Officer Assigned",
+            f"An officer has been assigned to grievance {gid}.",
+            notification_type="STATUS_CHANGE",
+            related_grievance_id=gid,
+        )
+
+        log_action(
+            current_user["_id"], current_user["role"], "GRIEVANCE_BULK_ASSIGNED",
+            "grievance", gid, {"officer_id": data.officer_id},
+        )
+
+        assigned.append(gid)
+
+    return {
+        "success": True,
+        "message": f"Assigned {len(assigned)} of {len(data.grievance_ids)} grievance(s).",
+        "data": {"assigned": assigned, "skipped": skipped},
     }
 
 
