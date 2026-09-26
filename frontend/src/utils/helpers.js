@@ -1,12 +1,25 @@
+// Any timestamp string with no timezone marker (no "Z", no "+HH:MM") is
+// ambiguous — `new Date(...)` silently treats it as the browser's local
+// time instead of UTC, which is exactly what made timestamps across the
+// app look wrong. The backend now always attaches "Z" explicitly, but
+// this stays as a defensive second layer for any response that might not
+// go through that path.
+const toSafeDate = (value) => {
+  if (typeof value === "string" && !/[Zz]|[+-]\d{2}:?\d{2}$/.test(value)) {
+    return new Date(`${value}Z`);
+  }
+  return new Date(value);
+};
+
 export const formatDate = (value) => {
   if (!value) return "—";
-  const date = new Date(value);
+  const date = toSafeDate(value);
   return date.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
 };
 
 export const formatDateTime = (value) => {
   if (!value) return "—";
-  const date = new Date(value);
+  const date = toSafeDate(value);
   return date.toLocaleString(undefined, {
     year: "numeric", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit",
   });
@@ -14,7 +27,7 @@ export const formatDateTime = (value) => {
 
 export const formatRelative = (value) => {
   if (!value) return "—";
-  const date = new Date(value);
+  const date = toSafeDate(value);
   const diffMs = date.getTime() - Date.now();
   const diffHours = Math.round(diffMs / (1000 * 60 * 60));
 
