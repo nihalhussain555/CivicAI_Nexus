@@ -26,6 +26,7 @@ from app.routes.notifications import router as notifications_router
 from app.routes.analytics import router as analytics_router
 from app.routes.uploads import router as uploads_router
 from app.routes.rewards import router as rewards_router
+from app.routes.push import router as push_router
 
 
 @asynccontextmanager
@@ -88,6 +89,8 @@ app.add_middleware(
 # global override if you ever want to lock the entire site instead. ---
 DEMO_MODE_ALLOWED_REQUESTS = {
     ("POST", "/api/auth/login"),
+    ("POST", "/api/push/subscribe"),
+    ("POST", "/api/push/unsubscribe"),
 }
 
 DEMO_MODE_MESSAGE = (
@@ -159,6 +162,7 @@ app.include_router(notifications_router)
 app.include_router(analytics_router)
 app.include_router(uploads_router)
 app.include_router(rewards_router)
+app.include_router(push_router)
 
 os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
 app.mount("/uploads", StaticFiles(directory=settings.UPLOAD_DIR), name="uploads")
