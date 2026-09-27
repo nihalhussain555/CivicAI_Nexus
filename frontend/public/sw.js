@@ -34,8 +34,7 @@ self.addEventListener("activate", (event) => {
 
 const isApiRequest = (url) => url.pathname.startsWith("/api/") || url.pathname === "/health";
 
-self.addEventListener("fetch", (event) => {
-  const request = event.request;
+self.addEventListener("fetch", (event) => {  const request = event.request;
 
   // Only handle GET — POST/PUT/DELETE (grievance actions) must always hit
   // the real network; caching or intercepting those would be dangerous.
@@ -79,6 +78,49 @@ self.addEventListener("fetch", (event) => {
         .catch(() => cached);
 
       return cached || networkFetch;
+    })
+  );
+});
+
+// --- Web Push ---
+// Fires when a push message arrives from the server, even if the app is
+// closed. The payload is the JSON string send_push_notification() (see
+// app/services/push_service.py) sent: { title, body, url }.
+self.addEventListener("push", (event) => {
+  let payload = { title: "CivicAI Nexus", body: "You have a new notification.", url: "/" };
+
+  try {
+    if (event.data) payload = { ...payload, ...event.data.json() };
+  } catch {
+    // Non-JSON payload — fall back to the defaults above rather than fail silently.
+  }
+
+  event.waitUntil(
+    self.registration.showNotification(payload.title, {
+      body: payload.body,
+      icon: "/icon-192.png",
+      badge: "/icon-192.png",
+      data: { url: payload.url },
+    })
+  );
+});
+
+// Clicking the notification focuses an already-open tab on the right
+// page if one exists, otherwise opens a new one — rather than always
+// spawning a fresh tab.
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const targetUrl = event.notification.data?.url || "/";
+
+  event.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clients) => {
+      for (const client of clients) {
+        if (client.url.includes(self.location.origin) && "focus" in client) {
+          client.navigate(targetUrl);
+          return client.focus();
+        }
+      }
+      return self.clients.openWindow(targetUrl);
     })
   );
 });

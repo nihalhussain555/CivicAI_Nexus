@@ -33,6 +33,7 @@ import { getErrorMessage } from "../../utils/helpers";
 import { LANGUAGES } from "../../utils/constants";
 import ThemeToggle from "../../components/common/ThemeToggle";
 import { resetTour } from "../../components/onboarding/tourStorage";
+import PushNotificationToggle from "../../components/common/PushNotificationToggle";
 
 const Settings = () => {
   const toast = useToast();
@@ -412,6 +413,42 @@ const Settings = () => {
             <div className="settings-theme-control">
               <ThemeToggle />
             </div>
+
+          </div>
+
+        </div>
+
+      </section>
+
+
+      {/* =====================================================
+          NOTIFICATIONS
+      ====================================================== */}
+
+      <section className="settings-section">
+
+        <SectionHeading
+          title="Notifications"
+          description="Get notified the moment your grievance status changes, even when the app is closed."
+        />
+
+        <div className="settings-card">
+
+          <div className="settings-card-row">
+
+            <div className="settings-card-left">
+
+              <div className="settings-icon-box">
+                <Bell size={21} />
+              </div>
+
+              <div>
+                <h3> Push notifications </h3>
+                <p> Get an alert on this device for status updates, officer assignment, and resolutions </p>
+              </div>
+            </div>
+
+            <PushNotificationToggle />
 
           </div>
 
