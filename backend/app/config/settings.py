@@ -186,6 +186,29 @@ class Settings:
         if email.strip()
     }
 
+    # --- Web Push notifications ---
+    # Generated once for this project — the private key must stay secret
+    # (set as an env var in production, never committed). The public key
+    # is safe to expose to the frontend; it's what the browser uses to
+    # create a push subscription.
+    VAPID_PRIVATE_KEY = os.getenv(
+        "VAPID_PRIVATE_KEY",
+        "cnLi1rRb7yrIe8L_lKY_PKf2h9nDKDsskKFcQA_av8I",
+    )
+
+    VAPID_PUBLIC_KEY = os.getenv(
+        "VAPID_PUBLIC_KEY",
+        "BBaNtsZdVANGNWpEZQ1lXEnod1iIc8NDVyuMY1_A7N-TLOrCEwDZTcKlhU77lI12EFoVPS93RZFesvOHENYrGcE",
+    )
+
+    # Required by the Web Push protocol — a contact point push services
+    # (Chrome/Firefox's servers) can reach you at if your server is
+    # misbehaving. Set a real one in production.
+    VAPID_CLAIM_EMAIL = os.getenv(
+        "VAPID_CLAIM_EMAIL",
+        "mailto:admin@civicainexus.local",
+    )
+
     # --- Password reset ---
     PASSWORD_RESET_EXPIRE_MINUTES = int(
         os.getenv(
