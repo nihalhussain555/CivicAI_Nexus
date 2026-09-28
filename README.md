@@ -32,23 +32,7 @@ CivicAI/
 
 ---
 
-## Quick start (Docker Compose)
-
-The fastest way to run everything, including MongoDB:
-
-```bash
-docker compose up --build
-```
-
-- Frontend: http://localhost:5173
-- Backend API: http://localhost:8000 (docs at `/docs`)
-- MongoDB: `mongodb://localhost:27017`
-
-Then seed demo data (one time):
-
-```bash
-docker compose exec backend python -m app.seed.seed_data
-```
+## Quick start
 
 Demo accounts (password for all: `Demo@123`):
 
