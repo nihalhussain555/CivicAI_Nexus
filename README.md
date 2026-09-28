@@ -27,7 +27,6 @@ CivicAI/
 ├── frontend/          React + Vite app
 ├── tests/              pytest suite (backend)
 ├── conftest.py         test bootstrap (see "Running tests" below)
-├── docker-compose.yml  Mongo + backend + frontend, one command
 └── knowledge_base/     FAQ content used by the AI assistant's retrieval
 ```
 
