@@ -17,6 +17,7 @@ import {
 import { useAuth } from "../../hooks/useAuth";
 import { useToast } from "../../context/ToastContext";
 import CivicLoader from "../../components/common/CivicLoader";
+import { useTranslation } from "../../context/LanguageContext";
 import { getErrorMessage } from "../../utils/helpers";
 import SocialLoginButtons from "../../pages/auth/SocialLoginButtons";
 
@@ -48,6 +49,7 @@ const ROLES = [
 ];
 
 const Login = () => {
+  const { t } = useTranslation();
   const [selectedRole, setSelectedRole] = useState(null);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -262,16 +264,16 @@ const doLogin = async (
             </Link>
 
             <p>
-              New here?{" "}
+              {t("auth.noAccount")}{" "}
               <Link to="/register">
-                Create account
+                {t("auth.createAccount")}
               </Link>
             </p>
           </div>
 
           <div className="auth-heading">
             <span className="auth-kicker">
-              Welcome back
+              {t("auth.welcomeBack")}
             </span>
 
             <h1>
@@ -472,7 +474,7 @@ const doLogin = async (
                   fontWeight: 600,
                 }}
               >
-                Forgot password?
+                {t("auth.forgotPassword")}
               </Link>
             </div>
 
@@ -485,7 +487,7 @@ const doLogin = async (
                 <CivicLoader size={16} />
               ) : (
                 <>
-                  Sign in
+                  {t("auth.signIn")}
                   <ArrowRight size={16} />
                 </>
               )}

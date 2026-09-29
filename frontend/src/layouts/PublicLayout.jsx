@@ -2,7 +2,10 @@ import { Outlet } from "react-router-dom";
 
 const PublicLayout = () => (
   <div className="landing">
-    <Outlet />
+    <a href="#main-content" className="skip-link">Skip to main content</a>
+    <div id="main-content">
+      <Outlet />
+    </div>
   </div>
 );
 

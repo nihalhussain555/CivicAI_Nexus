@@ -72,6 +72,7 @@ const DashboardLayout = () => {
 
   return (
     <div className="app-shell">
+      <a href="#main-content" className="skip-link">Skip to main content</a>
       <Sidebar
         open={menuOpen}
         onNavigate={() =>
@@ -112,7 +113,7 @@ const DashboardLayout = () => {
 
         <InstallAppPrompt />
 
-        <div className="app-content">
+        <div className="app-content" id="main-content" tabIndex={-1}>
           <ErrorBoundary key={location.pathname}>
             <Outlet />
           </ErrorBoundary>
