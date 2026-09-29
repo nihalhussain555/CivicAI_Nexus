@@ -13,6 +13,7 @@ import {
 
 import { useAuth } from "../../hooks/useAuth";
 import ThemeToggle from "../common/ThemeToggle";
+import LanguageSwitcher from "../common/LanguageSwitcher";
 import NotificationBell from "../notifications/NotificationBell";
 import Avatar from "../common/Avatar";
 
@@ -93,6 +94,7 @@ const Topbar = ({ title, onMenuToggle }) => {
 
       {/* Topbar Actions */}
       <div className="topbar-actions">
+        <LanguageSwitcher compact />
         <ThemeToggle />
 
         <NotificationBell />

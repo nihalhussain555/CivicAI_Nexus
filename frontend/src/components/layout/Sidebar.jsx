@@ -17,6 +17,30 @@ import {
 } from "./navConfig";
 
 import { useAuth } from "../../hooks/useAuth";
+import { useTranslation } from "../../context/LanguageContext";
+
+// Maps each nav path to its translation key — kept here rather than in
+// navConfig.js so navConfig stays framework-agnostic (no hook access).
+const NAV_LABEL_KEY = {
+  "/citizen/dashboard": "nav.dashboard", "/officer/dashboard": "nav.dashboard", "/admin/dashboard": "nav.dashboard",
+  "/citizen/report": "nav.report",
+  "/citizen/grievances": "nav.grievances", "/officer/grievances": "nav.grievances", "/admin/grievances": "nav.grievances",
+  "/citizen/rewards": "nav.rewards",
+  "/citizen/incidents": "nav.incidents", "/officer/incidents": "nav.incidents", "/admin/incidents": "nav.incidents",
+  "/citizen/assistant": "nav.assistant", "/admin/assistant": "nav.assistant",
+  "/officer/copilot": "nav.copilot",
+  "/officer/analytics": "nav.analytics", "/admin/analytics": "nav.analytics",
+  "/citizen/notifications": "nav.notifications", "/officer/notifications": "nav.notifications", "/admin/notifications": "nav.notifications",
+  "/citizen/profile": "nav.profile", "/officer/profile": "nav.profile", "/admin/profile": "nav.profile",
+  "/citizen/settings": "nav.settings", "/officer/settings": "nav.settings", "/admin/settings": "nav.settings",
+  "/admin/departments": "nav.departments",
+  "/admin/officers": "nav.officers",
+  "/admin/admins": "nav.admins",
+  "/admin/map": "nav.map",
+  "/admin/ai-insights": "nav.aiInsights",
+  "/admin/district": "nav.district",
+  "/admin/district/unassigned": "nav.unassigned",
+};
 
 const STORAGE_KEY =
   "civicai_sidebar_collapsed";
@@ -27,6 +51,8 @@ const Sidebar = ({
 }) => {
   const { user, logout } =
     useAuth();
+
+  const { t } = useTranslation();
 
   const navigate = useNavigate();
 
@@ -185,7 +211,9 @@ const Sidebar = ({
             to,
             label,
             icon: Icon,
-          }) => (
+          }) => {
+            const translatedLabel = NAV_LABEL_KEY[to] ? t(NAV_LABEL_KEY[to]) : label;
+            return (
             <NavLink
               key={to}
               to={to}
@@ -195,7 +223,7 @@ const Sidebar = ({
               }
               title={
                 collapsed
-                  ? label
+                  ? translatedLabel
                   : undefined
               }
               className={({
@@ -212,11 +240,12 @@ const Sidebar = ({
 
               {!collapsed && (
                 <span>
-                  {label}
+                  {translatedLabel}
                 </span>
               )}
             </NavLink>
-          )
+            );
+          }
         )}
       </nav>
 
@@ -229,7 +258,7 @@ const Sidebar = ({
           }
           title={
             collapsed
-              ? "Log out"
+              ? t("nav.logout")
               : undefined
           }
           style={{
@@ -243,7 +272,7 @@ const Sidebar = ({
 
           {!collapsed && (
             <span>
-              Log out
+              {t("nav.logout")}
             </span>
           )}
         </button>
