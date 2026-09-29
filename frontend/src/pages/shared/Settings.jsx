@@ -34,6 +34,7 @@ import { LANGUAGES } from "../../utils/constants";
 import ThemeToggle from "../../components/common/ThemeToggle";
 import { resetTour } from "../../components/onboarding/tourStorage";
 import PushNotificationToggle from "../../components/common/PushNotificationToggle";
+import LanguageSwitcher from "../../components/common/LanguageSwitcher";
 
 const Settings = () => {
   const toast = useToast();
@@ -525,11 +526,11 @@ const Settings = () => {
 
               <div>
                 <h3>
-                  Preferred language
+                  Complaint language
                 </h3>
 
                 <p>
-                  This preference is saved to your account.
+                  The language CivicAI assumes when analyzing a grievance you submit. This preference is saved to your account.
                 </p>
               </div>
 
@@ -568,6 +569,10 @@ const Settings = () => {
             </div>
 
           </div>
+
+          <div style={{ borderTop: "1px solid var(--border)", margin: "4px 0" }} />
+
+          <LanguageSwitcher />
 
         </div>
 

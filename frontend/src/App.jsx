@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate,} from "react-router-dom";
 import { AuthProvider, } from "./context/AuthContext";
 import { ThemeProvider, } from "./context/ThemeContext";
 import { ToastProvider, } from "./context/ToastContext";
+import { LanguageProvider, } from "./context/LanguageContext";
 import ProtectedRoute from "./routes/ProtectedRoute";
 import DashboardLayout from "./layouts/DashboardLayout";
 import PublicLayout from "./layouts/PublicLayout";
@@ -71,6 +72,7 @@ const RouteLoader = () => (
 function App() {
   return (
     <ThemeProvider>
+      <LanguageProvider>
       <ToastProvider>
         <AuthProvider>
           <BrowserRouter>
@@ -308,6 +310,7 @@ function App() {
           </BrowserRouter>
         </AuthProvider>
       </ToastProvider>
+      </LanguageProvider>
     </ThemeProvider>
   );
 }

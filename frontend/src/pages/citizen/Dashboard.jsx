@@ -10,18 +10,20 @@ import PriorityBadge from "../../components/grievances/PriorityBadge";
 import StatusBadge from "../../components/grievances/StatusBadge";
 import { CATEGORY_LABELS } from "../../utils/constants";
 import { formatRelative, toDisplayText } from "../../utils/helpers";
+import { useTranslation } from "../../context/LanguageContext";
 
 const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 
-const getGreeting = () => {
+const getGreetingKey = () => {
   const hour = new Date().getHours();
-  if (hour < 12) return "Good morning";
-  if (hour < 17) return "Good afternoon";
-  return "Good evening";
+  if (hour < 12) return "dashboard.greetingMorning";
+  if (hour < 17) return "dashboard.greetingAfternoon";
+  return "dashboard.greetingEvening";
 };
 
 const Dashboard = () => {
   const { user } = useAuth();
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [grievances, setGrievances] = useState(null);
   const [stats, setStats] = useState({ total: 0, active: 0, resolved: 0 });
@@ -83,16 +85,16 @@ const Dashboard = () => {
   return (
     <div>
       <div className="dashboard-hero-greeting">
-        {getGreeting()}, {user?.name?.split(" ")[0]} 👋
+        {t(getGreetingKey())}, {user?.name?.split(" ")[0]} 👋
       </div>
-      <div className="dashboard-hero-subtitle">How can we help you today?</div>
+      <div className="dashboard-hero-subtitle">{t("dashboard.howCanWeHelp")}</div>
 
       <div className="hero-input-card">
         <textarea
           rows={2}
           value={heroText}
           onChange={(e) => setHeroText(e.target.value)}
-          placeholder="Tell us what happened..."
+          placeholder={t("dashboard.describePlaceholder")}
         />
         <div className="hero-input-toolbar">
           <div className="hero-input-actions">
@@ -103,11 +105,11 @@ const Dashboard = () => {
                 onClick={toggleVoice}
               >
                 {recording ? <Square size={13} /> : <Mic size={13} />}
-                {recording ? "Stop" : "Voice"}
+                {recording ? "Stop" : t("dashboard.voice")}
               </button>
             )}
             <button type="button" className="hero-input-icon-btn" onClick={() => fileInputRef.current?.click()}>
-              <Paperclip size={13} /> {heroFile ? heroFile.name.slice(0, 16) : "Upload"}
+              <Paperclip size={13} /> {heroFile ? heroFile.name.slice(0, 16) : t("dashboard.upload")}
             </button>
             <input ref={fileInputRef} type="file" accept="image/*" hidden onChange={handleFilePick} />
           </div>
@@ -124,19 +126,19 @@ const Dashboard = () => {
       </div>
 
       <div className="stats-pill-row">
-        <div className="stats-pill"><strong>{stats.total}</strong><span>Total</span></div>
+        <div className="stats-pill"><strong>{stats.total}</strong><span>{t("dashboard.total")}</span></div>
         <span className="stats-pill-divider" />
-        <div className="stats-pill"><strong>{stats.active}</strong><span>Active</span></div>
+        <div className="stats-pill"><strong>{stats.active}</strong><span>{t("dashboard.active")}</span></div>
         <span className="stats-pill-divider" />
-        <div className="stats-pill"><strong>{stats.resolved}</strong><span>Resolved</span></div>
+        <div className="stats-pill"><strong>{stats.resolved}</strong><span>{t("dashboard.resolved")}</span></div>
       </div>
 
       <RewardsWidget />
 
       <div className="section-title" style={{ display: "flex", justifyContent: "space-between" }}>
-        <span>Active Complaints</span>
+        <span>{t("dashboard.activeComplaints")}</span>
         <Link to="/citizen/grievances" style={{ color: "var(--accent)", fontSize: 13, fontWeight: 600, display: "flex", alignItems: "center", gap: 4 }}>
-          View all <ArrowRight size={13} />
+          {t("common.viewAll")} <ArrowRight size={13} />
         </Link>
       </div>
 
