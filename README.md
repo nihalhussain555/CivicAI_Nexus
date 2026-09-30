@@ -55,7 +55,7 @@ source venv/bin/activate          # Windows: venv\Scripts\activate
 pip install -r requirements.txt
 cp .env.example .env               # edit MONGO_URI if not running locally on 27017
 python -m app.seed.seed_data       # seeds demo departments/users/grievances/incidents
-uvicorn app.main:app --reload      # http://localhost:8000
+python run.py     # http://localhost:8000
 ```
 
 Requires a running MongoDB instance (local install, Docker, or Atlas) — set `MONGO_URI`
