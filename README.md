@@ -140,9 +140,8 @@ rejection), and the image upload endpoint.
 ## Grievance lifecycle
 
 ```
-SUBMITTED -> AI_ANALYZED -> DEPARTMENT_ASSIGNED -> OFFICER_ACCEPTED -> IN_PROGRESS
-    -> RESOLUTION_SUBMITTED -> CITIZEN_VERIFICATION -> CLOSED
-                                    -> REOPENED -> DEPARTMENT_ASSIGNED (re-triage)
+SUBMITTED -> AI_ANALYZED -> DEPARTMENT_ASSIGNED -> OFFICER_ACCEPTED -> IN_PROGRESS-> RESOLUTION_SUBMITTED -> CITIZEN_VERIFICATION -> CLOSED
+                                                                                   -> REOPENED -> DEPARTMENT_ASSIGNED (re-triage)
 (any pre-resolution state) -> ESCALATED
 ```
 
