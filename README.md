@@ -2,10 +2,7 @@
 
 **Predictive Multimodal Grievance Intelligence & Resolution Platform**
 
-Citizens report public problems via text, voice, image, and location. AI classifies,
-prioritizes, and routes every report to the correct department, detects duplicate and
-community-wide incidents, assists officers with an AI Copilot, predicts resolution time
-and SLA/escalation risk, and tracks each case through to citizen verification.
+Citizens report public problems via text, voice, image, and location. AI classifies, prioritizes, and routes every report to the correct department, detects duplicate and community-wide incidents, assists officers with an AI Copilot, predicts resolution time and SLA/escalation risk, and tracks each case through to citizen verification. Citizens are rewarded for meaningful civic participation through points, achievement badges, and verified digital certificates for activities such as reporting issues, identifying community-wide problems, and contributing to successful resolutions.
 
 ---
 
@@ -17,7 +14,7 @@ and SLA/escalation risk, and tracks each case through to citizen verification.
 | Backend   | FastAPI (Python)                                                     |
 | Database  | MongoDB (with geospatial + text indexes)                             |
 | Auth      | JWT + bcrypt + role-based access control                             |
-| AI        | Provider-independent abstraction — MockAIProvider (offline demo) or OpenAI / Gemini |
+| AI        | Provider-independent abstraction — MockAIProvider (offline demo) or OpenAI / Gemini / Gork
 
 ## Repository layout
 
@@ -58,7 +55,7 @@ python -m app.seed.seed_data       # seeds demo departments/users/grievances/inc
 python run.py     # http://localhost:8000
 ```
 
-Requires a running MongoDB instance (local install, Docker, or Atlas) — set `MONGO_URI`
+Requires a running MongoDB instance (local install, or Atlas) — set `MONGO_URI`
 in `.env` accordingly.
 
 ### 2. Frontend
