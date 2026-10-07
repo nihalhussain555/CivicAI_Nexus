@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
-import { Trophy, History } from "lucide-react";
-import { getMyRewards, getLeaderboard } from "../../services/rewardService";
+import { Trophy, History, Download } from "lucide-react";
+import { getMyRewards, getLeaderboard, downloadCertificate } from "../../services/rewardService";
 import { SkeletonList } from "../../components/common/Skeleton";
 import EmptyState from "../../components/common/EmptyState";
+import { useToast } from "../../context/ToastContext";
 
 const formatDate = (value) => {
   if (!value) return "";
@@ -14,6 +15,7 @@ const formatDate = (value) => {
 };
 
 const Rewards = () => {
+  const toast = useToast();
   const [summary, setSummary] = useState(null);
   const [leaderboard, setLeaderboard] = useState(null);
 
@@ -78,14 +80,32 @@ const Rewards = () => {
       {/* --- Tier ladder --- */}
       <div className="section-title">Reward Tiers</div>
       <div className="grid grid-4" style={{ marginBottom: 30, gap: 14 }}>
-        {all_tiers.map((t) => (
-          <div key={t.key} className={`tier-card ${total_points >= t.min_points ? "tier-reached" : ""}`}>
+        {all_tiers.map((t) => {
+          const reached = total_points >= t.min_points;
+          return (
+          <div key={t.key} className={`tier-card ${reached ? "tier-reached" : ""}`}>
             <div className="tier-card-icon">{t.icon}</div>
             <div className="tier-card-label">{t.label}</div>
             <div className="tier-card-points">{t.min_points}+ points</div>
             <div className="tier-card-reward">{t.reward}</div>
+            {reached && (
+              <button
+                className="btn btn-secondary btn-sm"
+                style={{ marginTop: 10 }}
+                onClick={async () => {
+                  try {
+                    await downloadCertificate(t.key, `CivicAI_${t.label.replace(/\s+/g, "_")}_Certificate.pdf`);
+                  } catch {
+                    toast.error("Couldn't download certificate — please try again.");
+                  }
+                }}
+              >
+                <Download size={13} /> Certificate
+              </button>
+            )}
           </div>
-        ))}
+          );
+        })}
       </div>
 
       <div className="grid grid-2" style={{ gap: 24, alignItems: "start" }}>

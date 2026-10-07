@@ -19,6 +19,7 @@ import { useToast } from "../../context/ToastContext";
 import { getErrorMessage, formatDate } from "../../utils/helpers";
 import { useAuth } from "../../hooks/useAuth";
 import Avatar from "../../components/common/Avatar";
+import BadgesAndCertificates from "../../components/common/BadgesAndCertificates";
 
 const Profile = () => {
   const toast = useToast();
@@ -1102,6 +1103,10 @@ const Profile = () => {
 
           )}
 
+        </div>
+
+        <div style={{ marginTop: 24 }}>
+          <BadgesAndCertificates />
         </div>
 
       </div>
