@@ -29,6 +29,11 @@ from app.utils.security import hash_password
 
 from app.models.user import user_document
 
+from fastapi.responses import Response
+from app.services.certificate_service import generate_certificate_pdf
+from app.services.reward_service import get_officer_badges
+from app.models.reward import OFFICER_BADGES
+
 
 router = APIRouter(
     prefix="/api/officers",
@@ -207,6 +212,92 @@ def create_officer(
             officer
         ),
     }
+
+
+@router.get("/leaderboard")
+def officer_leaderboard(limit: int = 10, current_user=Depends(get_current_user)):
+    """Ranks officers by cases resolved — mirrors the citizen civic
+    rewards leaderboard. Scoped the same way other officer-facing views
+    are: an officer sees their department, a district admin sees their
+    district, a super admin sees everyone."""
+    match_stage = {"assigned_officer": {"$ne": None}}
+
+    if current_user["role"] == "officer":
+        match_stage["department"] = current_user.get("department")
+    elif current_user["role"] == "admin" and current_user.get("district"):
+        match_stage["district"] = current_user["district"]
+
+    pipeline = [
+        {"$match": match_stage},
+        {"$group": {
+            "_id": "$assigned_officer",
+            "resolved": {"$sum": {"$cond": [{"$eq": ["$status", "CLOSED"]}, 1, 0]}},
+            "total_assigned": {"$sum": 1},
+        }},
+        {"$match": {"resolved": {"$gt": 0}}},
+        {"$sort": {"resolved": -1}},
+        {"$limit": max(1, min(50, limit))},
+    ]
+
+    rows = list(grievances_collection.aggregate(pipeline))
+
+    leaderboard = []
+    for rank, row in enumerate(rows, start=1):
+        officer = users_collection.find_one({"_id": row["_id"]}, {"name": 1, "department": 1})
+        leaderboard.append({
+            "rank": rank,
+            "officer_id": row["_id"],
+            "name": (officer.get("name") if officer else None) or "Officer",
+            "department": officer.get("department") if officer else None,
+            "resolved": row["resolved"],
+            "total_assigned": row["total_assigned"],
+            "resolution_rate": round((row["resolved"] / row["total_assigned"]) * 100) if row["total_assigned"] else 0,
+        })
+
+    return {"success": True, "data": serialize_documents(leaderboard)}
+
+
+@router.get("/me/badges")
+def my_officer_badges(current_user=Depends(get_current_user)):
+    if current_user["role"] != "officer":
+        raise HTTPException(status_code=403, detail="Only officers have performance badges")
+
+    return {"success": True, "data": get_officer_badges(current_user.get("cases_resolved", 0))}
+
+
+@router.get("/certificate/{badge_key}")
+def download_officer_certificate(badge_key: str, current_user=Depends(get_current_user)):
+    """Same certificate generator as the citizen reward-tier certificates
+    — validated against the officer's own real resolved-case count."""
+    if current_user["role"] != "officer":
+        raise HTTPException(status_code=403, detail="Only officers can download performance certificates")
+
+    badge = next((b for b in OFFICER_BADGES if b["key"] == badge_key), None)
+    if not badge:
+        raise HTTPException(status_code=404, detail="Unknown badge")
+
+    resolved = current_user.get("cases_resolved", 0)
+    if resolved < badge["target"]:
+        raise HTTPException(
+            status_code=403,
+            detail=f"You need {badge['target']} resolved cases to unlock this certificate — you currently have {resolved}.",
+        )
+
+    cert_id = f"OFC-{str(current_user['_id'])[-8:]}-{badge_key}".upper()
+
+    pdf_bytes = generate_certificate_pdf(
+        recipient_name=current_user.get("name", "Officer"),
+        headline="Certificate of Performance",
+        subtitle="CivicAI Nexus — Officer Recognition Program",
+        achievement_label=f"Awarded for reaching {badge['label']} — {badge['target']}+ cases resolved",
+        cert_id=cert_id,
+    )
+
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f'attachment; filename="CivicAI_Officer_{badge["key"]}_Certificate.pdf"'},
+    )
 
 
 @router.get("/{officer_id}")

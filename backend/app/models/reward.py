@@ -41,6 +41,20 @@ REASON_LABELS = {
 # --- Tiers — milestones a citizen becomes eligible for as points accrue --
 # "NONE" is a placeholder floor tier so compute_tier() always has something
 # to return; it's stripped out before being sent to the frontend.
+OFFICER_BADGES = [
+    {"key": "FIRST_RESOLUTION", "label": "First Resolution", "icon": "🎯", "target": 1,
+     "description": "Resolve your first case"},
+    {"key": "RESPONDER", "label": "Responder", "icon": "🥉", "target": 10,
+     "description": "Resolve 10 cases"},
+    {"key": "SENIOR_RESPONDER", "label": "Senior Responder", "icon": "🥈", "target": 50,
+     "description": "Resolve 50 cases"},
+    {"key": "TOP_RESPONDER", "label": "Top Responder", "icon": "🥇", "target": 150,
+     "description": "Resolve 150 cases"},
+    {"key": "DISTINGUISHED_OFFICER", "label": "Distinguished Officer", "icon": "🏆", "target": 500,
+     "description": "Resolve 500 cases"},
+]
+
+
 TIERS = [
     {"key": "NONE", "label": "Getting Started", "min_points": 0, "icon": "🌱", "reward": None},
     {"key": "CIVIC_STARTER", "label": "Civic Starter", "min_points": 100, "icon": "🥉", "reward": "Digital Certificate"},

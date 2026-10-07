@@ -1,5 +1,6 @@
 from app.config.database import reward_ledger_collection, users_collection
 from app.models.reward import (
+    OFFICER_BADGES,
     reward_ledger_entry,
     compute_tier,
     TIERS,
@@ -220,6 +221,22 @@ def get_citizen_summary(citizen_id, ledger_limit=25):
         "ledger": ledger,
         "all_tiers": TIERS[1:],  # drop the internal "NONE" floor tier
     }
+
+
+def get_officer_badges(cases_resolved):
+    """Officer badges are simpler than citizen ones — resolved-case count
+    is tracked directly on the officer's own document, no ledger
+    aggregation needed."""
+    cases_resolved = cases_resolved or 0
+    badges = []
+    for b in OFFICER_BADGES:
+        badges.append({
+            "key": b["key"], "label": b["label"], "icon": b["icon"],
+            "description": b["description"], "target": b["target"],
+            "progress": min(cases_resolved, b["target"]),
+            "earned": cases_resolved >= b["target"],
+        })
+    return badges
 
 
 def get_leaderboard(limit=10):
