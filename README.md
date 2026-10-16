@@ -14,7 +14,7 @@ Citizens report public problems via text, voice, image, and location. AI classif
 | Backend   | FastAPI (Python)                                                     |
 | Database  | MongoDB (with geospatial + text indexes)                             |
 | Auth      | JWT + bcrypt + role-based access control                             |
-| AI        | Provider-independent abstraction — MockAIProvider (offline demo) or OpenAI / Gemini / Gork
+| AI        | Provider-independent abstraction — MockAIProvider (offline demo) or Gork
 
 ## Repository layout
 
