@@ -10,6 +10,7 @@ import { CATEGORY_LABELS } from "../../utils/constants";
 import PriorityBadge from "../../components/grievances/PriorityBadge";
 import StatusBadge from "../../components/grievances/StatusBadge";
 import ComplaintTimeline from "../../components/grievances/ComplaintTimeline";
+import AuthenticityCard from "../../components/grievances/AuthenticityCard";
 import CopilotPanel from "../../components/ai/CopilotPanel";
 import LoadingSpinner from "../../components/common/LoadingSpinner";
 import ErrorState from "../../components/common/ErrorState";
@@ -166,6 +167,8 @@ const GrievanceDetail = () => {
               <p style={{ fontSize: 13, color: "var(--text-muted)", marginTop: 14, lineHeight: 1.6 }}>{grievance.ai_summary}</p>
             )}
           </div>
+
+          {isStaff && <AuthenticityCard authenticity={grievance.authenticity} />}
 
           {grievance.resolution_note && (
             <div className="card">
