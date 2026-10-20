@@ -79,6 +79,7 @@ from app.utils.dependencies import (
 from app.utils.helpers import (
     serialize_document,
     serialize_documents,
+    strip_staff_fields,
 )
 
 from app.utils.geo import make_point
@@ -152,9 +153,9 @@ def submit_grievance(
         "message":
             "Grievance submitted successfully",
         "data":
-            serialize_document(
+            strip_staff_fields(serialize_document(
                 grievance
-            ),
+            ), current_user),
     }
 
 
@@ -182,9 +183,9 @@ def my_grievances(
     )
 
     result["items"] = (
-        serialize_documents(
+        strip_staff_fields(serialize_documents(
             result["items"]
-        )
+        ), current_user)
     )
 
     return {
@@ -682,9 +683,9 @@ def get_grievance(
     return {
         "success": True,
         "data":
-            serialize_document(
+            strip_staff_fields(serialize_document(
                 grievance
-            ),
+            ), current_user),
     }
 
 
@@ -1335,9 +1336,9 @@ def verify_resolution(
             "message":
                 "Grievance closed",
             "data":
-                serialize_document(
+                strip_staff_fields(serialize_document(
                     updated
-                ),
+                ), current_user),
         }
 
     updated = transition_status(
@@ -1387,9 +1388,9 @@ def verify_resolution(
         "message":
             "Grievance reopened",
         "data":
-            serialize_document(
+            strip_staff_fields(serialize_document(
                 updated
-            ),
+            ), current_user),
     }
 
 
@@ -1562,7 +1563,7 @@ def request_reopen(
     return {
         "success": True,
         "message": "Reopen request submitted; awaiting staff review.",
-        "data": serialize_document(updated),
+        "data": strip_staff_fields(serialize_document(updated), current_user),
     }
 
 
@@ -1740,5 +1741,5 @@ def delete_grievance(
     return {
         "success": True,
         "message": "Grievance deleted.",
-        "data": serialize_document(updated),
+        "data": strip_staff_fields(serialize_document(updated), current_user),
     }

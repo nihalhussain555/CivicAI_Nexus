@@ -10,6 +10,7 @@ from app.services.ai_pipeline_service import run_pipeline
 from app.services.incident_service import cluster_grievance
 from app.services.notification_service import notify
 from app.services.audit_service import log_action
+from app.services.authenticity_service import check_grievance_authenticity, LIKELY_FAKE, LIKELY_GENUINE
 from app.services.reward_service import award_valid_submission, award_community_confirmations
 from app.utils.geo import make_point
 
@@ -96,12 +97,28 @@ def create_grievance(current_user: dict, data) -> dict:
         },
     ])
 
+    # Authenticity triage — a score + explanation for staff, never a
+    # rejection. Runs after AI analysis so it can use category/priority.
+    try:
+        authenticity = check_grievance_authenticity(grievance)
+    except Exception as error:
+        print(f"WARNING: authenticity check failed: {error}")
+        authenticity = None
+
+    if authenticity:
+        grievance["authenticity"] = authenticity
+        grievance["needs_authenticity_review"] = authenticity["verdict"] != LIKELY_GENUINE
+
     grievances_collection.insert_one(grievance)
 
     # Civic rewards: +10 for a genuine, non-duplicate submission (and the
     # one-time first-valid-grievance bonus). Duplicates earn nothing — see
     # award_valid_submission for the exact gating.
-    award_valid_submission(grievance)
+    # Points are held back for likely-fake reports. Not a penalty: if an
+    # officer later accepts/resolves it, the verified-by-authority and
+    # resolved awards still pay out normally.
+    if not (authenticity and authenticity["verdict"] == LIKELY_FAKE):
+        award_valid_submission(grievance)
 
     # community incident clustering (requires the grievance to already exist)
     incident = cluster_grievance(grievance)

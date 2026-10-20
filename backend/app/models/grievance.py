@@ -75,6 +75,8 @@ def grievance_document(
         "priority": "LOW",              # LOW | MEDIUM | HIGH | CRITICAL
         "priority_score": 0,            # 0-100
         "confidence": 0.0,              # 0-1 AI confidence
+        "needs_authenticity_review": False,  # true when authenticity verdict is not LIKELY_GENUINE
+        "authenticity": None,           # staff-only score + explanation (see authenticity_service)
         "needs_department_review": False,  # true when confidence < 0.5 at submission
         "ai_reason": None,              # 1-sentence explanation of the AI's department/priority call
         "sentiment": "NEUTRAL",

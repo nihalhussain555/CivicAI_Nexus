@@ -40,3 +40,20 @@ def serialize_document(document):
 
 def serialize_documents(documents):
     return [serialize_document(doc) for doc in documents]
+
+
+# Fields only staff may see. Showing a citizen their own authenticity
+# breakdown would just teach them which signals to dodge.
+STAFF_ONLY_FIELDS = ("authenticity", "needs_authenticity_review")
+
+
+def strip_staff_fields(data, user):
+    """Removes staff-only fields from a serialized grievance (or list of
+    them) when the viewer is a citizen. Staff get the data untouched."""
+    if not user or user.get("role") != "citizen":
+        return data
+    if isinstance(data, list):
+        return [strip_staff_fields(item, user) for item in data]
+    if isinstance(data, dict):
+        return {k: v for k, v in data.items() if k not in STAFF_ONLY_FIELDS}
+    return data
