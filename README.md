@@ -63,7 +63,7 @@ in `.env` accordingly.
 ```bash
 cd frontend
 npm install
-cp .env.example .env               # points at http://localhost:8000 by default
+cp .env.example .env               
 npm run dev                        # http://localhost:5173
 ```
 
@@ -78,17 +78,9 @@ workflow runs end to end for demos and grading.
 To use a real LLM instead, set in `backend/.env`:
 
 ```env
-AI_PROVIDER=openai
-OPENAI_API_KEY=sk-...
-OPENAI_MODEL=gpt-4o-mini
-```
-
-or
-
-```env
-AI_PROVIDER=gemini
-GEMINI_API_KEY=...
-GEMINI_MODEL=gemini-1.5-flash
+AI_PROVIDER=groq
+GROQ_API_KEY=...
+GROG_MODEL=gemini-1.5-flash
 ```
 
 If a real provider is misconfigured or a call fails at request time, the backend
