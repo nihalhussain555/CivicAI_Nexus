@@ -217,5 +217,37 @@ class Settings:
         )
     )
 
+    # --- Fake-grievance detection (see authenticity_service) ---
+    # Merge the LLM's own authenticity read with the rule-based score.
+    # Turn off to keep detection purely deterministic.
+    AUTHENTICITY_LLM_FUSION = os.getenv(
+        "AUTHENTICITY_LLM_FUSION",
+        "true",
+    ).lower() == "true"
+
+    # How much of the final score comes from the AI provider (the rules
+    # carry the rest). Rules stay dominant: an LLM alone never decides a
+    # report is fake.
+    AUTHENTICITY_LLM_WEIGHT = float(os.getenv("AUTHENTICITY_LLM_WEIGHT", "0.35"))
+
+    # Distinct citizen accounts sharing near-identical report text within
+    # this window is what a coordinated fake-reporting campaign looks like.
+    COLLUSION_MIN_CITIZENS = int(os.getenv("COLLUSION_MIN_CITIZENS", "3"))
+    COLLUSION_WINDOW_DAYS = int(os.getenv("COLLUSION_WINDOW_DAYS", "30"))
+
+    # Look-back for "this exact photo was already submitted on another case".
+    EVIDENCE_REUSE_WINDOW_DAYS = int(os.getenv("EVIDENCE_REUSE_WINDOW_DAYS", "180"))
+
+    # --- Trust-based friction (never blocks reporting, see trust_service) ---
+    # An account with this many staff-substantiated false flags moves from
+    # "watch" to "strict" friction.
+    TRUST_STRICT_FLAG_THRESHOLD = int(os.getenv("TRUST_STRICT_FLAG_THRESHOLD", "2"))
+    TRUST_SEVERE_FLAG_THRESHOLD = int(os.getenv("TRUST_SEVERE_FLAG_THRESHOLD", "4"))
+
+    # Per-day submission caps applied only to strict/severe accounts. A
+    # healthy account is capped by RATE_LIMIT-ish volume far above this.
+    TRUST_DAILY_CAP_STRICT = int(os.getenv("TRUST_DAILY_CAP_STRICT", "5"))
+    TRUST_DAILY_CAP_SEVERE = int(os.getenv("TRUST_DAILY_CAP_SEVERE", "2"))
+
 
 settings = Settings()

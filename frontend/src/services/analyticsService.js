@@ -41,9 +41,12 @@ export const getTrends = async (
 };
 
 export const getMapMarkers =
-  async () => {
+  async (params = {}) => {
     const response = await api.get(
-      "/analytics/admin/map"
+      "/analytics/admin/map",
+      {
+        params,
+      }
     );
 
     return response.data;
@@ -53,6 +56,18 @@ export const getOfficerOverview =
   async () => {
     const response = await api.get(
       "/analytics/officer/overview"
+    );
+
+    return response.data;
+  };
+
+export const getIntegrityStats =
+  async (days = 30) => {
+    const response = await api.get(
+      "/analytics/admin/integrity",
+      {
+        params: { days },
+      }
     );
 
     return response.data;

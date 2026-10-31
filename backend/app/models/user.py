@@ -48,6 +48,13 @@ def user_document(
             "in_app": True,
         },
 
+        # Citizen integrity standing (staff-only; see trust_service). Derived
+        # from adjudicated events — flags, verified closures, withdrawals —
+        # and refreshed whenever one of those happens. None until the account
+        # has done something that can be scored.
+        "trust": None,
+        "trust_updated_at": None,
+
         "active": True,
         # Citizens must verify their email via OTP before they can log in.
         # Officer/admin accounts are created directly by an admin and are

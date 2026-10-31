@@ -17,6 +17,7 @@ from app.utils.security import decode_token
 from app.routes.auth import router as auth_router
 from app.routes.users import router as users_router
 from app.routes.grievances import router as grievances_router
+from app.routes.integrity import router as integrity_router
 from app.routes.ai import router as ai_router
 from app.routes.admin import router as admin_router
 from app.routes.departments import router as departments_router
@@ -153,6 +154,7 @@ async def validation_exception_handler(request, exc):
 app.include_router(auth_router)
 app.include_router(users_router)
 app.include_router(grievances_router)
+app.include_router(integrity_router)
 app.include_router(ai_router)
 app.include_router(admin_router)
 app.include_router(departments_router)

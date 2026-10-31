@@ -43,8 +43,17 @@ def serialize_documents(documents):
 
 
 # Fields only staff may see. Showing a citizen their own authenticity
-# breakdown would just teach them which signals to dodge.
-STAFF_ONLY_FIELDS = ("authenticity", "needs_authenticity_review")
+# breakdown would just teach them which signals to dodge — the same reasoning
+# applies to the fingerprint (it reveals what "same wording" means to us) and
+# to the trust standing.
+# NOTE: flag_appeal_* are deliberately NOT here. A citizen is entitled to know
+# their own case was flagged and that an appeal is pending or decided.
+STAFF_ONLY_FIELDS = (
+    "authenticity",
+    "needs_authenticity_review",
+    "content_fingerprint",
+    "integrity",
+)
 
 
 def strip_staff_fields(data, user):

@@ -46,6 +46,13 @@ DELETABLE_STATUSES = {"SUBMITTED", "AI_ANALYZED", "DEPARTMENT_ASSIGNED"}
 REOPEN_WINDOW_DAYS = 30      # can only request reopen within this many days of resolution
 MAX_REOPEN_REQUESTS = 3      # lifetime cap per grievance
 
+# --- Integrity flag / appeal policy ---
+# A citizen can contest a staff "false report" flag. Once a flag has been
+# overturned twice on this case, further flags are not allowed — a case two
+# reviewers have judged genuine is not a open question.
+MAX_FLAG_APPEALS = 2
+FLAG_APPEAL_STATUSES = (None, "PENDING", "APPROVED", "REJECTED")
+
 
 def grievance_document(
     grievance_id,
@@ -77,6 +84,8 @@ def grievance_document(
         "confidence": 0.0,              # 0-1 AI confidence
         "needs_authenticity_review": False,  # true when authenticity verdict is not LIKELY_GENUINE
         "authenticity": None,           # staff-only score + explanation (see authenticity_service)
+        "content_fingerprint": None,    # staff-only: order-insensitive hash of the report text, used to spot the same wording re-sent from other accounts
+        "integrity": None,              # staff-only: trust standing + what friction was applied at submission
         "needs_department_review": False,  # true when confidence < 0.5 at submission
         "ai_reason": None,              # 1-sentence explanation of the AI's department/priority call
         "sentiment": "NEUTRAL",
@@ -139,6 +148,22 @@ def grievance_document(
         "flagged_reason": None,
         "flagged_by": None,
         "flagged_at": None,
+
+        # A flag can be reversed by staff ("we were wrong") or after a citizen
+        # appeal is upheld. Both leave a trace, because an account whose flags
+        # keep getting overturned should not be scored as a repeat offender.
+        "flag_reversed_at": None,
+        "flag_reversed_by": None,
+        "flag_reversal_note": None,
+
+        # --- citizen appeal against a false-report flag ---
+        "flag_appeal_status": None,     # None | PENDING | APPROVED | REJECTED
+        "flag_appeal_reason": None,
+        "flag_appeal_requested_at": None,
+        "flag_appeal_count": 0,         # appeals decided on this case, upheld or not
+        "flag_appeal_reviewed_by": None,
+        "flag_appeal_reviewed_at": None,
+        "flag_appeal_note": None,
 
         "created_at": now,
         "updated_at": now,

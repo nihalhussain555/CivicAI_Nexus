@@ -93,6 +93,31 @@ class FlagInvalidRequest(BaseModel):
     reason: str = Field(..., min_length=5, max_length=500)
 
 
+class FlagReversalRequest(BaseModel):
+    """Staff reversing their own (or a colleague's) false-report flag."""
+    note: str = Field(..., min_length=5, max_length=500)
+
+
+class FlagAppealRequest(BaseModel):
+    """The citizen's side of a false-report flag. Bounded well below the
+    staff reason length on purpose: an appeal gets read by a human, and a
+    wall of text doesn't make an appeal stronger."""
+    reason: str = Field(..., min_length=10, max_length=600)
+
+
+class FlagAppealReviewRequest(BaseModel):
+    approve: bool
+    note: str = Field(..., min_length=5, max_length=500)
+
+
+class IntegrityTriageRequest(BaseModel):
+    """Officer decision on a case sitting in the integrity queue. This is the
+    human answer to the scorer's question, so it's what the score should be
+    relearned from — see authenticity_feedback."""
+    decision: str = Field(..., pattern="^(GENUINE|FAKE)$")
+    note: Optional[str] = Field(None, max_length=500)
+
+
 class AIAnalyzeRequest(BaseModel):
     text: str = Field(..., min_length=3, max_length=5000)
     language: str = "Auto"

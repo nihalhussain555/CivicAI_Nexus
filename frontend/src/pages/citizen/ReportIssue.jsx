@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { MapPin, Loader2, Sparkles, ArrowLeft, Send, AlertCircle, Mic, Square, Check } from "lucide-react";
-import { previewAnalysis, submitGrievance } from "../../services/grievanceService";
+import { Loader2, Sparkles, ArrowLeft, Send, AlertCircle, Mic, Square, Check, Users } from "lucide-react";
+import { previewAnalysis, submitGrievance, getNearbyReports } from "../../services/grievanceService";
 import { uploadImage } from "../../services/uploadService";
 import { reverseGeocode } from "../../services/geocodeService";
-import { LANGUAGES, DISTRICTS } from "../../utils/constants";
+import { LANGUAGES, DISTRICTS, DISTRICT_CENTERS, STATE_CENTER } from "../../utils/constants";
 import { useToast } from "../../context/ToastContext";
-import { getErrorMessage, toDisplayText } from "../../utils/helpers";
+import { getErrorMessage, toDisplayText, formatRelative } from "../../utils/helpers";
 import AIAnalysisPanel from "../../components/ai/AIAnalysisPanel";
 import AIProcessingAnimation from "../../components/ai/AIProcessingAnimation";
 import ImageUploader from "../../components/grievances/ImageUploader";
@@ -25,13 +25,15 @@ const deriveTitle = (description) => {
 
 const STEPS = ["Describe", "AI Review", "Submitted"];
 
+const formatNearbyDistance = (km) =>
+  km < 1 ? `${Math.max(Math.round(km * 1000), 1)} m` : `${km.toFixed(1)} km`;
+
 const ReportIssue = () => {
   const routerLocation = useLocation();
   const prefill = routerLocation.state || {};
 
   const [step, setStep] = useState(0);
-  const [title, setTitle] = useState("");
-  const [titleTouched, setTitleTouched] = useState(false);
+  const [manualTitle, setManualTitle] = useState("");
   const [description, setDescription] = useState(prefill.prefillDescription || "");
   const [language, setLanguage] = useState("English");
   const [voiceTranscript, setVoiceTranscript] = useState("");
@@ -40,8 +42,16 @@ const ReportIssue = () => {
   const [prefillUploading, setPrefillUploading] = useState(!!prefill.prefillFile);
   const [location, setLocation] = useState(null); // { latitude, longitude, address, district }
   const [locating, setLocating] = useState(false);
+  const [locateError, setLocateError] = useState(null);
   const [resolvingPin, setResolvingPin] = useState(false);
   const [districtWasGuessed, setDistrictWasGuessed] = useState(false);
+  // Once the citizen picks a district from the list themselves, stop letting a
+  // reverse-geocode guess overwrite it — their choice is the routing key, and
+  // silently changing it after they set it is how reports go to the wrong office.
+  const [districtConfirmed, setDistrictConfirmed] = useState(false);
+  // Other citizens' open reports at the pinned spot, keyed to the pin they were
+  // looked up for so a stale answer is never shown against a moved pin.
+  const [nearby, setNearby] = useState(null); // { key, reports, total }
   const [analysis, setAnalysis] = useState(null);
   const [analyzing, setAnalyzing] = useState(false);
   const [analysisReady, setAnalysisReady] = useState(false);
@@ -51,6 +61,10 @@ const ReportIssue = () => {
   const toast = useToast();
   const navigate = useNavigate();
   const recognitionRef = useRef(null);
+
+  // Derived, not stored: an untouched title field follows the description, and
+  // the citizen's own words take over the moment they type one.
+  const title = manualTitle.trim() ? manualTitle : deriveTitle(description);
 
   // A photo attached from the dashboard's quick-start box arrives as a raw
   // File — upload it the same way ImageUploader would, once, on mount.
@@ -63,11 +77,24 @@ const ReportIssue = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Keep title derived from description unless the citizen has typed into
-  // the title field themselves.
+  const { latitude: pinLat, longitude: pinLng, district: pinDistrict } = location || {};
+  const pinKey = pinLat ? `${pinLat.toFixed(5)},${pinLng.toFixed(5)},${pinDistrict || ""}` : null;
+
+  // What else is already open at this exact spot. Debounced and keyed to the
+  // pin, because a drag would otherwise fire a lookup per pixel — and an answer
+  // for a pin the citizen has since moved is worse than no answer at all.
   useEffect(() => {
-    if (!titleTouched) setTitle(deriveTitle(description));
-  }, [description, titleTouched]);
+    if (!pinKey) return undefined;
+    let cancelled = false;
+    const timer = setTimeout(() => {
+      getNearbyReports({ latitude: pinLat, longitude: pinLng, district: pinDistrict })
+        .then((res) => { if (!cancelled) setNearby({ key: pinKey, ...res.data }); })
+        .catch(() => { if (!cancelled) setNearby({ key: pinKey, reports: [], total_nearby: 0 }); });
+    }, 600);
+    return () => { cancelled = true; clearTimeout(timer); };
+  }, [pinKey, pinLat, pinLng, pinDistrict]);
+
+  const nearbyReports = nearby?.key === pinKey ? nearby.reports : [];
 
   const toggleVoice = () => {
     if (!SpeechRecognition) return;
@@ -97,56 +124,93 @@ const ReportIssue = () => {
   // pinned point and a confirmed, canonical district.
   const isLocationComplete = !!(location?.latitude && location?.district);
 
-  const useCurrentLocation = () => {
-    if (!navigator.geolocation) {
-      toast.error("Geolocation isn't supported by your browser.");
-      return;
-    }
-    setLocating(true);
-    navigator.geolocation.getCurrentPosition(
-      async (pos) => {
-        const { latitude, longitude } = pos.coords;
-        setLocation({ latitude, longitude, address: `${latitude.toFixed(4)}, ${longitude.toFixed(4)}`, district: null });
+  // Before a pin exists the map still opens — on the middle of whichever
+  // district they've chosen, so the first thing they see is their own area
+  // rather than the whole state.
+  const pin = location?.latitude ? [location.latitude, location.longitude] : null;
+  const mapCenter = pin || DISTRICT_CENTERS[location?.district] || STATE_CENTER;
 
-        try {
-          const { label, district } = await reverseGeocode(latitude, longitude);
-          setLocation({ latitude, longitude, address: label, district: district || "" });
-          setDistrictWasGuessed(!!district);
-          if (!district) {
-            toast.error("Couldn't confidently detect your district — please select it below.");
-          }
-        } catch {
-          toast.error("Couldn't resolve an address — please select your district manually.");
-        } finally {
-          setLocating(false);
-        }
-      },
-      () => {
-        toast.error("Couldn't get your location. Please allow location access to report an issue.");
-        setLocating(false);
-      },
-      { enableHighAccuracy: true }
-    );
-  };
-
-  // Fires when the citizen drags the pin or taps elsewhere on the map to
-  // correct GPS drift — re-resolves the address/district for the new spot.
-  const handlePinMove = async (lat, lng) => {
-    setLocation((prev) => ({ ...prev, latitude: lat, longitude: lng }));
+  const resolveAddress = async (latitude, longitude, keepDistrict) => {
     setResolvingPin(true);
     try {
-      const { label, district } = await reverseGeocode(lat, lng);
-      setLocation((prev) => ({ ...prev, latitude: lat, longitude: lng, address: label, district: district || prev?.district || "" }));
-      setDistrictWasGuessed(!!district);
+      const { label, district } = await reverseGeocode(latitude, longitude);
+      setLocation((prev) => ({
+        latitude,
+        longitude,
+        address: label,
+        district: keepDistrict || district || prev?.district || "",
+      }));
+      if (!keepDistrict && district) setDistrictWasGuessed(true);
     } catch {
-      // keep the coordinates even if the address lookup fails
+      // Coordinates are what the report needs; an address is a convenience.
+      setLocation((prev) => ({
+        ...(prev || {}),
+        latitude,
+        longitude,
+        address: prev?.address || `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`,
+        district: prev?.district || "",
+      }));
     } finally {
       setResolvingPin(false);
     }
   };
 
+  const useCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      setLocateError("This browser can't share a location.");
+      return;
+    }
+    setLocating(true);
+    setLocateError(null);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const { latitude, longitude } = pos.coords;
+        setLocating(false);
+        setLocation((prev) => ({ ...prev, latitude, longitude }));
+        resolveAddress(latitude, longitude);
+      },
+      (error) => {
+        setLocating(false);
+        // Code 1 is a denial the citizen may never have seen a prompt for (an
+        // embedded webview, a browser that silently blocks), so the message has
+        // to point at the way out rather than at a permission they didn't refuse.
+        setLocateError(
+          error?.code === 1
+            ? "Location access is blocked."
+            : error?.code === 3
+              ? "Taking too long to get a fix."
+              : "Couldn't read your location."
+        );
+      },
+      // Without `timeout` a browser that never answers the request leaves this
+      // call pending forever — the spinner spins and no map ever appears.
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+    );
+  };
+
+  // The pin moved by tap, drag or search — re-resolve the address for the new
+  // spot, but never overrule a district the citizen selected by hand.
+  const handlePick = (lat, lng, source, place) => {
+    const locked = districtConfirmed ? location?.district || "" : "";
+
+    if (place) {
+      setLocation({
+        latitude: lat,
+        longitude: lng,
+        address: place.label,
+        district: locked || place.district || location?.district || "",
+      });
+      if (!locked && place.district) setDistrictWasGuessed(true);
+      return;
+    }
+
+    setLocation((prev) => ({ ...(prev || {}), latitude: lat, longitude: lng }));
+    resolveAddress(lat, lng, locked);
+  };
+
   const handleDistrictChange = (value) => {
-    setLocation((prev) => ({ ...prev, district: value }));
+    setLocation((prev) => ({ ...(prev || {}), district: value }));
+    setDistrictConfirmed(!!value);
     setDistrictWasGuessed(false); // citizen took over — no longer just a guess
   };
 
@@ -250,7 +314,7 @@ const ReportIssue = () => {
 
           {prefillUploading && (
             <p className="form-hint" style={{ textAlign: "center" }}>
-              <Loader2 size={12} style={{ animation: "spin 0.8s linear infinite", verticalAlign: "-2px" }} /> Attaching your photo...
+              <Loader2 size={12} className="spin" style={{ verticalAlign: "-2px" }} /> Attaching your photo...
             </p>
           )}
 
@@ -259,7 +323,7 @@ const ReportIssue = () => {
               Title <span style={{ fontWeight: 400, color: "var(--text-faint)" }}>(auto-filled from your description — edit if you'd like)</span>
             </label>
             <input id="title" className="input" value={title}
-                   onChange={(e) => { setTitle(e.target.value); setTitleTouched(true); }}
+                   onChange={(e) => setManualTitle(e.target.value)}
                    placeholder="e.g. Overflowing garbage bin near market" maxLength={200} />
           </div>
 
@@ -273,51 +337,63 @@ const ReportIssue = () => {
             </div>
             <div className="form-group">
               <label className="form-label">
-                Location <span style={{ color: "var(--danger)" }}>*</span>
+                District <span style={{ color: "var(--danger)" }}>*</span>
               </label>
-              <button type="button" className="btn btn-secondary btn-block" onClick={useCurrentLocation} disabled={locating}>
-                {locating ? <Loader2 size={14} style={{ animation: "spin 0.8s linear infinite" }} /> : <MapPin size={14} />}
-                {location ? location.address : "Use current location (required)"}
-              </button>
+              <select
+                className="select"
+                value={location?.district || ""}
+                onChange={(e) => handleDistrictChange(e.target.value)}
+              >
+                <option value="">Select your district</option>
+                {DISTRICTS.map((d) => <option key={d} value={d}>{d}</option>)}
+              </select>
+              {location?.district && districtWasGuessed && (
+                <p className="form-hint">Auto-detected from your location — change it if this isn't right.</p>
+              )}
+              {!location?.district && (
+                <p className="form-hint" style={{ color: "var(--danger)", display: "flex", alignItems: "center", gap: 5 }}>
+                  <AlertCircle size={12} /> Required — this decides which officer receives your report.
+                </p>
+              )}
             </div>
           </div>
 
-          {location && (
-            <>
-              <div className="form-group">
-                <label className="form-label" style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                  Exact location
-                  {resolvingPin && <Loader2 size={12} style={{ animation: "spin 0.8s linear infinite", color: "var(--text-faint)" }} />}
-                </label>
-                <LocationPicker
-                  center={[location.latitude, location.longitude]}
-                  onMove={handlePinMove}
-                />
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">
-                  District <span style={{ color: "var(--danger)" }}>*</span>
-                </label>
-                <select
-                  className="select"
-                  value={location.district || ""}
-                  onChange={(e) => handleDistrictChange(e.target.value)}
-                >
-                  <option value="">Select your district</option>
-                  {DISTRICTS.map((d) => <option key={d} value={d}>{d}</option>)}
-                </select>
-                {location.district && districtWasGuessed && (
-                  <p className="form-hint">Auto-detected from your location — change it if this isn't right.</p>
-                )}
-                {!location.district && (
-                  <p className="form-hint" style={{ color: "var(--danger)", display: "flex", alignItems: "center", gap: 5 }}>
-                    <AlertCircle size={12} /> Required — this determines which officer your report reaches.
+          <div className="form-group">
+            <label className="form-label" style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              Exact location <span style={{ color: "var(--danger)" }}>*</span>
+              {resolvingPin && <Loader2 size={12} className="spin" style={{ color: "var(--text-faint)" }} />}
+            </label>
+            <LocationPicker
+              center={mapCenter}
+              hasPin={!!pin}
+              nearby={nearbyReports}
+              onPick={handlePick}
+              onLocate={useCurrentLocation}
+              locating={locating}
+              locateError={locateError}
+              busy={resolvingPin}
+            />
+            <p className="form-hint" style={{ marginTop: 6 }}>
+              {pin
+                ? <>Pinned at <strong>{toDisplayText(location?.address, `${pin[0].toFixed(5)}, ${pin[1].toFixed(5)}`)}</strong></>
+                : "Search for your street, tap the map where the problem is, or use the location button. Nothing needs to be exact to the metre — a few streets away is enough for a field visit."}
+            </p>
+            {nearbyReports.length > 0 && (
+              <div className="nearby-callout">
+                <Users size={14} style={{ flexShrink: 0, marginTop: 2 }} />
+                <div>
+                  <strong style={{ fontSize: 12.5 }}>
+                    {nearbyReports.length} {nearbyReports.length === 1 ? "report is" : "reports are"} already open here
+                  </strong>
+                  <p style={{ fontSize: 12, color: "var(--text-muted)", margin: "3px 0 0" }}>
+                    Nearest: “{nearbyReports[0].title}” {formatNearbyDistance(nearbyReports[0].distance_km)} away,
+                    {" "}{nearbyReports[0].status.toLowerCase()} · reported {formatRelative(nearbyReports[0].created_at)}.
+                    Reporting it too is fine and helps — the extra confirmations make the case harder to ignore.
                   </p>
-                )}
+                </div>
               </div>
-            </>
-          )}
+            )}
+          </div>
 
           <div className="form-group">
             <label className="form-label">Photos (optional)</label>
@@ -384,7 +460,7 @@ const ReportIssue = () => {
             </button>
             <button className="btn btn-primary btn-block" onClick={handleSubmit} disabled={submitting}>
               {submitting
-                ? <><Loader2 size={16} style={{ animation: "spin 0.8s linear infinite" }} /> Submitting...</>
+                ? <><Loader2 size={16} className="spin" /> Submitting...</>
                 : <><Send size={15} /> Confirm & submit</>}
             </button>
           </div>
@@ -412,7 +488,7 @@ const ReportIssue = () => {
               View grievance
             </button>
             <button className="btn btn-primary" onClick={() => {
-              setStep(0); setTitle(""); setTitleTouched(false); setDescription(""); setAnalysis(null);
+              setStep(0); setManualTitle(""); setDescription(""); setAnalysis(null);
               setSubmitted(null); setAttachments([]); setVoiceTranscript(""); setLocation(null);
               setDistrictWasGuessed(false);
             }}>

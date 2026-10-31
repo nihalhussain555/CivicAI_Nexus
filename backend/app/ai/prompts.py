@@ -306,3 +306,50 @@ User language:
 Question:
 {message}
 """
+
+
+AUTHENTICITY_JSON_SCHEMA_HINT = """
+Return ONLY a JSON object (no markdown, no commentary) with exactly these keys:
+{
+  "verdict": "GENUINE" | "SUSPICIOUS" | "LIKELY_FAKE",
+  "score": integer 0-100 (your credibility estimate: 100 = certainly a real problem someone lived through, 0 = certainly fabricated or not a civic issue),
+  "indicators": array of short strings (each one concrete thing in the text that moved your judgement, e.g. "no describable physical defect", "asks for money", "reads like a forwarded slogan"; empty array if none),
+  "reasoning": string (2-3 sentences, plain language, addressing a government officer)
+}
+"""
+
+
+def build_authenticity_prompt(text: str, context_note: str = "") -> str:
+    """Read the complaint as a triaging officer would and judge whether the
+    reported problem plausibly exists. Deliberately does NOT mention the
+    rule-based signals or thresholds — an LLM told which keywords the rules
+    look for starts agreeing with the rules instead of reading the text,
+    which would make the fusion meaningless."""
+    return f"""You are an experienced government grievance-cell officer in Tamil Nadu
+reading one citizen complaint for the first time. Your only question is:
+does the problem this person describes sound like something that actually
+happened to them?
+
+Judge the substance, not the style:
+- A real report usually describes a specific physical situation a person
+  encountered: something broken, blocked, leaking, missing, dangerous,
+  polluted, or overflowing, tied to a place they can name.
+- A fabricated or non-civic report usually has no describable situation at
+  all, is a slogan/forward/political message, advertises something, asks
+  for money or a job, is revenge targeting a named person rather than a
+  public problem, or is so generic it could describe anywhere.
+- Poor spelling, broken grammar, transliteration, or a short message in a
+  regional language (Tamil, Hindi, Malayalam) is NOT evidence of a fake
+  report. Real citizens write like that every day. Never penalise language
+  quality alone.
+- Severity claims without any supporting detail are suspicious; modest
+  detail is normal.
+- You are producing a triage aid for a human officer, not a verdict. When
+  genuinely unsure, choose SUSPICIOUS rather than LIKELY_FAKE.
+
+{AUTHENTICITY_JSON_SCHEMA_HINT}
+
+Complaint to assess:
+{text}
+{context_note}
+"""

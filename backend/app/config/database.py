@@ -53,9 +53,21 @@ def create_indexes():
         grievances_collection.create_index("incident_id")
         grievances_collection.create_index("created_at")
         grievances_collection.create_index([("location", GEOSPHERE)])
+        # Integrity review queue filters/sorts on these.
+        grievances_collection.create_index("needs_authenticity_review")
+        grievances_collection.create_index("authenticity.verdict")
+        grievances_collection.create_index([("authenticity.score", ASCENDING)])
+        grievances_collection.create_index("flagged_invalid")
+        grievances_collection.create_index("flag_appeal_status")
+        # Collusion lookups (same wording, other accounts) and recycled-photo
+        # lookups both start from one of these.
+        grievances_collection.create_index("content_fingerprint")
+        grievances_collection.create_index("attachments.signature")
         grievances_collection.create_index(
             [("title", TEXT), ("description", TEXT), ("translated_text", TEXT)]
         )
+
+        users_collection.create_index([("trust.score", ASCENDING)])
 
         incidents_collection.create_index("status")
         incidents_collection.create_index("category")

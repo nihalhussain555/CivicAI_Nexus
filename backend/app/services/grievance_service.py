@@ -11,12 +11,46 @@ from app.services.incident_service import cluster_grievance
 from app.services.notification_service import notify
 from app.services.audit_service import log_action
 from app.services.authenticity_service import check_grievance_authenticity, LIKELY_FAKE, LIKELY_GENUINE
+from app.services.trust_service import (
+    compute_trust,
+    enforce_volume_cap,
+    submission_friction,
+    refresh_trust,
+)
 from app.services.reward_service import award_valid_submission, award_community_confirmations
 from app.utils.geo import make_point
 
 
 def make_grievance_id():
     return f"CIV-{datetime.utcnow():%Y}-{uuid.uuid4().hex[:8].upper()}"
+
+
+def _notify_integrity_reviewers(grievance):
+    """Tell the admins who can actually act on a suspicious case: the
+    district's own admins, plus any super admin (district unset). Officers are
+    deliberately not notified here — a fake-report judgment is not something a
+    field officer gets to make on someone else's behalf."""
+    reviewers = list(users_collection.find(
+        {
+            "role": "admin",
+            "$or": [{"district": grievance.get("district")}, {"district": None}],
+            "active": {"$ne": False},
+        },
+        {"_id": 1},
+    ))
+
+    for reviewer in reviewers:
+        notify(
+            reviewer["_id"],
+            "Report needs an integrity review",
+            (
+                f"{grievance['grievance_id']} was scored "
+                f"{(grievance.get('authenticity') or {}).get('score')}/100 for credibility "
+                "and is waiting in the Integrity Review queue."
+            ),
+            notification_type="SLA_RISK",
+            related_grievance_id=grievance["grievance_id"],
+        )
 
 
 def create_grievance(current_user: dict, data) -> dict:
@@ -27,6 +61,13 @@ def create_grievance(current_user: dict, data) -> dict:
     # the time we get here — Pydantic rejects the request otherwise.
     location = make_point(data.location.latitude, data.location.longitude, data.location.address)
     district = data.location.district
+
+    # Trust is checked before anything expensive runs: an account with a
+    # substantiated history of false reports is volume-capped, and every other
+    # account just carries its standing into the integrity block below. This
+    # never looks at the *content* of the report.
+    trust = compute_trust(current_user["_id"])
+    enforce_volume_cap(trust, trust["record"].get("submissions_today", 0))
 
     grievance = grievance_document(
         grievance_id=grievance_id,
@@ -98,26 +139,50 @@ def create_grievance(current_user: dict, data) -> dict:
     ])
 
     # Authenticity triage — a score + explanation for staff, never a
-    # rejection. Runs after AI analysis so it can use category/priority.
+    # rejection. Runs after AI analysis so it can use category/priority, and it
+    # writes back content_fingerprint + attachment signatures for future
+    # collusion / recycled-evidence lookups.
     try:
         authenticity = check_grievance_authenticity(grievance)
     except Exception as error:
         print(f"WARNING: authenticity check failed: {error}")
         authenticity = None
 
+    friction = submission_friction(trust, authenticity)
+
     if authenticity:
         grievance["authenticity"] = authenticity
-        grievance["needs_authenticity_review"] = authenticity["verdict"] != LIKELY_GENUINE
+        grievance["needs_authenticity_review"] = (
+            authenticity["verdict"] != LIKELY_GENUINE or friction["staff_first"]
+        )
+
+    # The account's standing at submission time, kept on the case so a
+    # reviewing officer sees *why* this one was held, not just that it was.
+    grievance["integrity"] = {
+        "trust_score": trust.get("score"),
+        "trust_label": trust.get("label"),
+        "trust_level": trust.get("level"),
+        "staff_first": friction["staff_first"],
+        "evidence_expected": friction["evidence_expected"],
+        "points_held": friction["hold_points"] or bool(
+            authenticity and authenticity["verdict"] == LIKELY_FAKE
+        ),
+        "reason": friction["reason"],
+        "basis": authenticity.get("basis") if authenticity else None,
+    }
+    points_held = grievance["integrity"]["points_held"]
 
     grievances_collection.insert_one(grievance)
 
     # Civic rewards: +10 for a genuine, non-duplicate submission (and the
     # one-time first-valid-grievance bonus). Duplicates earn nothing — see
     # award_valid_submission for the exact gating.
-    # Points are held back for likely-fake reports. Not a penalty: if an
-    # officer later accepts/resolves it, the verified-by-authority and
-    # resolved awards still pay out normally.
-    if not (authenticity and authenticity["verdict"] == LIKELY_FAKE):
+    # Points are held back for likely-fake reports, and for any report from a
+    # low-trust account that the scorer wasn't confident about. Not a penalty:
+    # if an officer later accepts the case, the held submission award is paid
+    # then (see the accept endpoint) and the verified/resolved awards still pay
+    # out normally. Human adjudication, not the score, is the final word.
+    if not points_held:
         award_valid_submission(grievance)
 
     # community incident clustering (requires the grievance to already exist)
@@ -143,14 +208,47 @@ def create_grievance(current_user: dict, data) -> dict:
     notify(
         current_user["_id"],
         "Grievance Submitted",
-        f"Your grievance {grievance_id} was submitted and routed to {ai_result['department']} ({district}).",
+        f"Your grievance {grievance_id} was submitted and routed to {ai_result['department']} ({district})."
+        + (
+            " An officer will confirm the location before the team is dispatched, so "
+            "please keep your photos handy."
+            if points_held
+            else ""
+        ),
         notification_type="SUCCESS",
         related_grievance_id=grievance_id,
     )
 
+    # Tell the people who can act on it, now rather than whenever they next
+    # open the queue.
+    if grievance.get("needs_authenticity_review"):
+        _notify_integrity_reviewers(grievance)
+
     log_action(current_user["_id"], current_user["role"], "GRIEVANCE_CREATED", "grievance", grievance_id)
 
     return grievance
+
+
+def release_held_submission_award(grievance):
+    """Pay the +10 that fake-report suspicion withheld, once a human has
+    treated the case as real work.
+
+    Called from the accept/assign paths: an officer picking a case up is the
+    strongest available evidence that the report wasn't fabricated, and it
+    would be incoherent for the scoring model to have permanently suppressed a
+    reward that an authority has just overridden by acting on the report."""
+    integrity = grievance.get("integrity") or {}
+    if not integrity.get("points_held"):
+        return
+
+    award_valid_submission(grievance)
+    grievances_collection.update_one(
+        {"grievance_id": grievance["grievance_id"]},
+        {"$set": {
+            "integrity.points_held": False,
+            "integrity.released_on_review": True,
+        }},
+    )
 
 
 def get_grievance_or_404(grievance_id: str) -> dict:

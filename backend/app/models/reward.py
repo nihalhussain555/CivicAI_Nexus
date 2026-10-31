@@ -21,6 +21,7 @@ REASON_RESOLVED = "RESOLVED"
 REASON_COMMUNITY_CONFIRM = "COMMUNITY_CONFIRM"
 REASON_FIRST_VALID_BONUS = "FIRST_VALID_BONUS"
 REASON_FALSE_REPORT = "FALSE_REPORT_PENALTY"
+REASON_FLAG_REVERSAL = "FALSE_FLAG_REVERSED"
 REASON_REOPENED_REVERSAL = "REOPENED_REVERSAL"
 REASON_SUBMISSION_REVERSAL = "SUBMISSION_REVERSAL"
 REASON_FIRST_BONUS_REVERSAL = "FIRST_BONUS_REVERSAL"
@@ -32,6 +33,7 @@ REASON_LABELS = {
     REASON_COMMUNITY_CONFIRM: "Community confirmed your report",
     REASON_FIRST_VALID_BONUS: "First valid grievance bonus",
     REASON_FALSE_REPORT: "False or misleading report",
+    REASON_FLAG_REVERSAL: "False-report flag reversed (reopened for review)",
     REASON_REOPENED_REVERSAL: "Resolution points reversed (case reopened)",
     REASON_SUBMISSION_REVERSAL: "Points reversed (grievance deleted before review)",
     REASON_FIRST_BONUS_REVERSAL: "First-valid bonus reversed (grievance deleted before review)",

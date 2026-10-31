@@ -4,6 +4,10 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000
 
 const api = axios.create({
   baseURL: `${API_BASE_URL}/api`,
+  // A cold free-tier backend can hold a request open indefinitely instead of
+  // refusing it. Without this, a sleeping API turns into a spinner that never
+  // resolves rather than an error the user can retry.
+  timeout: 25000,
   headers: { "Content-Type": "application/json" },
 });
 

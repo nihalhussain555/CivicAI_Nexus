@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 import re
 
 from bson import ObjectId
@@ -8,6 +8,7 @@ from fastapi import (
     APIRouter,
     Depends,
     HTTPException,
+    Query,
 )
 
 from app.config.database import (
@@ -45,6 +46,7 @@ from app.services.grievance_service import (
     transition_status,
     build_list_query,
     paginate,
+    release_held_submission_award,
 )
 
 from app.services.copilot_service import (
@@ -71,6 +73,8 @@ from app.services.incident_service import (
     remove_grievance_from_incident,
 )
 
+from app.services.trust_service import refresh_trust
+
 from app.utils.dependencies import (
     get_current_user,
     require_staff,
@@ -82,13 +86,24 @@ from app.utils.helpers import (
     strip_staff_fields,
 )
 
-from app.utils.geo import make_point
+from app.utils.geo import (
+    haversine_km,
+    make_point,
+    point_lat_lon,
+)
 
 
 router = APIRouter(
     prefix="/api/grievances",
     tags=["Grievances"],
 )
+
+# "Already reported near me" looks at recent open reports only: a two-year-old
+# closed complaint next door isn't evidence that the hole in the road is still
+# there, and scanning everything to find out would cost more than it tells us.
+NEARBY_LOOKBACK_DAYS = 90
+NEARBY_CANDIDATE_LIMIT = 800
+NEARBY_RETURN_LIMIT = 6
 
 
 @router.post("/preview")
@@ -123,6 +138,79 @@ def preview_analysis(
         "data": {
             **result,
             "is_ai_generated": True,
+        },
+    }
+
+
+@router.get("/nearby")
+def nearby_reports(
+    lat: float = Query(..., ge=-90, le=90),
+    lng: float = Query(..., ge=-180, le=180),
+    radius_km: float = Query(0.5, gt=0, le=5),
+    district: str = None,
+    current_user=Depends(
+        get_current_user
+    ),
+):
+    """Open reports already filed within `radius_km` of a point.
+
+    Shown to a citizen while they drop their pin: if three people have already
+    reported the same broken streetlight on this corner, the honest nudge is to
+    look at those first rather than file a fourth copy — which is also the
+    single biggest source of duplicate noise downstream.
+
+    Deliberately geo-filtered in Python over a date-bounded candidate set
+    instead of `$centerSphere`: the same query has to run under mongomock in
+    the test suite, and the window is small enough that accuracy costs nothing.
+    """
+    since = datetime.utcnow() - timedelta(days=NEARBY_LOOKBACK_DAYS)
+
+    query = {
+        "created_at": {"$gte": since},
+        "status": {"$nin": ["CLOSED", "WITHDRAWN"]},
+    }
+    if district:
+        query["district"] = district
+
+    reports = []
+    for doc in grievances_collection.find(
+        query,
+        {
+            "grievance_id": 1, "title": 1, "category": 1, "status": 1,
+            "priority": 1, "created_at": 1, "district": 1,
+            "location.coordinates": 1,
+        },
+    ).sort("created_at", -1).limit(NEARBY_CANDIDATE_LIMIT):
+        other_lat, other_lng = point_lat_lon(doc.get("location"))
+        if other_lat is None:
+            continue
+
+        distance = haversine_km(lat, lng, other_lat, other_lng)
+        if distance > radius_km:
+            continue
+
+        reports.append({
+            "grievance_id": doc["grievance_id"],
+            "title": doc.get("title"),
+            "category": doc.get("category"),
+            "status": doc.get("status"),
+            "priority": doc.get("priority"),
+            "district": doc.get("district"),
+            "created_at": doc.get("created_at"),
+            "distance_km": round(distance, 3),
+            # Rounded to ~110m: enough to show where the cluster of reports is,
+            # not enough to pin another citizen's front door.
+            "position": [round(other_lat, 3), round(other_lng, 3)],
+        })
+
+    reports.sort(key=lambda report: report["distance_km"])
+
+    return {
+        "success": True,
+        "data": {
+            "reports": reports[:NEARBY_RETURN_LIMIT],
+            "total_nearby": len(reports),
+            "radius_km": radius_km,
         },
     }
 
@@ -532,6 +620,7 @@ def bulk_accept_cases(
             grievance["citizen_id"], gid,
             cycle=grievance.get("reopen_count", 0),
         )
+        release_held_submission_award(grievance)
 
         notify(
             grievance["citizen_id"],
@@ -631,6 +720,7 @@ def bulk_assign_officer(
             grievance["citizen_id"], gid,
             cycle=grievance.get("reopen_count", 0),
         )
+        release_held_submission_award(grievance)
 
         notify(
             officer["_id"],
@@ -856,6 +946,7 @@ def accept_case(
         grievance_id,
         cycle=grievance.get("reopen_count", 0),
     )
+    release_held_submission_award(grievance)
 
     updated = (
         get_grievance_or_404(
@@ -1086,6 +1177,7 @@ def assign_officer(
         grievance_id,
         cycle=grievance.get("reopen_count", 0),
     )
+    release_held_submission_award(grievance)
 
     notify(
         officer["_id"],
@@ -1331,6 +1423,10 @@ def verify_resolution(
             cycle=grievance.get("reopen_count", 0),
         )
 
+        # A verified resolution is the strongest positive evidence an account
+        # can produce, so the standing that gates future friction updates here.
+        refresh_trust(grievance["citizen_id"])
+
         return {
             "success": True,
             "message":
@@ -1422,6 +1518,15 @@ def flag_invalid_report(
                 "flagged_reason": data.reason,
                 "flagged_by": current_user["_id"],
                 "flagged_at": now,
+                # The case is decided now, so it leaves the review queue — but
+                # stays reviewable via its own flag list. Leaving
+                # needs_authenticity_review true would keep a human-adjudicated
+                # case sitting in front of staff forever.
+                "needs_authenticity_review": False,
+                "integrity.points_held": True,
+                "integrity.human_decision": "FAKE",
+                "integrity.human_decision_at": now,
+                "integrity.human_decision_by": current_user["_id"],
                 "updated_at": now,
             },
             "$push": {
@@ -1436,6 +1541,7 @@ def flag_invalid_report(
     )
 
     flag_false_report(grievance, current_user)
+    refresh_trust(grievance["citizen_id"])
 
     notify(
         grievance["citizen_id"],

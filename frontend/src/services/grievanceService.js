@@ -223,3 +223,100 @@ export const bulkAssignOfficer = async (
 
   return response.data;
 };
+
+// --- Integrity / fake-report review --------------------------------------
+// Separate from the lifecycle calls above: these decide what the platform
+// *believes* about a report, not what stage it's at.
+
+export const flagInvalid = async (
+  grievanceId,
+  reason
+) => {
+  const response = await api.put(
+    `/grievances/${grievanceId}/flag-invalid`,
+    { reason }
+  );
+
+  return response.data;
+};
+
+export const getIntegrityQueue = async (
+  params = {}
+) => {
+  const response = await api.get(
+    "/grievances/integrity/queue",
+    { params }
+  );
+
+  return response.data;
+};
+
+export const triageIntegrity = async (
+  grievanceId,
+  { decision, note }
+) => {
+  const response = await api.put(
+    `/grievances/${grievanceId}/integrity/triage`,
+    { decision, note }
+  );
+
+  return response.data;
+};
+
+export const unflagGrievance = async (
+  grievanceId,
+  note
+) => {
+  const response = await api.put(
+    `/grievances/${grievanceId}/unflag`,
+    { note }
+  );
+
+  return response.data;
+};
+
+export const appealFlag = async (
+  grievanceId,
+  reason
+) => {
+  const response = await api.post(
+    `/grievances/${grievanceId}/flag-appeal`,
+    { reason }
+  );
+
+  return response.data;
+};
+
+export const reviewFlagAppeal = async (
+  grievanceId,
+  { approve, note }
+) => {
+  const response = await api.put(
+    `/grievances/${grievanceId}/flag-appeal/review`,
+    { approve, note }
+  );
+
+  return response.data;
+};
+
+// Other citizens' open reports within a short radius of a point. Used by the
+// report form to say "this spot is already being reported" before a duplicate
+// is filed; the response carries no identities, and a citizen cannot open
+// someone else's case, so the result is context rather than a link.
+export const getNearbyReports = async (
+  { latitude, longitude, radiusKm = 0.5, district }
+) => {
+  const response = await api.get(
+    "/grievances/nearby",
+    {
+      params: {
+        lat: latitude,
+        lng: longitude,
+        radius_km: radiusKm,
+        ...(district ? { district } : {}),
+      },
+    }
+  );
+
+  return response.data;
+};

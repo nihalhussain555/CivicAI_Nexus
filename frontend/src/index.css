@@ -3730,6 +3730,159 @@ body { background: radial-gradient(circle at 72% -20%, rgba(99,102,241,.11), tra
   to { transform: rotate(360deg); }
 }
 
+.spin {
+  animation: spin 0.8s linear infinite;
+}
+
+/* =========================================================
+   MAPS — Leaflet inherits almost none of the app's theme, so
+   the container background, popups and controls are re-skinned
+   here rather than in each map component.
+   ========================================================= */
+
+.leaflet-container {
+  font: inherit;
+  background: var(--surface-hover);
+}
+
+.leaflet-popup-content-wrapper,
+.leaflet-popup-tip {
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: var(--shadow-md);
+}
+
+.leaflet-popup-content { margin: 12px 14px; }
+.leaflet-control-attribution { font-size: 10px; background: color-mix(in srgb, var(--surface) 80%, transparent); }
+
+/* OSM's standard tiles are light-only. Inverting them (rather than switching
+   provider) keeps one tile source, one attribution and no extra quota. */
+[data-theme="dark"] .leaflet-tile {
+  filter: invert(1) hue-rotate(180deg) brightness(0.94) contrast(0.9);
+}
+
+.map-cluster {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--accent) 88%, black 4%);
+  color: #fff;
+  font-weight: 800;
+  font-size: 12px;
+  border: 2px solid rgba(255, 255, 255, 0.85);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.28);
+  cursor: pointer;
+}
+
+/* Leaflet panes sit at z-index 400+; the app's sticky header is above them so
+   the map can't paint over navigation when scrolled. */
+.map-shell { position: relative; z-index: 0; }
+
+.map-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: 16px;
+  align-items: start;
+}
+
+@media (max-width: 1080px) {
+  .map-layout { grid-template-columns: 1fr; }
+}
+
+.map-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: flex-end;
+}
+
+.map-toolbar .form-group { margin-bottom: 0; min-width: 150px; flex: 0 1 auto; }
+
+.filter-chip {
+  padding: 7px 13px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-muted);
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.filter-chip:hover { border-color: var(--accent); color: var(--text); }
+
+.filter-chip.active {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent-soft-text);
+}
+
+.map-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 12px;
+  color: var(--text-muted);
+  align-items: center;
+}
+
+.map-legend span { display: inline-flex; align-items: center; gap: 5px; }
+
+.legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.legend-ring {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px dashed var(--danger);
+  display: inline-block;
+}
+
+.map-meta { font-size: 12.5px; color: var(--text-faint); }
+
+.map-results {
+  max-height: 560px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.map-result-row {
+  text-align: left;
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  padding: 10px 12px;
+  cursor: pointer;
+  display: flex;
+  gap: 9px;
+  align-items: flex-start;
+}
+
+.map-result-row:hover { border-color: var(--accent); background: var(--surface-hover); }
+.map-result-row.active { border-color: var(--accent); background: var(--accent-soft); }
+
+.nearby-callout {
+  display: flex;
+  gap: 9px;
+  margin-top: 8px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--accent);
+  background: var(--accent-soft);
+}
+
 .ai-assistant-card {
   border-color: var(--accent);
   background: linear-gradient(180deg, var(--accent-soft), var(--surface) 40%);

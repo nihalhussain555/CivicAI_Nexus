@@ -16,6 +16,7 @@ from app.models.reward import (
     REASON_COMMUNITY_CONFIRM,
     REASON_FIRST_VALID_BONUS,
     REASON_FALSE_REPORT,
+    REASON_FLAG_REVERSAL,
     REASON_REOPENED_REVERSAL,
     REASON_SUBMISSION_REVERSAL,
     REASON_FIRST_BONUS_REVERSAL,
@@ -128,6 +129,41 @@ def flag_false_report(grievance, actor):
         citizen_id, grievance_id, REASON_FALSE_REPORT, -POINTS_FALSE_REPORT_PENALTY,
         actor_id=actor["_id"],
     )
+
+
+def reverse_false_report_flag(grievance, actor):
+    """A flag was wrong — staff reversed it themselves, or a citizen appeal
+    was upheld. Gives back exactly the penalty that was deducted (no more),
+    and re-runs the submission award, which an earlier LIKELY_FAKE verdict
+    may have withheld. Both steps are idempotent, so reversing twice is a
+    no-op and a case that already earned its submission points gains nothing
+    extra.
+
+    Deliberately does not restore anything awarded for later lifecycle
+    stages (officer-verified, resolved): those were never deducted by a flag,
+    and inventing an award here would be a bonus rather than a correction."""
+    citizen_id = grievance["citizen_id"]
+    grievance_id = grievance["grievance_id"]
+
+    penalty = reward_ledger_collection.find_one({
+        "citizen_id": citizen_id,
+        "grievance_id": grievance_id,
+        "reason": REASON_FALSE_REPORT,
+    })
+
+    restored = None
+    if penalty and not _already_awarded(citizen_id, grievance_id, REASON_FLAG_REVERSAL):
+        restored = _insert(
+            citizen_id, grievance_id, REASON_FLAG_REVERSAL,
+            abs(penalty["points"]),
+            actor_id=actor["_id"],
+            message="The false-report flag on this grievance was reversed.",
+        )
+
+    if not grievance.get("duplicate"):
+        award_valid_submission(grievance)
+
+    return restored
 
 
 def reverse_resolution_points(grievance):
