@@ -55,6 +55,7 @@ const DistrictAdmin = lazy(() => import("./pages/admin/DistrictAdmin"));
 const UnassignedGrievances = lazy(
   () => import("./pages/admin/UnassignedGrievances"),
 );
+const AdminIntegrityDashboard = lazy(() => import("./pages/admin/Integrity"));
 
 // Shared
 const GrievanceDetail = lazy(() => import("./pages/shared/GrievanceDetail"));
@@ -64,6 +65,7 @@ const Notifications = lazy(() => import("./pages/shared/Notifications"));
 const Profile = lazy(() => import("./pages/shared/Profile"));
 const Settings = lazy(() => import("./pages/shared/Settings"));
 const AIAssistant = lazy(() => import("./pages/shared/AIAssistant"));
+const IntegrityReview = lazy(() => import("./pages/shared/IntegrityReview"));
 
 const RouteLoader = () => (
   <div className="route-loader">
@@ -168,6 +170,7 @@ function App() {
                     <Route path="copilot" element={<AIAssistant />} />
                     <Route path="assistant" element={<AIAssistant />} />
                     <Route path="analytics" element={<OfficerAnalytics />} />
+                    <Route path="integrity" element={<IntegrityReview />} />
                     <Route path="notifications" element={<Notifications />} />
                     <Route path="profile" element={<Profile />} />
                     <Route path="settings" element={<Settings />} />
@@ -196,7 +199,7 @@ function App() {
                       element={
                         <ProtectedRoute
                           allowedRoles={["admin"]}
-                          dminScope="super"
+                          adminScope="super"
                         >
                           <AdminDashboard />
                         </ProtectedRoute>
@@ -239,6 +242,12 @@ function App() {
                     <Route
                       path="incidents/:incidentId"
                       element={<IncidentDetail />}
+                    />
+
+                    <Route path="integrity" element={<IntegrityReview />} />
+                    <Route
+                      path="fraud"
+                      element={<AdminIntegrityDashboard />}
                     />
 
                     <Route

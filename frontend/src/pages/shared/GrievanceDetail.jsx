@@ -1,7 +1,7 @@
-import { useEffect, useState, useCallback } from "react";
+import { lazy, Suspense, useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { MapPin, Clock, Sparkles, ArrowLeft, CheckCircle2, XCircle, PlayCircle, Send, AlertTriangle, ImageIcon, Mic, RotateCcw, ShieldQuestion, Trash2,} from "lucide-react";
-import { getGrievance, acceptCase, startProgress, submitResolution, escalateCase, verifyResolution, requestReopen, reviewReopenRequest, deleteGrievance, getCopilotBrief,} from "../../services/grievanceService";
+import { MapPin, Clock, Sparkles, ArrowLeft, CheckCircle2, XCircle, PlayCircle, Send, AlertTriangle, ImageIcon, Mic, RotateCcw, ShieldQuestion, ShieldCheck, ShieldAlert, Gavel, Trash2,} from "lucide-react";
+import { getGrievance, acceptCase, startProgress, submitResolution, escalateCase, verifyResolution, requestReopen, reviewReopenRequest, deleteGrievance, getCopilotBrief, triageIntegrity, unflagGrievance, appealFlag, reviewFlagAppeal,} from "../../services/grievanceService";
 import { uploadsBaseUrl } from "../../services/api";
 import { useAuth } from "../../hooks/useAuth";
 import { useToast } from "../../context/ToastContext";
@@ -17,6 +17,10 @@ import ErrorState from "../../components/common/ErrorState";
 import Modal from "../../components/common/Modal";
 
 const roleBasePath = { citizen: "/citizen/grievances", officer: "/officer/grievances", admin: "/admin/grievances" };
+
+// Leaflet only downloads when a case actually has coordinates to plot — this
+// page is opened dozens of times a shift and most of them don't need a map.
+const GrievanceMap = lazy(() => import("../../components/maps/mapKit"));
 
 const GrievanceDetail = () => {
   const { grievanceId } = useParams();
@@ -45,6 +49,16 @@ const GrievanceDetail = () => {
 
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
 
+  // Integrity decisions share one modal because they all need a reason on
+  // record and all reload the case afterwards. `kind` picks the wording and
+  // the endpoint; `null` keeps it closed.
+  const [integrityModal, setIntegrityModal] = useState(null);
+  // triage: {kind:"triage", decision:"GENUINE"|"FAKE"}
+  // unflag: {kind:"unflag"}
+  // appeal: {kind:"appeal", approve:boolean}
+  // citizen: {kind:"citizen"}
+  const [integrityNote, setIntegrityNote] = useState("");
+
   const load = useCallback(() => {
     getGrievance(grievanceId)
       .then((res) => setGrievance(res.data))
@@ -71,11 +85,55 @@ const GrievanceDetail = () => {
       toast.success(successMsg);
       load();
       loadCopilot();
+      return true;
     } catch (err) {
       toast.error(getErrorMessage(err));
+      return false;
     } finally {
       setActionLoading(false);
     }
+  };
+
+  const openIntegrity = (config) => {
+    setIntegrityNote("");
+    setIntegrityModal(config);
+  };
+
+  const submitIntegrity = async () => {
+    const note = integrityNote.trim();
+    const kind = integrityModal.kind;
+    let done;
+
+    // The reason the citizen reads back is the one typed here, so each message
+    // names what actually changed for them rather than what was clicked.
+    if (kind === "triage") {
+      done = await runAction(
+        () => triageIntegrity(grievanceId, {
+          decision: integrityModal.decision,
+          note: note || undefined,
+        }),
+        integrityModal.decision === "FAKE"
+          ? "Marked as false or misleading"
+          : "Confirmed genuine — held points released",
+      );
+    } else if (kind === "unflag") {
+      done = await runAction(
+        () => unflagGrievance(grievanceId, note),
+        "Flag reversed and points restored",
+      );
+    } else if (kind === "appeal") {
+      done = await runAction(
+        () => reviewFlagAppeal(grievanceId, { approve: integrityModal.approve, note }),
+        integrityModal.approve ? "Appeal upheld — flag reversed" : "Appeal rejected — flag stands",
+      );
+    } else {
+      done = await runAction(
+        () => appealFlag(grievanceId, note),
+        "Appeal sent for review",
+      );
+    }
+
+    if (done) setIntegrityModal(null);
   };
 
   if (error) return <ErrorState description={error} onRetry={load} />;
@@ -84,6 +142,74 @@ const GrievanceDetail = () => {
   const isOwnerCitizen = user.role === "citizen" && grievance.citizen_id === user.id;
   const isStaff = user.role === "officer" || user.role === "admin";
   const basePath = roleBasePath[user.role];
+
+  const appealPending = grievance.flag_appeal_status === "PENDING";
+  // Two appeals is the backend ceiling (app/models/grievance.py). Hiding the
+  // button once it's reached is kinder than a 400 after they've typed it out.
+  const appealsExhausted = (grievance.flag_appeal_count || 0) >= 2;
+  // A staff member can judge any live case, not only the ones the scorer
+  // was unsure about — a report can read perfectly plausibly and still be
+  // knowingly false, and "genuine" is a decision worth recording either way.
+  const canTriage =
+    isStaff && !grievance.flagged_invalid && !appealPending && !grievance.integrity?.human_decision;
+
+  const copy = integrityModal && (() => {
+    const { kind } = integrityModal;
+    if (kind === "citizen") return {
+      title: "Appeal this decision",
+      body: "A reviewing officer who did not make the original decision reads this along with your report. "
+        + "Say what is accurate about it — a photograph of the site, a date, a witness.",
+      label: "Why was this flag wrong? (required)",
+      placeholder: "Explain what happened...",
+      submit: "Send appeal",
+      min: 10,
+    };
+    if (kind === "unflag") return {
+      title: "Reverse the false-report flag?",
+      body: "Restores the civic points the flag took back and records your reason on the case. "
+        + "Use this when the flag turns out to have been wrong.",
+      label: "Why is the flag being reversed? (required)",
+      placeholder: "What convinced you this report is genuine?",
+      submit: "Reverse flag",
+      min: 5,
+    };
+    if (kind === "appeal") return integrityModal.approve ? {
+      title: "Uphold this appeal?",
+      body: "Agreeing with the citizen reverses the flag, restores their points, and clears the integrity mark "
+        + "on this report.",
+      label: "Reason (required — the citizen reads this)",
+      placeholder: "What made you accept the appeal?",
+      submit: "Uphold appeal",
+      min: 5,
+    } : {
+      title: "Keep the flag?",
+      body: "The citizen's points stay reversed and the flag stands. Your note is the only explanation they get, "
+        + "so it should say what was wrong with the report.",
+      label: "Reason (required — the citizen reads this)",
+      placeholder: "Why does the flag stand?",
+      submit: "Reject appeal",
+      min: 5,
+      danger: true,
+    };
+    return integrityModal.decision === "FAKE" ? {
+      title: "Mark this report as false or misleading?",
+      body: "Reverses the civic points earned for it and lowers the account's trust. The citizen sees your reason "
+        + "and can appeal — the report is not deleted, and the department still works it.",
+      label: "Reason (required)",
+      placeholder: "What makes this false or misleading?",
+      submit: "Flag as false",
+      min: 5,
+      danger: true,
+    } : {
+      title: "Confirm this report is genuine?",
+      body: "Clears the review flag and releases any civic points withheld while it was suspected. "
+        + "The scored breakdown stays on file, and the detector learns from your decision.",
+      label: "Note for the record (optional)",
+      placeholder: "Anything that helped you decide...",
+      submit: "Confirm genuine",
+      min: 0,
+    };
+  })();
 
   return (
     <div>
@@ -145,6 +271,25 @@ const GrievanceDetail = () => {
                 <Clock size={13} /> Reported {formatDateTime(grievance.created_at)}
               </span>
             </div>
+
+            {grievance.location?.coordinates?.length === 2 && (
+              <div style={{ marginTop: 16 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 700, marginBottom: 8 }}>
+                  <MapPin size={12} /> Where it was reported
+                </div>
+                <Suspense fallback={<div className="map-shell" style={{ height: 220, opacity: 0.5 }} />}>
+                  <GrievanceMap
+                    grievances={[grievance]}
+                    fitKey={grievance.grievance_id}
+                    height={220}
+                    showIncidents={false}
+                  />
+                </Suspense>
+                <p className="form-hint" style={{ marginTop: 6 }}>
+                  {grievance.location.address || "Pinned from the citizen's device — the map shows where the report was filed."}
+                </p>
+              </div>
+            )}
           </div>
 
           <div className="card" style={{ borderColor: "var(--accent)" }}>
@@ -168,7 +313,14 @@ const GrievanceDetail = () => {
             )}
           </div>
 
-          {isStaff && <AuthenticityCard authenticity={grievance.authenticity} />}
+          {isStaff && (
+            <AuthenticityCard
+              authenticity={grievance.authenticity}
+              integrity={grievance.integrity}
+              canTriage={canTriage}
+              onDecision={openIntegrity}
+            />
+          )}
 
           {grievance.resolution_note && (
             <div className="card">
@@ -177,6 +329,42 @@ const GrievanceDetail = () => {
               {grievance.citizen_feedback && (
                 <p style={{ fontSize: 12.5, color: "var(--text-faint)", marginTop: 10, fontStyle: "italic" }}>
                   Citizen feedback: "{grievance.citizen_feedback}"
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* What a flagged case looks like to the person who filed it: the
+              reason in plain words and the appeal route, never the signals or
+              weights behind the score. */}
+          {isOwnerCitizen && grievance.flagged_invalid && (
+            <div className="card" style={{ borderColor: "var(--danger)" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+                <ShieldAlert size={15} color="var(--danger)" />
+                <strong style={{ fontSize: 14 }}>Marked as false or misleading</strong>
+                {appealPending
+                  ? <span className="badge badge-medium">Appeal pending</span>
+                  : grievance.flag_appeal_status
+                    ? <span className={`badge ${grievance.flag_appeal_status === "APPROVED" ? "badge-low" : "badge-critical"}`}>
+                        {grievance.flag_appeal_status === "APPROVED" ? "Appeal upheld" : "Appeal rejected"}
+                      </span>
+                    : <span className="badge badge-neutral">No appeal yet</span>}
+              </div>
+              <p style={{ fontSize: 13, color: "var(--text-muted)", lineHeight: 1.65, margin: 0 }}>
+                {grievance.flagged_reason || "A reviewing officer could not confirm this report."}
+              </p>
+              <p style={{ fontSize: 12.5, color: "var(--text-faint)", marginTop: 10, marginBottom: 0 }}>
+                Your civic points for this report were reversed. The report itself is still visible to the
+                department and still counts towards the issue being fixed — nothing was deleted.
+              </p>
+              {grievance.flag_appeal_reason && (
+                <p style={{ fontSize: 12.5, color: "var(--text-muted)", marginTop: 10, marginBottom: 0 }}>
+                  <strong>Your appeal: </strong>{grievance.flag_appeal_reason}
+                </p>
+              )}
+              {grievance.flag_appeal_note && (
+                <p style={{ fontSize: 12.5, color: "var(--text-faint)", marginTop: 8, marginBottom: 0, fontStyle: "italic" }}>
+                  Reviewer's note: "{grievance.flag_appeal_note}"
                 </p>
               )}
             </div>
@@ -272,6 +460,33 @@ const GrievanceDetail = () => {
                     <XCircle size={15} /> Reject reopen
                   </button>
                 </>
+              )}
+              {/* Integrity: nothing here changes the case's stage, only what
+                  the platform believes about it. */}
+              {isStaff && appealPending && (
+                <>
+                  <button className="btn btn-primary btn-block" onClick={() => openIntegrity({ kind: "appeal", approve: true })}>
+                    <ShieldCheck size={15} /> Uphold appeal
+                  </button>
+                  <button className="btn btn-secondary btn-block" onClick={() => openIntegrity({ kind: "appeal", approve: false })}>
+                    <ShieldAlert size={15} /> Keep the flag
+                  </button>
+                </>
+              )}
+              {isStaff && grievance.flagged_invalid && !appealPending && (
+                <button className="btn btn-secondary btn-block" onClick={() => openIntegrity({ kind: "unflag" })}>
+                  <RotateCcw size={15} /> Reverse false-report flag
+                </button>
+              )}
+              {isOwnerCitizen && grievance.flagged_invalid && appealPending && (
+                <p style={{ fontSize: 13, color: "var(--text-muted)" }}>
+                  Your appeal is with the department and awaiting a decision. You'll be notified either way.
+                </p>
+              )}
+              {isOwnerCitizen && grievance.flagged_invalid && !appealPending && !appealsExhausted && (
+                <button className="btn btn-secondary btn-block" onClick={() => openIntegrity({ kind: "citizen" })}>
+                  <Gavel size={15} /> Appeal this decision
+                </button>
               )}
               {!isStaff && !isOwnerCitizen && grievance.status === "CLOSED" && (
                 <p style={{ fontSize: 13, color: "var(--text-muted)" }}>This grievance has been closed.</p>
@@ -436,6 +651,41 @@ const GrievanceDetail = () => {
           This can't be undone. Once an officer accepts this case, it can no longer be deleted —
           only while it's still waiting to be picked up.
         </p>
+      </Modal>
+      <Modal
+        open={!!integrityModal}
+        title={copy?.title}
+        onClose={() => setIntegrityModal(null)}
+        footer={
+          <>
+            <button className="btn btn-secondary" onClick={() => setIntegrityModal(null)}>Cancel</button>
+            <button className={`btn ${copy?.danger ? "btn-danger" : "btn-primary"}`}
+                    disabled={actionLoading || integrityNote.trim().length < (copy?.min ?? 0)}
+                    onClick={submitIntegrity}>
+              {copy?.submit}
+            </button>
+          </>
+        }
+      >
+        {copy && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+            <p style={{ fontSize: 13, color: "var(--text-muted)", lineHeight: 1.6, margin: 0 }}>
+              {copy.body}
+            </p>
+            {integrityModal?.kind === "appeal" && grievance.flag_appeal_reason && (
+              <div style={{ padding: 10, background: "var(--surface-hover)", borderRadius: 10, fontSize: 12.5 }}>
+                <strong style={{ color: "var(--text)" }}>Citizen's appeal: </strong>
+                <span style={{ color: "var(--text-muted)" }}>{grievance.flag_appeal_reason}</span>
+              </div>
+            )}
+            <div>
+              <label className="form-label">{copy.label}</label>
+              <textarea className="textarea" value={integrityNote}
+                        onChange={(e) => setIntegrityNote(e.target.value)}
+                        placeholder={copy.placeholder} />
+            </div>
+          </div>
+        )}
       </Modal>
     </div>
   );

@@ -186,3 +186,30 @@ export const ROLES = {
   OFFICER: "officer",
   ADMIN: "admin",
 };
+// Human-readable names for every signal the backend authenticity engine can
+// emit (see backend/app/services/authenticity_service.py). Reviewers read these
+// in two places — the case card and the integrity queue — so they live here
+// rather than being written twice. A signal with no entry falls back to its
+// raw key, which is still readable.
+export const SIGNAL_LABELS = {
+  test_phrase: "Test entry", mostly_symbols: "Mostly symbols", very_short: "Very short",
+  repeated_characters: "Repeated characters", keyboard_mashing: "Keyboard mashing",
+  vowelless_words: "Random typing", repetitive_text: "Repetitive text", all_caps: "All capitals",
+  spam_markers: "Links / promotion", detailed: "Detailed description", landmark_mentioned: "Landmark mentioned",
+  duration_or_number: "Duration / number given", null_island: "Placeholder location",
+  outside_service_area: "Outside service area", no_coordinates: "No GPS location", no_address: "No address",
+  photo_attached: "Photo evidence", brand_new_account: "Brand-new account", new_account: "New account",
+  submission_burst: "Burst of submissions", high_daily_volume: "High daily volume",
+  strongly_corroborated: "Others reported it nearby", corroborated: "Another citizen reported it",
+  severe_but_vague: "Severe but vague", repeat_of_own_report: "Repeats own report",
+  // Evidence reuse (server-side photo signatures)
+  recycled_evidence: "Photo reused on unrelated reports", shared_evidence: "Same photo from other accounts",
+  reused_own_photo: "Own photo reused",
+  // Cross-account wording
+  coordinated_campaign: "Coordinated campaign", templated_text: "Template-like wording",
+  // Account standing
+  low_trust_account: "Low-trust account", prior_substantiated_flag: "Earlier report flagged false",
+  verified_history: "Has a verified report", trusted_account: "Trusted account",
+  // Estimators
+  estimator_disagreement: "Rule/AI disagreement",
+};

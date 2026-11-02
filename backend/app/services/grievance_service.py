@@ -10,7 +10,7 @@ from app.services.ai_pipeline_service import run_pipeline
 from app.services.incident_service import cluster_grievance
 from app.services.notification_service import notify
 from app.services.audit_service import log_action
-from app.services.authenticity_service import check_grievance_authenticity, LIKELY_FAKE, LIKELY_GENUINE
+from app.services.authenticity_service import check_grievance_authenticity, LIKELY_FAKE
 from app.services.trust_service import (
     compute_trust,
     enforce_volume_cap,
@@ -153,7 +153,7 @@ def create_grievance(current_user: dict, data) -> dict:
     if authenticity:
         grievance["authenticity"] = authenticity
         grievance["needs_authenticity_review"] = (
-            authenticity["verdict"] != LIKELY_GENUINE or friction["staff_first"]
+            authenticity["queue_for_review"] or friction["staff_first"]
         )
 
     # The account's standing at submission time, kept on the case so a

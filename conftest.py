@@ -18,6 +18,11 @@ os.environ.setdefault("MONGO_URI", "mongodb://localhost:27017")
 os.environ.setdefault("DATABASE_NAME", "civicai_test")
 os.environ.setdefault("JWT_SECRET", "test-secret")
 os.environ.setdefault("AI_PROVIDER", "mock")
+# backend/.env is configured for the deployed host, where outbound email goes
+# through Resend. A test run must never send real mail (or need a verification
+# code it cannot read), and load_dotenv won't overwrite a value already set
+# here — so mock wins for the suite while the app keeps its real provider.
+os.environ.setdefault("EMAIL_PROVIDER", "mock")
 
 import mongomock
 import pymongo

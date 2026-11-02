@@ -14,6 +14,8 @@ import {
   Map,
   Sparkles,
   ShieldCheck,
+  ShieldAlert,
+  ShieldQuestion,
   UserPlus,
   Trophy,
 } from "lucide-react";
@@ -77,6 +79,11 @@ export const NAV_BY_ROLE = {
       to: "/officer/grievances",
       label: "Grievances",
       icon: ListChecks,
+    },
+    {
+      to: "/officer/integrity",
+      label: "Integrity Review",
+      icon: ShieldQuestion,
     },
     {
       to: "/officer/incidents",
@@ -196,6 +203,11 @@ export const getNavigationItems = (user) => {
         icon: FileText,
       },
       {
+        to: "/admin/integrity",
+        label: "Integrity Review",
+        icon: ShieldQuestion,
+      },
+      {
         to: "/admin/incidents",
         label: "Incidents",
         icon: AlertTriangle,
@@ -219,6 +231,11 @@ export const getNavigationItems = (user) => {
         to: "/admin/analytics",
         label: "Platform Analytics",
         icon: BarChart3,
+      },
+      {
+        to: "/admin/fraud",
+        label: "Fraud & Integrity",
+        icon: ShieldAlert,
       },
       {
         to: "/admin/map",
@@ -269,6 +286,11 @@ export const getNavigationItems = (user) => {
       icon: FileText,
     },
     {
+      to: "/admin/integrity",
+      label: "Integrity Review",
+      icon: ShieldQuestion,
+    },
+    {
       to: "/admin/incidents",
       label: "District Incidents",
       icon: AlertTriangle,
@@ -282,6 +304,11 @@ export const getNavigationItems = (user) => {
       to: "/admin/analytics",
       label: "District Analytics",
       icon: BarChart3,
+    },
+    {
+      to: "/admin/fraud",
+      label: "Fraud & Integrity",
+      icon: ShieldAlert,
     },
     {
       to: "/admin/map",

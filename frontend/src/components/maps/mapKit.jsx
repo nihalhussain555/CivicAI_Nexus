@@ -23,7 +23,17 @@ export const SizeSync = () => {
 
   useEffect(() => {
     const node = map.getContainer();
-    const sync = () => map.invalidateSize();
+    let last = null;
+    const sync = () => {
+      const { width, height } = node.getBoundingClientRect();
+      // A scrollbar appearing or a caption reflowing the page changes the
+      // measured box by a few pixels. Leaflet's invalidateSize() stops whatever
+      // animation is running and re-centres, so a no-op resize is what cancels
+      // a zoom the citizen just asked for — only act on a real change.
+      if (last && Math.abs(last.width - width) < 2 && Math.abs(last.height - height) < 2) return;
+      last = { width, height };
+      if (width && height) map.invalidateSize();
+    };
     let observer;
     if (typeof ResizeObserver !== "undefined") {
       observer = new ResizeObserver(sync);
@@ -268,6 +278,7 @@ const GrievanceMap = ({
   grievances = [],
   incidents = [],
   basePath,
+  incidentsPath,
   colorMode = "priority",
   height = 520,
   fitKey = "initial",
@@ -369,6 +380,11 @@ const GrievanceMap = ({
                     <div style={{ fontSize: 11.5, color: "var(--text-muted)" }}>
                       Several citizens reported the same problem in this area independently.
                     </div>
+                    {incidentsPath && (
+                      <Link to={`${incidentsPath}/${incident.incident_id}`} style={{ color: "#4f46e5", fontSize: 12, fontWeight: 700 }}>
+                        Open incident →
+                      </Link>
+                    )}
                   </div>
                 </Popup>
               </CircleMarker>

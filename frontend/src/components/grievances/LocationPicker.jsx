@@ -25,10 +25,16 @@ const samePoint = (a, b) =>
   !!a && !!b && Math.abs(a[0] - b[0]) < EPSILON && Math.abs(a[1] - b[1]) < EPSILON;
 
 /**
- * Moves the view only when the pin was placed by something the citizen
- * couldn't see — GPS, or a search result. A drag already left the viewport on
- * the pin, so echoing the new coordinate back into setView would yank the map
- * sideways the moment they let go of the marker.
+ * Moves the view to wherever the pin now is, except when the citizen already
+ * put it there with their own hands. A drag or a tap happened inside the window
+ * they were looking through, so echoing the new coordinate back would yank the
+ * map sideways the moment they let go — but a search result or a GPS fix can be
+ * kilometres away, and a pin the citizen can't see reads as a broken map.
+ *
+ * `setView` rather than `flyTo`: an animated flight is cancelled by the
+ * `invalidateSize()` that fires when a scrollbar appears or the hint text below
+ * changes the page height, which left the view parked where it started with the
+ * pin off-screen. A jump the citizen asked for is never mid-flight.
  */
 const FlyToExternalChange = ({ center, lastInternal }) => {
   const map = useMap();
@@ -36,7 +42,7 @@ const FlyToExternalChange = ({ center, lastInternal }) => {
   useEffect(() => {
     if (!center || samePoint(center, map.getCenter().wrap())) return;
     if (samePoint(center, lastInternal.current)) return;
-    map.flyTo(center, Math.max(map.getZoom(), 16), { duration: 0.6 });
+    map.setView(center, Math.max(map.getZoom(), 16));
   }, [center, lastInternal, map]);
 
   return null;
@@ -176,7 +182,9 @@ const LocationPicker = ({
   }), [onPick]);
 
   const handlePick = (lat, lng, source, place) => {
-    lastInternal.current = [lat, lng];
+    // Only remember the spot as "already on screen" when the citizen put it
+    // there inside the viewport they were looking through.
+    if (source === "drag" || source === "tap") lastInternal.current = [lat, lng];
     onPick(lat, lng, source, place);
   };
 

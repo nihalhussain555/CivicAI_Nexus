@@ -105,9 +105,10 @@ const Map = () => {
   const clock = resolveClock(meta?.generated_at);
 
   // Category and department are written by the classifier, not picked from a
-  // list, so the dropdowns offer whatever the current scope actually contains.
-  const categoryOptions = meta?.facets?.categories?.length || CATEGORIES;
-  const departmentOptions = meta?.facets?.departments?.length || DEPARTMENTS;
+  // list, so the dropdowns offer whatever the current scope actually contains —
+  // falling back to the canonical lists until the first response arrives.
+  const categoryOptions = meta?.facets?.categories?.length ? meta.facets.categories : CATEGORIES;
+  const departmentOptions = meta?.facets?.departments?.length ? meta.facets.departments : DEPARTMENTS;
 
   return (
     <div>
@@ -225,14 +226,15 @@ const Map = () => {
         <div style={{ display: "flex", gap: 16, alignItems: "center", flexWrap: "wrap", marginTop: 14 }}>
           <div className="tabs" style={{ marginBottom: 0, borderBottom: "none" }}>
             {Object.entries(COLOR_MODES).map(([key, mode]) => (
-              <div
+              <button
                 key={key}
+                type="button"
                 className={`tab ${colorMode === key ? "active" : ""}`}
-                style={{ cursor: "pointer" }}
+                aria-pressed={colorMode === key}
                 onClick={() => setColorMode(key)}
               >
                 {mode.label}
-              </div>
+              </button>
             ))}
           </div>
           <div className="map-legend">
@@ -279,6 +281,7 @@ const Map = () => {
               grievances={grievances}
               incidents={incidents}
               basePath="/admin/grievances"
+              incidentsPath="/admin/incidents"
               colorMode={colorMode}
               fitKey={requestKey}
               focus={focus}

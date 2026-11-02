@@ -7,6 +7,7 @@ import {
   ImageIcon,
   UserCheck,
 } from "lucide-react";
+import { SIGNAL_LABELS } from "../../utils/constants";
 
 // Staff-only triage aid. A low score means "look closer", never "reject":
 // it's built from weak signals and can be wrong, so the card always shows
@@ -15,29 +16,6 @@ const VERDICTS = {
   LIKELY_GENUINE: { label: "Likely genuine", icon: ShieldCheck, color: "var(--priority-low, #16a34a)", bg: "var(--success-soft)" },
   NEEDS_REVIEW: { label: "Needs a closer look", icon: ShieldQuestion, color: "var(--warning, #d97706)", bg: "var(--warning-soft)" },
   LIKELY_FAKE: { label: "Likely fake or spam", icon: ShieldAlert, color: "var(--danger, #dc2626)", bg: "var(--danger-soft)" },
-};
-
-const SIGNAL_LABELS = {
-  test_phrase: "Test entry", mostly_symbols: "Mostly symbols", very_short: "Very short",
-  repeated_characters: "Repeated characters", keyboard_mashing: "Keyboard mashing",
-  vowelless_words: "Random typing", repetitive_text: "Repetitive text", all_caps: "All capitals",
-  spam_markers: "Links / promotion", detailed: "Detailed description", landmark_mentioned: "Landmark mentioned",
-  duration_or_number: "Duration / number given", null_island: "Placeholder location",
-  outside_service_area: "Outside service area", no_coordinates: "No GPS location", no_address: "No address",
-  photo_attached: "Photo evidence", brand_new_account: "Brand-new account", new_account: "New account",
-  submission_burst: "Burst of submissions", high_daily_volume: "High daily volume",
-  strongly_corroborated: "Others reported it nearby", corroborated: "Another citizen reported it",
-  severe_but_vague: "Severe but vague", repeat_of_own_report: "Repeats own report",
-  // Evidence reuse (server-side photo signatures)
-  recycled_evidence: "Photo reused on unrelated reports", shared_evidence: "Same photo from other accounts",
-  reused_own_photo: "Own photo reused",
-  // Cross-account wording
-  coordinated_campaign: "Coordinated campaign", templated_text: "Template-like wording",
-  // Account standing
-  low_trust_account: "Low-trust account", prior_substantiated_flag: "Earlier report flagged false",
-  verified_history: "Has a verified report", trusted_account: "Trusted account",
-  // Estimators
-  estimator_disagreement: "Rule/AI disagreement",
 };
 
 // Three independent little readouts on one line each — kept separate from the
@@ -50,7 +28,7 @@ const ContextRow = ({ icon: Icon, children }) => (
   </div>
 );
 
-const AuthenticityCard = ({ authenticity, integrity }) => {
+const AuthenticityCard = ({ authenticity, integrity, canTriage = false, onDecision }) => {
   if (!authenticity) return null;
   const v = VERDICTS[authenticity.verdict] || VERDICTS.NEEDS_REVIEW;
   const Icon = v.icon;
@@ -151,9 +129,24 @@ const AuthenticityCard = ({ authenticity, integrity }) => {
         </div>
       )}
 
+      {canTriage && onDecision && (
+        <div style={{ display: "flex", gap: 8, marginTop: 14, flexWrap: "wrap" }}>
+          <button className="btn btn-secondary btn-sm"
+                  onClick={() => onDecision({ kind: "triage", decision: "GENUINE" })}>
+            <ShieldCheck size={14} /> Confirm genuine
+          </button>
+          <button className="btn btn-danger btn-sm"
+                  onClick={() => onDecision({ kind: "triage", decision: "FAKE" })}>
+            <ShieldAlert size={14} /> Flag as false
+          </button>
+        </div>
+      )}
+
       <p className="form-hint" style={{ marginTop: 12 }}>
         An automated estimate from weak signals — it can be wrong, and an AI read is not proof either way.
-        If this is spam or false, use "Flag as false"; otherwise accepting the case clears it.
+        {" "}{canTriage
+          ? "Your decision replaces the score; the breakdown above is kept for the record."
+          : "This case already has a human decision on file."}
       </p>
     </div>
   );

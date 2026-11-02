@@ -4,7 +4,7 @@ import { Loader2, Sparkles, ArrowLeft, Send, AlertCircle, Mic, Square, Check, Us
 import { previewAnalysis, submitGrievance, getNearbyReports } from "../../services/grievanceService";
 import { uploadImage } from "../../services/uploadService";
 import { reverseGeocode } from "../../services/geocodeService";
-import { LANGUAGES, DISTRICTS, DISTRICT_CENTERS, STATE_CENTER } from "../../utils/constants";
+import { LANGUAGES, DISTRICTS, DISTRICT_CENTERS, STATE_CENTER, STATUS_LABELS } from "../../utils/constants";
 import { useToast } from "../../context/ToastContext";
 import { getErrorMessage, toDisplayText, formatRelative } from "../../utils/helpers";
 import AIAnalysisPanel from "../../components/ai/AIAnalysisPanel";
@@ -387,7 +387,7 @@ const ReportIssue = () => {
                   </strong>
                   <p style={{ fontSize: 12, color: "var(--text-muted)", margin: "3px 0 0" }}>
                     Nearest: “{nearbyReports[0].title}” {formatNearbyDistance(nearbyReports[0].distance_km)} away,
-                    {" "}{nearbyReports[0].status.toLowerCase()} · reported {formatRelative(nearbyReports[0].created_at)}.
+                    {" "}{STATUS_LABELS[nearbyReports[0].status] || "being worked on"} · reported {formatRelative(nearbyReports[0].created_at)}.
                     Reporting it too is fine and helps — the extra confirmations make the case harder to ignore.
                   </p>
                 </div>

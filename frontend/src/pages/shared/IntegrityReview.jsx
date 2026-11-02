@@ -14,7 +14,7 @@ import { getIntegrityQueue, triageIntegrity, reviewFlagAppeal } from "../../serv
 import { useAuth } from "../../hooks/useAuth";
 import { useToast } from "../../context/ToastContext";
 import { getErrorMessage, formatRelative } from "../../utils/helpers";
-import { CATEGORY_LABELS } from "../../utils/constants";
+import { CATEGORY_LABELS, SIGNAL_LABELS } from "../../utils/constants";
 import Pagination from "../../components/common/Pagination";
 import EmptyState from "../../components/common/EmptyState";
 import ErrorState from "../../components/common/ErrorState";
@@ -36,9 +36,7 @@ const VERDICT_STYLE = {
 // A case that has already been judged by a human doesn't need a second guess
 // from the queue — the row says so instead of offering buttons.
 const decided = (grievance) =>
-  grievance.integrity?.human_decision ||
-  grievance.flagged_invalid ||
-  (grievance.reopen_request_status === "PENDING" && false);
+  grievance.integrity?.human_decision || grievance.flagged_invalid;
 
 const IntegrityReview = () => {
   const { user } = useAuth();
@@ -123,14 +121,10 @@ const IntegrityReview = () => {
     }
   };
 
-  const needsNote =
-    action?.kind === "appeal" ||
-    (action?.kind === "triage" && action.decision === "FAKE");
-  const noteTooShort = action?.kind === "appeal"
-    ? note.trim().length < 5
-    : action?.kind === "triage" && action.decision === "FAKE"
-      ? note.trim().length < 5
-      : false;
+  // Anything that changes a citizen's standing needs a reason on record; the
+  // backend enforces the same rule, so the button waits instead of failing.
+  const needsNote = action?.kind === "appeal" || action?.decision === "FAKE";
+  const noteTooShort = needsNote && note.trim().length < 5;
 
   return (
     <div>
@@ -250,7 +244,9 @@ const IntegrityReview = () => {
                     <div style={{ display: "flex", flexDirection: "column", gap: 3, marginTop: 8 }}>
                       {g.top_signals.map((s) => (
                         <span key={s.signal} style={{ fontSize: 12, color: "var(--text-muted)" }}>
-                          <strong style={{ color: "var(--danger, #dc2626)" }}>{s.signal.replace(/_/g, " ")}</strong>
+                          <strong style={{ color: "var(--danger, #dc2626)" }}>
+                            {SIGNAL_LABELS[s.signal] || s.signal.replace(/_/g, " ")}
+                          </strong>
                           {" "}{s.detail}
                         </span>
                       ))}

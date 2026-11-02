@@ -50,6 +50,10 @@ LIKELY_FAKE = "LIKELY_FAKE"
 GENUINE_THRESHOLD = 65
 REVIEW_THRESHOLD = 40
 
+# A single signal this severe puts a case in front of staff whatever the total
+# comes to. See `queue_for_review` in evaluate_authenticity().
+REVIEW_SIGNAL_FLOOR = -25
+
 BASE_SCORE = 70
 
 # Matching wording from accounts in more than this many districts is the
@@ -319,7 +323,7 @@ def _corroboration_signals(ctx):
     return []
 
 
-def _collusion_signals(ctx, location):
+def _collusion_signals(ctx, own_district):
     """Cross-account copy-paste detection.
 
     The existing corroboration signal counts *different wording, same area* —
@@ -343,7 +347,6 @@ def _collusion_signals(ctx, location):
         return signals
 
     districts = {d for d in campaign.get("districts", []) if d}
-    own_district = (location or {}).get("district")
     if own_district:
         districts.add(own_district)
     total_districts = max(1, len(districts))
@@ -423,12 +426,24 @@ def _trust_signals(ctx):
     return []
 
 
-def _consistency_signals(ai):
+def _consistency_signals(ai, prior_signals):
     signals = []
     word_count = ai.get("word_count", 0)
 
-    if ai.get("priority") in ("HIGH", "CRITICAL") and word_count < 6:
-        signals.append(_signal("severe_but_vague", -10, "Claims high severity but gives almost no detail."))
+    # What makes an urgent report actionable is an anchor the officer can use:
+    # a place, or a sense of how long it has been going. Length on its own is a
+    # weak proxy — a padded one-liner clears six words and still says nothing —
+    # so the rule reads whether the specificity signals fired instead.
+    anchored = {"landmark_mentioned", "duration_or_number"} & {s["signal"] for s in prior_signals}
+    if ai.get("priority") in ("HIGH", "CRITICAL") and not anchored and word_count < 25:
+        # Weighted to land a case like this in the review band rather than
+        # clearing it: the report may well be true, but nobody can dispatch on
+        # it, so the useful action is a human phoning the citizen.
+        signals.append(_signal(
+            "severe_but_vague", -15,
+            "Asks for an urgent response but names no place, landmark or duration "
+            "for anyone to act on.",
+        ))
 
     if ai.get("duplicate"):
         signals.append(_signal("repeat_of_own_report", -10, "Closely repeats an earlier report from the same account."))
@@ -490,12 +505,15 @@ def _fuse_with_ai(rule_score, signals, ai_read):
     return fused, basis, disagreement
 
 
-def evaluate_authenticity(text, location=None, address=None, attachments=None,
-                          ai=None, context=None, ai_read=None):
+def evaluate_authenticity(text, location=None, address=None, district=None,
+                          attachments=None, ai=None, context=None, ai_read=None):
     """Pure scoring function — no database access, easy to test.
 
     `ai_read` is the optional independent AI authenticity read (see
-    _fuse_with_ai); `context` carries the DB-derived signals."""
+    _fuse_with_ai); `context` carries the DB-derived signals. `district` is the
+    report's own district — it lives on the grievance document rather than
+    inside the GeoJSON point, and collusion scoring needs it to know whether
+    the identical wording is spread across districts or confined to one."""
     ai = dict(ai or {})
     ai["word_count"] = len(text.split())
     context = context or {}
@@ -507,17 +525,28 @@ def evaluate_authenticity(text, location=None, address=None, attachments=None,
     signals += _evidence_signals(attachments, context)
     signals += _behavior_signals(context)
     signals += _corroboration_signals(context)
-    signals += _collusion_signals(context, location)
+    signals += _collusion_signals(context, district)
     signals += _trust_signals(context)
-    signals += _consistency_signals(ai)
+    signals += _consistency_signals(ai, signals)
 
     rule_score = max(0, min(100, BASE_SCORE + sum(s["impact"] for s in signals)))
     score, basis, disagreement = _fuse_with_ai(rule_score, signals, ai_read)
     verdict = _verdict_for(score)
 
+    # Whether a human should look at this. The total is a weighted blend, so on
+    # its own it lets a well-written fabrication through: a report that carries
+    # a real street, a duration and a photo scores fine even if the photo is
+    # provably from somebody else's different problem. One disqualifying fact
+    # outranks a pile of generic plausibility, so severe signals queue the case
+    # regardless of verdict. This never rejects or deducts points — it only
+    # decides who reads it.
+    hardest = min((s["impact"] for s in signals), default=0)
+    queue_for_review = verdict != LIKELY_GENUINE or hardest <= REVIEW_SIGNAL_FLOOR
+
     return {
         "score": score,
         "verdict": verdict,
+        "queue_for_review": queue_for_review,
         "signals": sorted(signals, key=lambda s: s["impact"]),
         "checked_at": datetime.utcnow(),
         # Kept for the audit trail: what the rules alone concluded, before
@@ -729,6 +758,7 @@ def check_grievance_authenticity(grievance, use_ai=None):
         text,
         location=location,
         address=(location or {}).get("address"),
+        district=grievance.get("district"),
         attachments=attachments,
         ai={"priority": grievance.get("priority"), "duplicate": grievance.get("duplicate")},
         context=context,

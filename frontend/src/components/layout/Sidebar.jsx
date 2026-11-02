@@ -38,6 +38,8 @@ const NAV_LABEL_KEY = {
   "/admin/admins": "nav.admins",
   "/admin/map": "nav.map",
   "/admin/ai-insights": "nav.aiInsights",
+  "/officer/integrity": "nav.integrity", "/admin/integrity": "nav.integrity",
+  "/admin/fraud": "nav.fraud",
   "/admin/district": "nav.district",
   "/admin/district/unassigned": "nav.unassigned",
 };
