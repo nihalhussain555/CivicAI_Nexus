@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Bell, BellOff, BellRing } from "lucide-react";
+import { BellOff, BellRing } from "lucide-react";
 import { getVapidPublicKey, subscribePush, unsubscribePush } from "../../services/pushService";
 import { useToast } from "../../context/ToastContext";
 
@@ -50,7 +50,7 @@ const PushNotificationToggle = () => {
 
       setStatus("on");
       toast.success("Push notifications enabled");
-    } catch (error) {
+    } catch {
       toast.error("Couldn't enable push notifications — please try again.");
     } finally {
       setBusy(false);
@@ -68,7 +68,7 @@ const PushNotificationToggle = () => {
       }
       setStatus("off");
       toast.success("Push notifications turned off");
-    } catch (error) {
+    } catch {
       toast.error("Couldn't turn off push notifications.");
     } finally {
       setBusy(false);

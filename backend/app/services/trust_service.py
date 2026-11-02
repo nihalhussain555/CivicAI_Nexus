@@ -12,7 +12,8 @@ what makes it usable as a fraud signal.
 Friction scales with how often a account has been caught out:
 
   level 0  STANDARD  everything as normal
-  level 1  WATCH     low-trust verdicts are always queued for staff review
+  level 1  WATCH     the earlier flag rides along on every new report as a
+                     caution the scorer can see; nothing else changes
   level 2  STRICT    daily submission cap, points held until an officer
                      reviews, evidence (photo) expected
   level 3  SEVERE    lower cap, every report is staff-first regardless of

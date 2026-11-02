@@ -559,9 +559,10 @@ def evaluate_authenticity(text, location=None, address=None, district=None,
 
 
 def gather_context(citizen_id, category, location, grievance_id,
-                   fingerprint=None, signatures=None):
+                   fingerprint=None, signatures=None, district=None):
     """Database lookups feeding the behavior, corroboration, collusion,
-    evidence-reuse and trust signals.
+    evidence-reuse and trust signals. `district` is the report's own district,
+    read off the grievance document — the GeoJSON point does not carry one.
     Best-effort: if any lookup fails the check still runs on what it has,
     rather than failing grievance submission."""
     from app.config.database import users_collection, grievances_collection
@@ -651,7 +652,7 @@ def gather_context(citizen_id, category, location, grievance_id,
             # forwarded-photo-of-one-real-incident case, which is far weaker.
             spans_scope = any(
                 (r.get("category") and r.get("category") != category)
-                or (r.get("district") and location and r.get("district") != location.get("district"))
+                or (r.get("district") and district and r.get("district") != district)
                 for r in foreign
             )
 
@@ -740,6 +741,7 @@ def check_grievance_authenticity(grievance, use_ai=None):
     context = gather_context(
         grievance["citizen_id"], grievance.get("category"), location,
         grievance["grievance_id"], fingerprint=fingerprint, signatures=signatures,
+        district=grievance.get("district"),
     )
 
     ai_read = None

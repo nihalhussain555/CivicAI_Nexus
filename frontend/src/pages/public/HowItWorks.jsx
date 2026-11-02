@@ -282,7 +282,7 @@ const HowItWorks = () => {
           }}
         >
           {STEPS.map(
-            ({ number, icon: Icon, title, body, tags }, index) => (
+            ({ number, icon: Icon, title, body, tags }) => (
               <div
                 key={title}
                 className="card"

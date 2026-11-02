@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate, useLocation } from "react-router-dom";
+import { Link } from "react-router-dom";
 import {
   UserRound,
   ClipboardList,
@@ -20,12 +20,6 @@ import CivicLoader from "../../components/common/CivicLoader";
 import { useTranslation } from "../../context/LanguageContext";
 import { getErrorMessage } from "../../utils/helpers";
 import SocialLoginButtons from "../../pages/auth/SocialLoginButtons";
-
-const roleHome = {
-  citizen: "/citizen/dashboard",
-  officer: "/officer/dashboard",
-  admin: "/admin/dashboard",
-};
 
 const ROLES = [
   {
@@ -64,8 +58,6 @@ const Login = () => {
 
   const { login } = useAuth();
   const toast = useToast();
-  const navigate = useNavigate();
-  const location = useLocation();
 
   const validateEmail = (value) => {
     if (!value.trim()) {

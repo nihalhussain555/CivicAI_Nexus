@@ -176,7 +176,7 @@ SUSPECT_CASES = [
         "flagged": {
             "reason": "No describable physical defect; the text is keyboard "
                       "mash and the same account filed three more reports "
-                      "inside the hour.",
+                      "within two hours.",
             "appeal": "My phone dialled itself in my pocket. The drain on our "
                       "lane really is blocked — please send someone.",
         },
@@ -698,8 +698,8 @@ def run(reset=False):
     print("Demo accounts (password: Demo@123):")
     print("  citizen@demo.com")
     print("  officer@demo.com  (Chennai district)")
-    print("  admin@demo.com    (unrestricted — can add officers in any district)")
-    print("  chennai.admin@demo.com  (Chennai district — can only add officers in Chennai)")
+    print("  admin@demo.com    (unrestricted - can add officers in any district)")
+    print("  chennai.admin@demo.com  (Chennai district - can only add officers in Chennai)")
 
 
 if __name__ == "__main__":
