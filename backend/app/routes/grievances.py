@@ -39,6 +39,11 @@ from app.services.ai_pipeline_service import (
     run_pipeline,
 )
 
+from app.services.classification_service import (
+    canonical_department_or_raw,
+    departments_equal,
+)
+
 from app.services.grievance_service import (
     create_grievance,
     get_grievance_or_404,
@@ -403,7 +408,10 @@ def priority_queue(
 
     if current_user["role"] == "officer":
 
-        query["department"] = (
+        # Grievances store canonical names; the officer's user document may
+        # carry a legacy variant ("Sanitation Department") that must still
+        # resolve to its cases.
+        query["department"] = canonical_department_or_raw(
             current_user.get(
                 "department"
             )
@@ -585,7 +593,10 @@ def bulk_accept_cases(
             skipped.append({"grievance_id": gid, "reason": "Not found"})
             continue
 
-        if grievance.get("department") != current_user.get("department"):
+        if not departments_equal(
+            grievance.get("department"),
+            current_user.get("department"),
+        ):
             skipped.append({"grievance_id": gid, "reason": "Different department"})
             continue
 
@@ -856,9 +867,11 @@ def accept_case(
         )
 
     if (
-        grievance.get("department")
-        != current_user.get(
-            "department"
+        not departments_equal(
+            grievance.get("department"),
+            current_user.get(
+                "department"
+            ),
         )
     ):
         raise HTTPException(
@@ -1081,9 +1094,11 @@ def assign_officer(
         )
 
     if (
-        officer.get("department")
-        != grievance.get(
-            "department"
+        not departments_equal(
+            officer.get("department"),
+            grievance.get(
+                "department"
+            ),
         )
     ):
         raise HTTPException(

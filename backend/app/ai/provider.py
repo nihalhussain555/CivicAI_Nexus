@@ -120,7 +120,7 @@ class MockAIProvider(BaseAIProvider):
 
         confidence = round(
             0.55 + 0.15 * min(len(priority["matched_keywords"]), 2)
-            + (0.1 if classification["scores"].get(classification["category"], 0) > 0 else 0),
+            + (0.1 if classification["scores"].get(classification["department"], 0) > 0 else 0),
             2,
         )
         confidence = min(confidence, 0.97)

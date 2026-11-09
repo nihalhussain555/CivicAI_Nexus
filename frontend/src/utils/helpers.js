@@ -49,12 +49,38 @@ export const titleCase = (value) => {
 };
 
 export const getErrorMessage = (error) => {
-  return (
-    error?.response?.data?.error?.message ||
-    error?.response?.data?.detail ||
-    error?.message ||
-    "Something went wrong. Please try again."
-  );
+  const data = error?.response?.data;
+
+  // Our API's normal error envelope: { error: { code, message, details? } }.
+  if (data?.error?.message) {
+    return data.error.message;
+  }
+
+  // FastAPI 422 validation errors put an array of objects under `detail`.
+  // Returning that array raw lets a toast try to render objects (a React
+  // crash). Flatten it to readable field messages instead.
+  const detail = data?.detail;
+  if (Array.isArray(detail)) {
+    const first = detail[0];
+    const field = Array.isArray(first?.loc) ? first.loc.slice(1).join(".") : "";
+    const msg = typeof first?.msg === "string" ? first.msg : "";
+    const human = msg.replace(/^Value error,\s*/i, "");
+    return field && human ? `${field}: ${human}` : human || "Validation failed.";
+  }
+  if (typeof detail === "string" && detail) {
+    return detail;
+  }
+
+  // Network errors (timeout / connection refused) have no response — say so
+  // explicitly so the user knows the backend was unreachable, not "wrong password".
+  if (error?.code === "ECONNABORTED" || /timeout/i.test(error?.message || "")) {
+    return "The server took too long to respond. It may be waking up — please try again.";
+  }
+  if (error?.message === "Network Error") {
+    return "Cannot reach the server. Check your connection or that the backend is running.";
+  }
+
+  return error?.message || "Something went wrong. Please try again.";
 };
 
 // API and AI providers can return a value in a different shape while a request

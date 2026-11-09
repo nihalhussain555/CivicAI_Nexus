@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   Home,
   Info,
@@ -8,10 +8,13 @@ import {
   Settings,
   LogOut,
   ChevronDown,
+  ChevronRight,
   Menu,
 } from "lucide-react";
 
 import { useAuth } from "../../hooks/useAuth";
+import { useTranslation } from "../../context/LanguageContext";
+import { getBreadcrumbs } from "./navConfig";
 import ThemeToggle from "../common/ThemeToggle";
 import LanguageSwitcher from "../common/LanguageSwitcher";
 import NotificationBell from "../notifications/NotificationBell";
@@ -19,12 +22,19 @@ import Avatar from "../common/Avatar";
 
 const Topbar = ({ title, onMenuToggle }) => {
   const { user, logout } = useAuth();
+  const { t } = useTranslation();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [profileOpen, setProfileOpen] = useState(false);
   const profileRef = useRef(null);
 
   const role = user?.role || "citizen";
+
+  const crumbs = useMemo(
+    () => getBreadcrumbs(user, location.pathname),
+    [user, location.pathname]
+  );
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -71,14 +81,7 @@ const Topbar = ({ title, onMenuToggle }) => {
 
   return (
     <header className="topbar">
-      {/* Page Title */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 12,
-        }}
-      >
+      <div className="topbar-heading">
         {/* Mobile hamburger — opens the sidebar as an off-canvas drawer on small screens */}
         <button
           type="button"
@@ -89,7 +92,29 @@ const Topbar = ({ title, onMenuToggle }) => {
           <Menu size={18} />
         </button>
 
-        <span className="topbar-title">{title}</span>
+        <div className="topbar-heading-text">
+          {crumbs.length > 1 && (
+            <nav className="breadcrumbs" aria-label="Breadcrumb">
+              {crumbs.map((crumb, index) => {
+                const label = crumb.key ? t(crumb.key) : crumb.label;
+                const isLast = index === crumbs.length - 1;
+
+                return (
+                  <span key={`${crumb.to || "leaf"}-${index}`} className="breadcrumb-item">
+                    {index > 0 && <ChevronRight size={13} />}
+                    {isLast || !crumb.to ? (
+                      <span className="current">{label}</span>
+                    ) : (
+                      <Link to={crumb.to}>{label}</Link>
+                    )}
+                  </span>
+                );
+              })}
+            </nav>
+          )}
+
+          <span className="topbar-title">{title}</span>
+        </div>
       </div>
 
       {/* Topbar Actions */}

@@ -24,7 +24,7 @@ const Dashboard = () => {
         <div><h1>Welcome, {user.name.split(" ")[0]}</h1><p>{user.department} · Priority queue and case load.</p></div>
       </div>
 
-      <div className="grid grid-4" style={{ marginBottom: 26 }}>
+      <div className="grid grid-4 stat-grid">
         <div className="stat-card">
           <span className="stat-label"><ListChecks size={13} style={{ verticalAlign: "-2px" }} /> Assigned</span>
           <span className="stat-value">{stats?.total_assigned ?? "—"}</span>

@@ -40,43 +40,43 @@ const IncidentDetail = () => {
 
   return (
     <div>
-      <button className="btn btn-ghost btn-sm" onClick={() => navigate(-1)} style={{ marginBottom: 14 }}>
+      <button className="btn btn-ghost btn-sm btn-back" onClick={() => navigate(-1)}>
         <ArrowLeft size={14} /> Back
       </button>
 
       <div className="page-header">
         <div>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
+          <div className="badge-row">
             <span className="badge badge-neutral">{CATEGORY_LABELS[incident.category] || incident.category}</span>
             <span className={`badge ${RISK_COLOR[incident.risk_level]}`}>{incident.risk_level} RISK</span>
           </div>
-          <h1><AlertTriangle size={20} style={{ verticalAlign: "-3px", marginRight: 8, color: "var(--warning)" }} />{incident.title}</h1>
+          <h1><AlertTriangle size={20} className="incident-title-icon" />{incident.title}</h1>
         </div>
       </div>
 
-      <div className="grid grid-3" style={{ marginBottom: 22 }}>
+      <div className="grid grid-3 incident-detail-stats">
         <div className="stat-card">
           <span className="stat-label">Reports</span>
           <span className="stat-value">{incident.report_count}</span>
         </div>
         <div className="stat-card">
           <span className="stat-label">Status</span>
-          <span className="stat-value" style={{ fontSize: 18 }}>{incident.status}</span>
+          <span className="stat-value incident-status-value">{incident.status}</span>
         </div>
         <div className="stat-card">
           <span className="stat-label">Location</span>
-          <span className="stat-value" style={{ fontSize: 14, display: "flex", alignItems: "center", gap: 6 }}>
+          <span className="stat-value incident-location">
             <MapPin size={14} /> {incident.center?.address || "Unknown"}
           </span>
         </div>
       </div>
 
       {incident.ai_summary && (
-        <div className="card" style={{ borderColor: "var(--accent)", marginBottom: 20 }}>
+        <div className="card card-accent" style={{ marginBottom: 20 }}>
           <span className="ai-tag" style={{ marginBottom: 8, display: "inline-flex" }}>AI Summary</span>
-          <p style={{ fontSize: 13.5, color: "var(--text-muted)", lineHeight: 1.7 }}>{incident.ai_summary}</p>
+          <p className="incident-ai-summary">{incident.ai_summary}</p>
           {incident.probable_root_cause && (
-            <p style={{ fontSize: 13, color: "var(--text-faint)", marginTop: 10 }}>
+            <p className="incident-cause-line">
               <strong>Probable root cause:</strong> {incident.probable_root_cause}
             </p>
           )}

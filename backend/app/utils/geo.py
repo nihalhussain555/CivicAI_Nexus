@@ -16,14 +16,24 @@ def haversine_km(lat1, lon1, lat2, lon2):
     return EARTH_RADIUS_KM * c
 
 
-def make_point(lat, lon, address=None):
-    """Build a GeoJSON Point document (MongoDB 2dsphere-compatible)."""
+def make_point(lat, lon, address=None, **extra):
+    """Build a GeoJSON Point document (MongoDB 2dsphere-compatible).
+
+    `extra` carries optional provenance/address parts (city, state, pincode,
+    detection_method). Falsy values are skipped so the stored document stays
+    clean, and the 2dsphere-critical `type`/`coordinates` keys can't be
+    overwritten by callers.
+    """
     point = {
         "type": "Point",
         "coordinates": [lon, lat],  # GeoJSON order: [lng, lat]
     }
     if address:
         point["address"] = address
+    for key in ("city", "state", "pincode", "detection_method"):
+        value = extra.get(key)
+        if value:
+            point[key] = value
     return point
 
 

@@ -147,11 +147,10 @@ const OfficerDetail = () => {
       <div>
         <button
           type="button"
-          className="btn btn-ghost btn-sm"
+          className="btn btn-ghost btn-sm btn-back"
           onClick={() =>
             navigate("/admin/officers")
           }
-          style={{ marginBottom: 14 }}
         >
           <ArrowLeft size={14} />
           Back to Officers
@@ -208,11 +207,10 @@ const OfficerDetail = () => {
     <div>
       <button
         type="button"
-        className="btn btn-ghost btn-sm"
+        className="btn btn-ghost btn-sm btn-back"
         onClick={() =>
           navigate("/admin/officers")
         }
-        style={{ marginBottom: 14 }}
       >
         <ArrowLeft size={14} />
         Back to Officers
@@ -228,85 +226,28 @@ const OfficerDetail = () => {
         </div>
       </div>
 
-      <div
-        className="grid"
-        style={{
-          gridTemplateColumns:
-            "320px minmax(0, 1fr)",
-          gap: 20,
-          alignItems: "start",
-        }}
-      >
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: 18,
-          }}
-        >
-          <div
-            className="card"
-            style={{ textAlign: "center" }}
-          >
-            <div
-              className="avatar"
-              style={{
-                width: 72,
-                height: 72,
-                fontSize: 24,
-                margin:
-                  "0 auto 14px",
-              }}
-            >
+      <div className="split-rail">
+        <div className="stack">
+          <div className="card card-center">
+            <div className="avatar avatar-lg">
               {initials}
             </div>
 
-            <div
-              style={{
-                fontWeight: 800,
-                fontSize: 17,
-              }}
-            >
-              {safeName}
-            </div>
+            <div className="officer-name">{safeName}</div>
 
-            <div
-              style={{
-                fontSize: 13,
-                color: "var(--text-muted)",
-                marginBottom: 14,
-              }}
-            >
+            <div className="officer-role">
               {officer.specialization ||
                 "Field Officer"}
             </div>
 
-            <div
-              style={{
-                textAlign: "left",
-                display: "flex",
-                flexDirection: "column",
-                gap: 12,
-                fontSize: 13,
-              }}
-            >
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 10,
-                }}
-              >
+            <div className="stack-tight">
+              <div className="info-line">
                 <Mail
                   size={14}
-                  color="var(--text-faint)"
                 />
 
                 <span
-                  style={{
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                  }}
+                  className="truncate"
                 >
                   {officer.email ||
                     "No email"}
@@ -314,16 +255,9 @@ const OfficerDetail = () => {
               </div>
 
               {officer.phone && (
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 10,
-                  }}
-                >
+                <div className="info-line">
                   <Phone
                     size={14}
-                    color="var(--text-faint)"
                   />
 
                   <span>
@@ -332,16 +266,9 @@ const OfficerDetail = () => {
                 </div>
               )}
 
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 10,
-                }}
-              >
+              <div className="info-line">
                 <Building2
                   size={14}
-                  color="var(--text-faint)"
                 />
 
                 <span>
@@ -351,16 +278,9 @@ const OfficerDetail = () => {
               </div>
 
               {officer.district && (
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 10,
-                  }}
-                >
+                <div className="info-line">
                   <MapPin
                     size={14}
-                    color="var(--text-faint)"
                   />
 
                   <span>
@@ -370,16 +290,9 @@ const OfficerDetail = () => {
               )}
 
               {officer.badge_id && (
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 10,
-                  }}
-                >
+                <div className="info-line">
                   <Briefcase
                     size={14}
-                    color="var(--text-faint)"
                   />
 
                   <span>
@@ -388,16 +301,9 @@ const OfficerDetail = () => {
                 </div>
               )}
 
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 10,
-                }}
-              >
+              <div className="info-line">
                 <Calendar
                   size={14}
-                  color="var(--text-faint)"
                 />
 
                 <span>
@@ -417,126 +323,37 @@ const OfficerDetail = () => {
               About Officer
             </div>
 
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: 12,
-                fontSize: 13,
-              }}
-            >
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent:
-                    "space-between",
-                  gap: 12,
-                }}
-              >
-                <span
-                  style={{
-                    color:
-                      "var(--text-muted)",
-                  }}
-                >
-                  Department
-                </span>
-
-                <strong>
-                  {officer.department ||
-                    "—"}
-                </strong>
+            <div className="stack-tight">
+              <div className="kv-row">
+                <span>Department</span>
+                <strong>{officer.department || "—"}</strong>
               </div>
 
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent:
-                    "space-between",
-                  gap: 12,
-                }}
-              >
-                <span
-                  style={{
-                    color:
-                      "var(--text-muted)",
-                  }}
-                >
-                  District
-                </span>
-
-                <strong>
-                  {officer.district ||
-                    "—"}
-                </strong>
+              <div className="kv-row">
+                <span>District</span>
+                <strong>{officer.district || "—"}</strong>
               </div>
 
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent:
-                    "space-between",
-                  gap: 12,
-                }}
-              >
-                <span
-                  style={{
-                    color:
-                      "var(--text-muted)",
-                  }}
-                >
-                  Avg. resolution
-                </span>
-
+              <div className="kv-row">
+                <span>Avg. resolution</span>
                 <strong>
-                  {performance.avg_resolution_hours !==
-                  null
+                  {performance.avg_resolution_hours !== null
                     ? `${performance.avg_resolution_hours}h`
                     : "—"}
                 </strong>
               </div>
 
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent:
-                    "space-between",
-                  gap: 12,
-                }}
-              >
-                <span
-                  style={{
-                    color:
-                      "var(--text-muted)",
-                  }}
-                >
-                  Status
-                </span>
-
-                <span
-                  className={`badge ${
-                    officer.active === false
-                      ? "badge-danger"
-                      : "badge-success"
-                  }`}
-                >
-                  {officer.active === false
-                    ? "Inactive"
-                    : "Active"}
+              <div className="kv-row">
+                <span>Status</span>
+                <span className={`badge ${officer.active === false ? "badge-danger" : "badge-success"}`}>
+                  {officer.active === false ? "Inactive" : "Active"}
                 </span>
               </div>
             </div>
           </div>
         </div>
 
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: 18,
-            minWidth: 0,
-          }}
-        >
+        <div className="stack">
           <div className="grid grid-4">
             <div className="stat-card">
               <span className="stat-label">
@@ -599,136 +416,47 @@ const OfficerDetail = () => {
             />
           ) : (
             <div className="card">
-              <div className="section-title">
-                Resolution trend
-              </div>
-
-              <p
-                style={{
-                  color:
-                    "var(--text-muted)",
-                  fontSize: 13,
-                }}
-              >
-                No resolution history is
-                available yet.
-              </p>
+              <div className="section-title">Resolution trend</div>
+              <p className="muted-note">No resolution history is available yet.</p>
             </div>
           )}
 
           <div className="card">
-            <div className="section-title">
-              Recent Cases
-            </div>
+            <div className="section-title">Recent Cases</div>
 
-            {performance.recent_cases.length ===
-            0 ? (
-              <p
-                style={{
-                  fontSize: 13,
-                  color:
-                    "var(--text-muted)",
-                }}
-              >
-                No cases assigned yet.
-              </p>
+            {performance.recent_cases.length === 0 ? (
+              <p className="muted-note">No cases assigned yet.</p>
             ) : (
-              performance.recent_cases.map(
-                (item) => (
-                  <Link
-                    key={
-                      item.grievance_id
-                    }
-                    to={`/admin/grievances/${item.grievance_id}`}
-                    className="list-row"
-                  >
-                    <div>
-                      <div
-                        style={{
-                          display: "flex",
-                          alignItems:
-                            "center",
-                          gap: 8,
-                          marginBottom: 4,
-                          flexWrap:
-                            "wrap",
-                        }}
-                      >
-                        <span
-                          style={{
-                            fontFamily:
-                              "monospace",
-                            fontSize: 11.5,
-                            color:
-                              "var(--text-faint)",
-                          }}
-                        >
-                          {item.grievance_id}
-                        </span>
-
-                        <span className="badge badge-neutral">
-                          {CATEGORY_LABELS[
-                            item.category
-                          ] ||
-                            item.category ||
-                            "General"}
-                        </span>
-                      </div>
-
-                      <div
-                        style={{
-                          fontWeight: 600,
-                          fontSize: 13.5,
-                        }}
-                      >
-                        {item.title ||
-                          "Untitled grievance"}
-                      </div>
-
-                      <div
-                        style={{
-                          fontSize: 11.5,
-                          color:
-                            "var(--text-faint)",
-                          marginTop: 4,
-                        }}
-                      >
-                        Updated{" "}
-                        {item.updated_at
-                          ? formatRelative(
-                              item.updated_at
-                            )
-                          : "—"}
-                      </div>
+              performance.recent_cases.map((item) => (
+                <Link
+                  key={item.grievance_id}
+                  to={`/admin/grievances/${item.grievance_id}`}
+                  className="list-row list-row-start"
+                >
+                  <div className="list-row-body">
+                    <div className="badge-row">
+                      <span className="record-id">{item.grievance_id}</span>
+                      <span className="badge badge-neutral">
+                        {CATEGORY_LABELS[item.category] || item.category || "General"}
+                      </span>
                     </div>
 
-                    <div
-                      style={{
-                        display: "flex",
-                        flexDirection:
-                          "column",
-                        gap: 8,
-                        alignItems:
-                          "flex-end",
-                      }}
-                    >
-                      <PriorityBadge
-                        priority={
-                          item.priority ||
-                          "LOW"
-                        }
-                      />
-
-                      <StatusBadge
-                        status={
-                          item.status ||
-                          "SUBMITTED"
-                        }
-                      />
+                    <div className="list-row-title">
+                      {item.title || "Untitled grievance"}
                     </div>
-                  </Link>
-                )
-              )
+
+                    <div className="meta-row">
+                      Updated{" "}
+                      {item.updated_at ? formatRelative(item.updated_at) : "—"}
+                    </div>
+                  </div>
+
+                  <div className="list-row-actions">
+                    <PriorityBadge priority={item.priority || "LOW"} />
+                    <StatusBadge status={item.status || "SUBMITTED"} />
+                  </div>
+                </Link>
+              ))
             )}
           </div>
         </div>

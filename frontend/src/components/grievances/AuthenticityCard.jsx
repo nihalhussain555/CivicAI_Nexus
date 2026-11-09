@@ -13,9 +13,9 @@ import { SIGNAL_LABELS } from "../../utils/constants";
 // it's built from weak signals and can be wrong, so the card always shows
 // *why* it scored the way it did, and the decision stays with the officer.
 const VERDICTS = {
-  LIKELY_GENUINE: { label: "Likely genuine", icon: ShieldCheck, color: "var(--priority-low, #16a34a)", bg: "var(--success-soft)" },
-  NEEDS_REVIEW: { label: "Needs a closer look", icon: ShieldQuestion, color: "var(--warning, #d97706)", bg: "var(--warning-soft)" },
-  LIKELY_FAKE: { label: "Likely fake or spam", icon: ShieldAlert, color: "var(--danger, #dc2626)", bg: "var(--danger-soft)" },
+  LIKELY_GENUINE: { label: "Likely genuine", icon: ShieldCheck, color: "var(--priority-low)", bg: "var(--success-soft)" },
+  NEEDS_REVIEW: { label: "Needs a closer look", icon: ShieldQuestion, color: "var(--warning)", bg: "var(--warning-soft)" },
+  LIKELY_FAKE: { label: "Likely fake or spam", icon: ShieldAlert, color: "var(--danger)", bg: "var(--danger-soft)" },
 };
 
 // Three independent little readouts on one line each — kept separate from the
@@ -70,7 +70,7 @@ const AuthenticityCard = ({ authenticity, integrity, canTriage = false, onDecisi
             <span style={{ color: "var(--text-muted)" }}>
               <strong style={{ color: "var(--text)" }}>{SIGNAL_LABELS[s.signal] || s.signal}</strong> — {s.detail}
             </span>
-            <span style={{ fontWeight: 700, color: s.impact < 0 ? "var(--danger, #dc2626)" : "var(--priority-low, #16a34a)", flexShrink: 0 }}>
+            <span style={{ fontWeight: 700, color: s.impact < 0 ? "var(--danger)" : "var(--priority-low)", flexShrink: 0 }}>
               {s.impact > 0 ? "+" : ""}{s.impact}
             </span>
           </div>

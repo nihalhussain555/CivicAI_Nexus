@@ -32,7 +32,7 @@ const Grievances = () => {
         <div><h1>My Grievances</h1><p>Every issue you've reported, and where it stands.</p></div>
       </div>
 
-      <div className="tabs" style={{ flexWrap: "wrap" }}>
+      <div className="tabs tabs-wrap">
         <button className={`tab ${status === "" ? "active" : ""}`} onClick={() => { setStatus(""); setPage(1); }}>All</button>
         {STATUSES.map((s) => (
           <button key={s} className={`tab ${status === s ? "active" : ""}`} onClick={() => { setStatus(s); setPage(1); }}>

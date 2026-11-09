@@ -20,21 +20,21 @@ const Dashboard = () => {
     <div>
       <div className="page-header"><div><h1>Admin Dashboard</h1><p>City-wide grievance intelligence at a glance.</p></div></div>
 
-      <div className="grid grid-4" style={{ marginBottom: 20 }}>
+      <div className="grid grid-4 stat-grid">
         <div className="stat-card"><span className="stat-label"><FileText size={13} /> Total grievances</span><span className="stat-value">{stats?.total_grievances ?? "—"}</span></div>
         <div className="stat-card"><span className="stat-label"><Clock size={13} /> Open</span><span className="stat-value">{stats?.open ?? "—"}</span></div>
         <div className="stat-card"><span className="stat-label"><CheckCircle2 size={13} /> Resolved</span><span className="stat-value">{stats?.resolved ?? "—"}</span><span className="stat-sub">{stats?.resolution_rate}% resolution rate</span></div>
         <div className="stat-card"><span className="stat-label"><Flame size={13} /> High priority</span><span className="stat-value">{stats?.high_priority ?? "—"}</span></div>
       </div>
 
-      <div className="grid grid-4" style={{ marginBottom: 26 }}>
-        <div className="stat-card"><span className="stat-label">SLA breaches</span><span className="stat-value" style={{ color: "var(--danger)" }}>{stats?.sla_breaches ?? "—"}</span></div>
+      <div className="grid grid-4 stat-grid">
+        <div className="stat-card"><span className="stat-label">SLA breaches</span><span className="stat-value is-danger">{stats?.sla_breaches ?? "—"}</span></div>
         <div className="stat-card"><span className="stat-label">Escalated</span><span className="stat-value">{stats?.escalated ?? "—"}</span><span className="stat-sub">{stats?.escalation_rate}% escalation rate</span></div>
         <div className="stat-card"><span className="stat-label">Avg resolution</span><span className="stat-value">{stats?.avg_resolution_hours ?? "—"}h</span></div>
         <div className="stat-card"><span className="stat-label"><Sparkles size={13} /> Avg AI confidence</span><span className="stat-value">{stats?.avg_ai_confidence ? Math.round(stats.avg_ai_confidence * 100) + "%" : "—"}</span></div>
       </div>
 
-      <div className="grid grid-2" style={{ marginBottom: 20, alignItems: "start" }}>
+      <div className="grid grid-2 chart-grid">
         <LineChartCard title="Grievances over last 30 days" data={trends} />
         <BarChartCard title="Category distribution" data={categories} />
       </div>

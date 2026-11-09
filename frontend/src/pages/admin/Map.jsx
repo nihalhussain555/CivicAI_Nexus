@@ -224,7 +224,7 @@ const Map = () => {
         </div>
 
         <div style={{ display: "flex", gap: 16, alignItems: "center", flexWrap: "wrap", marginTop: 14 }}>
-          <div className="tabs" style={{ marginBottom: 0, borderBottom: "none" }}>
+          <div className="tabs tabs-plain">
             {Object.entries(COLOR_MODES).map(([key, mode]) => (
               <button
                 key={key}

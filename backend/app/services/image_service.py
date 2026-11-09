@@ -26,12 +26,35 @@ VISION_PROMPT = (
 )
 
 
-def validate_image(content_type: str, size_bytes: int) -> tuple[bool, str]:
+def sniff_image_format(content: bytes):
+    """Identify an image from its actual bytes, not its declared MIME type.
+
+    Returns (content_type, extension) or None when the bytes aren't a
+    supported image. Uploads must store an extension derived from this,
+    never from the client-supplied filename — an ".svg"/".html" name served
+    back from /uploads would execute in the site's own origin.
+    """
+    if not content:
+        return None
+    if content.startswith(b"\xff\xd8\xff"):
+        return ("image/jpeg", ".jpg")
+    if content.startswith(b"\x89PNG\r\n\x1a\n"):
+        return ("image/png", ".png")
+    if content[:4] == b"RIFF" and content[8:12] == b"WEBP":
+        return ("image/webp", ".webp")
+    return None
+
+
+def validate_image(content_type: str, size_bytes: int, content: bytes = None) -> tuple[bool, str]:
     if content_type not in ALLOWED_IMAGE_TYPES:
         return False, f"Unsupported image type '{content_type}'."
     max_bytes = settings.MAX_UPLOAD_MB * 1024 * 1024
     if size_bytes > max_bytes:
         return False, f"Image exceeds the {settings.MAX_UPLOAD_MB}MB upload limit."
+    if content is not None:
+        sniffed = sniff_image_format(content)
+        if sniffed is None or sniffed[0] != content_type:
+            return False, "File content does not match its declared image type."
     return True, ""
 
 

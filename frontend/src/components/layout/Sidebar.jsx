@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import {
   NavLink,
   useNavigate,
@@ -14,35 +14,11 @@ import {
 
 import {
   getNavigationItems,
+  NAV_LABEL_KEY,
 } from "./navConfig";
 
 import { useAuth } from "../../hooks/useAuth";
 import { useTranslation } from "../../context/LanguageContext";
-
-// Maps each nav path to its translation key — kept here rather than in
-// navConfig.js so navConfig stays framework-agnostic (no hook access).
-const NAV_LABEL_KEY = {
-  "/citizen/dashboard": "nav.dashboard", "/officer/dashboard": "nav.dashboard", "/admin/dashboard": "nav.dashboard",
-  "/citizen/report": "nav.report",
-  "/citizen/grievances": "nav.grievances", "/officer/grievances": "nav.grievances", "/admin/grievances": "nav.grievances",
-  "/citizen/rewards": "nav.rewards",
-  "/citizen/incidents": "nav.incidents", "/officer/incidents": "nav.incidents", "/admin/incidents": "nav.incidents",
-  "/citizen/assistant": "nav.assistant", "/admin/assistant": "nav.assistant",
-  "/officer/copilot": "nav.copilot",
-  "/officer/analytics": "nav.analytics", "/admin/analytics": "nav.analytics",
-  "/citizen/notifications": "nav.notifications", "/officer/notifications": "nav.notifications", "/admin/notifications": "nav.notifications",
-  "/citizen/profile": "nav.profile", "/officer/profile": "nav.profile", "/admin/profile": "nav.profile",
-  "/citizen/settings": "nav.settings", "/officer/settings": "nav.settings", "/admin/settings": "nav.settings",
-  "/admin/departments": "nav.departments",
-  "/admin/officers": "nav.officers",
-  "/admin/admins": "nav.admins",
-  "/admin/map": "nav.map",
-  "/admin/ai-insights": "nav.aiInsights",
-  "/officer/integrity": "nav.integrity", "/admin/integrity": "nav.integrity",
-  "/admin/fraud": "nav.fraud",
-  "/admin/district": "nav.district",
-  "/admin/district/unassigned": "nav.unassigned",
-};
 
 const STORAGE_KEY =
   "civicai_sidebar_collapsed";
@@ -100,6 +76,16 @@ const Sidebar = ({
   const isSuperAdmin =
     user?.role === "admin" &&
     !user?.district;
+
+  // Each group change gets a section header. Derived up front so the JSX walk
+  // over navItems stays free of render-phase mutation.
+  const navItems = [];
+  let previousGroup = null;
+
+  for (const item of items) {
+    navItems.push({ ...item, showHeader: item.group !== previousGroup });
+    previousGroup = item.group;
+  }
 
   return (
     <aside
@@ -208,44 +194,57 @@ const Sidebar = ({
         )}
 
       <nav className="sidebar-nav">
-        {items.map(
+        {navItems.map(
           ({
             to,
             label,
             icon: Icon,
+            group,
+            showHeader,
           }) => {
             const translatedLabel = NAV_LABEL_KEY[to] ? t(NAV_LABEL_KEY[to]) : label;
             return (
-            <NavLink
-              key={to}
-              to={to}
-              end
-              onClick={
-                onNavigate
-              }
-              title={
-                collapsed
-                  ? translatedLabel
-                  : undefined
-              }
-              className={({
-                isActive,
-              }) =>
-                `sidebar-link ${
-                  isActive
-                    ? "active"
-                    : ""
-                }`
-              }
-            >
-              <Icon size={17} />
-
-              {!collapsed && (
-                <span>
-                  {translatedLabel}
-                </span>
+            <Fragment key={to}>
+              {showHeader && (
+                collapsed ? (
+                  <div className="sidebar-section-rail" />
+                ) : (
+                  <div className="sidebar-section">
+                    {t(group)}
+                  </div>
+                )
               )}
-            </NavLink>
+
+              <NavLink
+                to={to}
+                end
+                onClick={
+                  onNavigate
+                }
+                title={
+                  collapsed
+                    ? translatedLabel
+                    : undefined
+                }
+                className={({
+                  isActive,
+                }) =>
+                  `sidebar-link ${
+                    isActive
+                      ? "active"
+                      : ""
+                  }`
+                }
+              >
+                <Icon size={17} />
+
+                {!collapsed && (
+                  <span>
+                    {translatedLabel}
+                  </span>
+                )}
+              </NavLink>
+            </Fragment>
             );
           }
         )}

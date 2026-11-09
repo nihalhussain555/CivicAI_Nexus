@@ -23,6 +23,11 @@ def send_push_notification(user_id, title, body, url="/"):
     if not subscriptions:
         return
 
+    if not settings.VAPID_PRIVATE_KEY:
+        # Misconfiguration, not a send failure: in-app notifications are
+        # still stored; only browser push is paused until the env var is set.
+        return
+
     payload = json.dumps({"title": title, "body": body, "url": url})
 
     for sub in subscriptions:

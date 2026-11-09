@@ -77,9 +77,9 @@ const AIThinkingLoader = ({ small = false }) => {
           position: absolute;
           inset: 1px;
           border-radius: 50%;
-          border: 2px solid rgba(139, 92, 246, 0.15);
-          border-top-color: #8b5cf6;
-          border-right-color: #a855f7;
+          border: 2px solid color-mix(in srgb, var(--violet) 15%, transparent);
+          border-top-color: var(--violet);
+          border-right-color: color-mix(in srgb, var(--violet) 78%, white);
           animation: civicAIOrbit 1.1s linear infinite;
         }
 
@@ -88,8 +88,8 @@ const AIThinkingLoader = ({ small = false }) => {
           position: absolute;
           inset: 7px;
           border-radius: 50%;
-          border: 1px solid rgba(99, 102, 241, 0.2);
-          border-bottom-color: #6366f1;
+          border: 1px solid color-mix(in srgb, var(--accent) 20%, transparent);
+          border-bottom-color: var(--accent);
           animation: civicAIOrbitReverse 0.8s linear infinite;
         }
 
@@ -103,13 +103,13 @@ const AIThinkingLoader = ({ small = false }) => {
           color: white;
           background: radial-gradient(
             circle,
-            #c084fc 0%,
-            #8b5cf6 45%,
-            #6366f1 100%
+            color-mix(in srgb, var(--violet) 55%, white) 0%,
+            var(--violet) 45%,
+            var(--accent) 100%
           );
           box-shadow:
-            0 0 8px rgba(139, 92, 246, 0.8),
-            0 0 18px rgba(139, 92, 246, 0.5);
+            0 0 8px color-mix(in srgb, var(--violet) 65%, transparent),
+            0 0 18px color-mix(in srgb, var(--violet) 50%, transparent);
           animation: civicAICorePulse 1.1s ease-in-out infinite;
           z-index: 2;
         }
@@ -119,8 +119,8 @@ const AIThinkingLoader = ({ small = false }) => {
           width: 5px;
           height: 5px;
           border-radius: 50%;
-          background: #a855f7;
-          box-shadow: 0 0 7px rgba(168, 85, 247, 0.9);
+          background: color-mix(in srgb, var(--violet) 78%, white);
+          box-shadow: 0 0 7px color-mix(in srgb, var(--violet) 75%, transparent);
           z-index: 3;
         }
 
@@ -167,7 +167,7 @@ const AIThinkingLoader = ({ small = false }) => {
           width: 3px;
           height: 3px;
           border-radius: 50%;
-          background: #8b5cf6;
+          background: var(--violet);
           animation: civicAIDotText 1.2s ease-in-out infinite;
         }
 
@@ -498,7 +498,7 @@ const AIAssistant = () => {
 
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 10 }}>
           {content.suggestions.map((s) => (
-            <button key={s} className="badge badge-neutral" style={{ cursor: "pointer", border: "none" }} onClick={() => send(s)}>
+            <button key={s} className="badge badge-neutral suggestion-chip" style={{ cursor: "pointer", border: "none" }} onClick={() => send(s)}>
               <Sparkles size={11} /> {s}
             </button>
           ))}

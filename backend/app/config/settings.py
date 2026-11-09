@@ -187,14 +187,13 @@ class Settings:
     }
 
     # --- Web Push notifications ---
-    # Generated once for this project — the private key must stay secret
-    # (set as an env var in production, never committed). The public key
-    # is safe to expose to the frontend; it's what the browser uses to
-    # create a push subscription.
-    VAPID_PRIVATE_KEY = os.getenv(
-        "VAPID_PRIVATE_KEY",
-        "cnLi1rRb7yrIe8L_lKY_PKf2h9nDKDsskKFcQA_av8I",
-    )
+    # The private key must come from the environment — a working default
+    # was previously committed here, so it must be treated as public:
+    # set VAPID_PRIVATE_KEY (and, if you rotate the pair, VAPID_PUBLIC_KEY)
+    # in backend/.env locally and in the Render environment. Push sending
+    # is disabled (see push_service) while the private key is unset; the
+    # public key below is only the historical default and is not a secret.
+    VAPID_PRIVATE_KEY = os.getenv("VAPID_PRIVATE_KEY", "")
 
     VAPID_PUBLIC_KEY = os.getenv(
         "VAPID_PUBLIC_KEY",

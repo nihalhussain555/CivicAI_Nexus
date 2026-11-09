@@ -23,6 +23,9 @@ os.environ.setdefault("AI_PROVIDER", "mock")
 # code it cannot read), and load_dotenv won't overwrite a value already set
 # here — so mock wins for the suite while the app keeps its real provider.
 os.environ.setdefault("EMAIL_PROVIDER", "mock")
+# TestClient sends every request from the same client "IP"; the in-app
+# per-IP limiter would flag the suite itself as abuse mid-run.
+os.environ.setdefault("RATE_LIMIT_PER_MINUTE", "0")
 
 import mongomock
 import pymongo

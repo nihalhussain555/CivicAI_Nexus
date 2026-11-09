@@ -27,10 +27,10 @@ const VERDICT_TABS = [
   { key: "NEEDS_REVIEW", label: "Uncertain", countKey: "NEEDS_REVIEW" },
 ];
 
-const VERDICT_STYLE = {
-  LIKELY_FAKE: { color: "var(--danger, #dc2626)", bg: "var(--danger-soft)", label: "Likely fake" },
-  NEEDS_REVIEW: { color: "var(--warning, #d97706)", bg: "var(--warning-soft)", label: "Uncertain" },
-  LIKELY_GENUINE: { color: "var(--priority-low, #16a34a)", bg: "var(--success-soft)", label: "Likely genuine" },
+const VERDICT_PILL = {
+  LIKELY_FAKE: { className: "verdict-pill-fake", label: "Likely fake" },
+  NEEDS_REVIEW: { className: "verdict-pill-review", label: "Uncertain" },
+  LIKELY_GENUINE: { className: "verdict-pill-genuine", label: "Likely genuine" },
 };
 
 // A case that has already been judged by a human doesn't need a second guess
@@ -135,10 +135,10 @@ const IntegrityReview = () => {
         </div>
       </div>
 
-      <div className="grid grid-4" style={{ marginBottom: 18 }}>
+      <div className="grid grid-4 stat-grid">
         <div className="stat-card">
           <span className="stat-label"><ShieldAlert size={12} /> Likely fake</span>
-          <span className="stat-value" style={{ color: "var(--danger)" }}>{counts.LIKELY_FAKE ?? "—"}</span>
+          <span className="stat-value is-danger">{counts.LIKELY_FAKE ?? "—"}</span>
           <span className="stat-sub">awaiting a human decision</span>
         </div>
         <div className="stat-card">
@@ -152,7 +152,7 @@ const IntegrityReview = () => {
         </div>
         <div className="stat-card">
           <span className="stat-label"><Gavel size={12} /> Open appeals</span>
-          <span className="stat-value" style={{ color: counts.appeals_pending ? "var(--warning)" : undefined }}>
+          <span className={`stat-value${counts.appeals_pending ? " is-warning" : ""}`}>
             {counts.appeals_pending ?? "—"}
           </span>
         </div>
@@ -168,7 +168,7 @@ const IntegrityReview = () => {
       </div>
 
       {tab === "queue" && (
-        <div className="tabs" style={{ flexWrap: "wrap" }}>
+        <div className="tabs tabs-wrap">
           {VERDICT_TABS.map((t) => (
             <button key={t.key} className={`tab ${verdict === t.key ? "active" : ""}`}
                     onClick={() => { setVerdict(t.key); setPage(1); }}>
@@ -179,22 +179,19 @@ const IntegrityReview = () => {
         </div>
       )}
 
-      <div className="card" style={{ marginBottom: 16, padding: "10px 14px" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <Search size={15} style={{ color: "var(--text-faint)", flexShrink: 0 }} />
-          <input
-            className="input"
-            style={{ border: "none", padding: 0, flex: 1 }}
-            placeholder="Search by title, description, or reference ID..."
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-          />
-          {searchInput && (
-            <button type="button" className="icon-button" aria-label="Clear search" onClick={() => setSearchInput("")}>
-              <X size={14} />
-            </button>
-          )}
-        </div>
+      <div className="card search-bar">
+        <Search size={15} />
+        <input
+          className="input"
+          placeholder="Search by title, description, or reference ID..."
+          value={searchInput}
+          onChange={(e) => setSearchInput(e.target.value)}
+        />
+        {searchInput && (
+          <button type="button" className="icon-button" aria-label="Clear search" onClick={() => setSearchInput("")}>
+            <X size={14} />
+          </button>
+        )}
       </div>
 
       {loading ? (
@@ -216,18 +213,18 @@ const IntegrityReview = () => {
       ) : (
         <>
           {items.map((g) => {
-            const style = VERDICT_STYLE[g.authenticity?.verdict] || VERDICT_STYLE.NEEDS_REVIEW;
+            const verdict = VERDICT_PILL[g.authenticity?.verdict] || VERDICT_PILL.NEEDS_REVIEW;
             const appealPending = g.flag_appeal_status === "PENDING";
             return (
-              <div key={g.grievance_id} className="list-row" style={{ alignItems: "flex-start" }}>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6, flexWrap: "wrap" }}>
-                    <Link to={`${detailBase}/${g.grievance_id}`} style={{ fontFamily: "monospace", fontSize: 12, color: "var(--text-faint)" }}>
+              <div key={g.grievance_id} className="list-row list-row-start">
+                <div className="list-row-body">
+                  <div className="badge-row">
+                    <Link to={`${detailBase}/${g.grievance_id}`} className="record-id">
                       {g.grievance_id}
                     </Link>
                     {tab === "queue" && (
-                      <span style={{ background: style.bg, color: style.color, padding: "2px 8px", borderRadius: 999, fontSize: 11, fontWeight: 700 }}>
-                        {style.label} · {g.authenticity?.score ?? "?"}
+                      <span className={`verdict-pill ${verdict.className}`}>
+                        {verdict.label} · {g.authenticity?.score ?? "?"}
                       </span>
                     )}
                     {appealPending && <span className="badge badge-medium">Appeal pending</span>}
@@ -236,47 +233,45 @@ const IntegrityReview = () => {
                     {g.district && <span className="badge badge-status">{g.district}</span>}
                   </div>
 
-                  <Link to={`${detailBase}/${g.grievance_id}`} style={{ fontWeight: 700, fontSize: 14.5 }}>
+                  <Link to={`${detailBase}/${g.grievance_id}`} className="list-row-title">
                     {g.title || "Untitled grievance"}
                   </Link>
 
                   {g.top_signals?.length > 0 && (
-                    <div style={{ display: "flex", flexDirection: "column", gap: 3, marginTop: 8 }}>
+                    <div className="signal-list">
                       {g.top_signals.map((s) => (
-                        <span key={s.signal} style={{ fontSize: 12, color: "var(--text-muted)" }}>
-                          <strong style={{ color: "var(--danger, #dc2626)" }}>
-                            {SIGNAL_LABELS[s.signal] || s.signal.replace(/_/g, " ")}
-                          </strong>
+                        <span key={s.signal} className="signal-line">
+                          <strong>{SIGNAL_LABELS[s.signal] || s.signal.replace(/_/g, " ")}</strong>
                           {" "}{s.detail}
                         </span>
                       ))}
                     </div>
                   )}
 
-                  <div style={{ display: "flex", gap: 14, marginTop: 8, fontSize: 12, color: "var(--text-faint)", flexWrap: "wrap" }}>
-                    <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                  <div className="meta-row">
+                    <span className="meta-item">
                       <UserRound size={12} />
                       {g.citizen?.name || "Citizen"}
                       {g.citizen?.trust?.score != null && (
                         <> · trust {g.citizen.trust.score} ({g.citizen.trust.label})</>
                       )}
                     </span>
-                    <span style={{ display: "flex", alignItems: "center", gap: 4 }}>
+                    <span className="meta-item">
                       <Clock size={12} /> {formatRelative(g.created_at)}
                     </span>
                   </div>
 
                   {appealPending && g.flag_appeal_reason && (
-                    <div style={{ marginTop: 10, padding: 10, background: "var(--surface-hover)", borderRadius: 10, fontSize: 12.5, color: "var(--text-muted)" }}>
-                      <strong style={{ color: "var(--text)" }}>Citizen's appeal: </strong>{g.flag_appeal_reason}
+                    <div className="note-box">
+                      <strong>Citizen's appeal: </strong>{g.flag_appeal_reason}
                     </div>
                   )}
                 </div>
 
-                <div style={{ display: "flex", flexDirection: "column", gap: 6, alignItems: "flex-end", flexShrink: 0 }}>
+                <div className="list-row-actions">
                   {tab === "appeals" ? (
                     decided(g) && !appealPending ? (
-                      <span style={{ fontSize: 12, color: "var(--text-faint)" }}>Decided</span>
+                      <span className="muted-note">Decided</span>
                     ) : (
                       <>
                         <button className="btn btn-primary btn-sm" onClick={() => openAppealReview(g, true)}>
@@ -288,7 +283,7 @@ const IntegrityReview = () => {
                       </>
                     )
                   ) : decided(g) ? (
-                    <span style={{ fontSize: 12, color: "var(--text-faint)" }}>Already decided</span>
+                    <span className="muted-note">Already decided</span>
                   ) : (
                     <>
                       <button className="btn btn-primary btn-sm" onClick={() => openTriage(g, "GENUINE")}>

@@ -167,6 +167,29 @@ def normalize_department(value: str | None) -> str | None:
     return None
 
 
+def departments_equal(a: str | None, b: str | None) -> bool:
+    """True when two department strings name the same department.
+
+    Grievances always store the canonical name, but user documents
+    (officers, staff dashboards, older seeds) may still carry legacy names
+    like "Sanitation Department" — comparing them with raw equality would
+    lock a correctly-named officer out of their own cases.
+    """
+    if a == b:
+        return True
+
+    normalized_a = normalize_department(a)
+
+    return bool(normalized_a) and normalized_a == normalize_department(b)
+
+
+def canonical_department_or_raw(value: str | None) -> str | None:
+    """Canonical name for a department string, falling back to the raw value
+    when unmappable — for building Mongo equality filters against grievance
+    documents, which always store canonical names."""
+    return normalize_department(value) or value
+
+
 KEYWORDS: Dict[str, List[str]] = {
     "Water Supply": [
         "water supply",
@@ -751,6 +774,10 @@ def classify_complaint(text: str) -> dict:
                 "garbage not collected",
                 "waste not collected",
                 "garbage collection",
+                "garbage pile",
+                "pile of garbage",
+                "overflowing bin",
+                "bins overflowing",
                 "குப்பை சேகரிப்பு",
                 "குப்பை அகற்றப்படவில்லை",
                 "कचरा नहीं उठाया",
@@ -810,6 +837,23 @@ def classify_complaint(text: str) -> dict:
     if best_score <= 0:
         best_department = "Municipal Corporation"
 
+    category = _department_to_category(best_department)
+
+    # Street lights are routed to Electricity but tracked as their own
+    # category (own SLA + incident template — see prediction_service and
+    # incident_service), so refine the label before returning.
+    if best_department == "Electricity" and any(
+        phrase in normalized_text
+        for phrase in (
+            "streetlight",
+            "street light",
+            "street lamp",
+            "lamp post",
+            "lamppost",
+        )
+    ):
+        category = "STREET_LIGHT"
+
     # Convert department scores into a simple confidence value.
     sorted_scores = sorted(
         scores.items(),
@@ -838,9 +882,7 @@ def classify_complaint(text: str) -> dict:
         )
 
     return {
-        "category": _department_to_category(
-            best_department
-        ),
+        "category": category,
         "department": best_department,
         "scores": scores,
         "confidence": round(

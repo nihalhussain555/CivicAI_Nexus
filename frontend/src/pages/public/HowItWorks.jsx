@@ -127,7 +127,7 @@ const HowItWorks = () => {
               fontSize: 12,
               fontWeight: 800,
               letterSpacing: "0.14em",
-              color: "var(--primary, #7c3aed)",
+              color: "var(--accent)",
             }}
           >
             FROM REPORT TO RESOLUTION
@@ -142,7 +142,7 @@ const HowItWorks = () => {
             }}
           >
             See how{" "}
-            <span style={{ color: "var(--primary, #7c3aed)" }}>
+            <span style={{ color: "var(--accent)" }}>
               CivicAI Nexus
             </span>{" "}
             works.
@@ -255,7 +255,7 @@ const HowItWorks = () => {
         <div className="section-heading">
           <span
             style={{
-              color: "var(--primary, #7c3aed)",
+              color: "var(--accent)",
               fontSize: 11,
               fontWeight: 800,
               letterSpacing: "0.13em",
@@ -305,7 +305,7 @@ const HowItWorks = () => {
                     alignItems: "center",
                     justifyContent: "center",
                     background: "rgba(124, 58, 237, 0.1)",
-                    color: "var(--primary, #7c3aed)",
+                    color: "var(--accent)",
                     fontSize: 12,
                     fontWeight: 900,
                   }}
@@ -407,7 +407,7 @@ const HowItWorks = () => {
             <div>
               <span
                 style={{
-                  color: "var(--primary, #7c3aed)",
+                  color: "var(--accent)",
                   fontSize: 11,
                   fontWeight: 800,
                   letterSpacing: "0.13em",
@@ -453,7 +453,7 @@ const HowItWorks = () => {
                 <Icon
                   size={19}
                   style={{
-                    color: "var(--primary, #7c3aed)",
+                    color: "var(--accent)",
                     marginBottom: 12,
                   }}
                 />
@@ -494,7 +494,7 @@ const HowItWorks = () => {
         <div className="section-heading">
           <span
             style={{
-              color: "var(--primary, #7c3aed)",
+              color: "var(--accent)",
               fontSize: 11,
               fontWeight: 800,
               letterSpacing: "0.13em",
@@ -639,7 +639,7 @@ const HowItWorks = () => {
             >
               <ShieldCheck
                 size={15}
-                color="var(--primary, #7c3aed)"
+                color="var(--accent)"
               />
               Human review
             </span>
@@ -653,7 +653,7 @@ const HowItWorks = () => {
                 color: "var(--text-muted)",
               }}
             >
-              <Bell size={15} color="var(--primary, #7c3aed)" />
+              <Bell size={15} color="var(--accent)" />
               Citizen updates
             </span>
 
@@ -668,7 +668,7 @@ const HowItWorks = () => {
             >
               <CheckCircle2
                 size={15}
-                color="var(--primary, #7c3aed)"
+                color="var(--accent)"
               />
               Resolution verification
             </span>

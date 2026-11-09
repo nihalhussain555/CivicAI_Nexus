@@ -255,7 +255,7 @@ def _check_grievance_status(args, current_user):
 
     if current_user["role"] == "citizen" and grievance["citizen_id"] != current_user["_id"]:
         return {"error": "That grievance ID doesn't belong to your account."}
-    if current_user["role"] == "officer" and grievance.get("department") != current_user.get("department"):
+    if current_user["role"] == "officer" and not classification_service.departments_equal(grievance.get("department"), current_user.get("department")):
         return {"error": "That grievance is outside your department."}
 
     return {
@@ -359,7 +359,18 @@ def _create_complaint(args, current_user):
         title=title,
         description=description,
         language="Auto",
-        location=SimpleNamespace(latitude=lat, longitude=lng, address=f"{matched_district} (approximate — filed via AI Assistant)", district=matched_district),
+        location=SimpleNamespace(
+            latitude=lat,
+            longitude=lng,
+            address=f"{matched_district} (approximate — filed via AI Assistant)",
+            district=matched_district,
+            city=None,
+            state="Tamil Nadu",
+            pincode=None,
+            # Chat-filed reports are pinned to the district HQ, not an
+            # actual spot — mark them approximate so staff can tell.
+            detection_method="approximate",
+        ),
         attachments=[],
         voice_transcript=None,
     )
@@ -375,7 +386,7 @@ def _create_complaint(args, current_user):
 
 def _escalate_case(args, current_user):
     grievance = get_grievance_or_404(args["grievance_id"])
-    if current_user["role"] == "officer" and grievance.get("department") != current_user.get("department"):
+    if current_user["role"] == "officer" and not classification_service.departments_equal(grievance.get("department"), current_user.get("department")):
         return {"error": "That grievance is outside your department."}
 
     updated = transition_status(

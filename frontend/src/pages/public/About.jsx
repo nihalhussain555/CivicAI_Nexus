@@ -113,7 +113,7 @@ const About = () => {
               fontWeight: 800,
               letterSpacing: "0.14em",
               textTransform: "uppercase",
-              color: "var(--primary, #7c3aed)",
+              color: "var(--accent)",
             }}
           >
             AI FOR BETTER CIVIC SERVICES
@@ -128,7 +128,7 @@ const About = () => {
             }}
           >
             Making every civic complaint{" "}
-            <span style={{ color: "var(--primary, #7c3aed)" }}>
+            <span style={{ color: "var(--accent)" }}>
               easier to understand and act on.
             </span>
           </h1>
@@ -182,7 +182,7 @@ const About = () => {
                 fontSize: 11,
                 fontWeight: 800,
                 letterSpacing: "0.12em",
-                color: "var(--primary, #7c3aed)",
+                color: "var(--accent)",
               }}
             >
               THE PROBLEM
@@ -224,7 +224,7 @@ const About = () => {
                 fontSize: 11,
                 fontWeight: 800,
                 letterSpacing: "0.12em",
-                color: "var(--primary, #7c3aed)",
+                color: "var(--accent)",
               }}
             >
               OUR APPROACH
@@ -262,7 +262,7 @@ const About = () => {
         <div className="section-heading">
           <span
             style={{
-              color: "var(--primary, #7c3aed)",
+              color: "var(--accent)",
               fontSize: 11,
               fontWeight: 800,
               letterSpacing: "0.13em",
@@ -317,7 +317,7 @@ const About = () => {
         <div className="section-heading">
           <span
             style={{
-              color: "var(--primary, #7c3aed)",
+              color: "var(--accent)",
               fontSize: 11,
               fontWeight: 800,
               letterSpacing: "0.13em",
@@ -388,7 +388,7 @@ const About = () => {
           <div className="section-heading" style={{ marginBottom: 35 }}>
             <span
               style={{
-                color: "var(--primary, #7c3aed)",
+                color: "var(--accent)",
                 fontSize: 11,
                 fontWeight: 800,
                 letterSpacing: "0.13em",
@@ -425,7 +425,7 @@ const About = () => {
                     alignItems: "center",
                     justifyContent: "center",
                     background: "rgba(124, 58, 237, 0.1)",
-                    color: "var(--primary, #7c3aed)",
+                    color: "var(--accent)",
                     fontWeight: 800,
                     fontSize: 14,
                   }}
@@ -521,7 +521,7 @@ const About = () => {
               >
                 <CheckCircle2
                   size={15}
-                  color="var(--primary, #7c3aed)"
+                  color="var(--accent)"
                 />
                 {item}
               </span>

@@ -79,7 +79,7 @@ const Rewards = () => {
 
       {/* --- Tier ladder --- */}
       <div className="section-title">Reward Tiers</div>
-      <div className="grid grid-4" style={{ marginBottom: 30, gap: 14 }}>
+      <div className="grid grid-4 stat-grid">
         {all_tiers.map((t) => {
           const reached = total_points >= t.min_points;
           return (

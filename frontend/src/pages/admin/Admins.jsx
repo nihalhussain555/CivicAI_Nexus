@@ -75,7 +75,7 @@ const Admins = () => {
         <button className="btn btn-primary" onClick={openModal}><Plus size={15} /> New admin</button>
       </div>
 
-      <div className="grid grid-3" style={{ marginBottom: 22 }}>
+      <div className="grid grid-3 stat-grid">
         <div className="stat-card">
           <span className="stat-label"><ShieldCheck size={13} /> Total admins</span>
           <span className="stat-value">{admins?.length ?? "—"}</span>

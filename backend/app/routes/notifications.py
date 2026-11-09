@@ -6,6 +6,7 @@ from app.config.database import notifications_collection
 from app.utils.dependencies import get_current_user
 from app.utils.helpers import serialize_document, serialize_documents
 from bson import ObjectId
+from bson.errors import InvalidId
 
 
 router = APIRouter(prefix="/api/notifications", tags=["Notifications"])
@@ -40,8 +41,13 @@ def list_notifications(unread_only: bool = False, page: int = 1, limit: int = 20
 
 @router.put("/{notification_id}/read")
 def mark_read(notification_id: str, current_user=Depends(get_current_user)):
+    try:
+        object_id = ObjectId(notification_id)
+    except InvalidId:
+        raise HTTPException(status_code=404, detail="Notification not found")
+
     result = notifications_collection.update_one(
-        {"_id": ObjectId(notification_id), "user_id": current_user["_id"]},
+        {"_id": object_id, "user_id": current_user["_id"]},
         {"$set": {"read": True}},
     )
     if result.matched_count == 0:

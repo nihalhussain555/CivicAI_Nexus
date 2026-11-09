@@ -9,7 +9,7 @@ const GrievanceCard = ({ grievance, basePath }) => (
   <Link to={`${basePath}/${grievance.grievance_id}`} className="list-row" style={{ alignItems: "flex-start" }}>
     <div style={{ flex: 1, minWidth: 0 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6, flexWrap: "wrap" }}>
-        <span style={{ fontSize: 12, color: "var(--text-faint)", fontFamily: "monospace" }}>
+        <span className="record-id">
           {toDisplayText(grievance.grievance_id, "—")}
         </span>
         <span className="badge badge-neutral">{toDisplayText(CATEGORY_LABELS[grievance.category] || grievance.category)}</span>

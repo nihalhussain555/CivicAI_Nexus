@@ -1,7 +1,10 @@
 import asyncio
+import logging
+import time
+from collections import defaultdict, deque
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
@@ -35,16 +38,34 @@ async def lifespan(app: FastAPI):
     print("Starting CivicAI Nexus backend...")
     print(f"AI provider: {settings.AI_PROVIDER}")
 
+    if settings.JWT_SECRET == "change-this-secret":
+        print(
+            "WARNING: JWT_SECRET is still the built-in placeholder. Anyone "
+            "with the source can forge login tokens — set a strong random "
+            "JWT_SECRET in .env (local) and in the Render environment "
+            "before this app handles real traffic."
+        )
+    if not settings.VAPID_PRIVATE_KEY:
+        print(
+            "NOTE: VAPID_PRIVATE_KEY is not set — browser push is disabled. "
+            "In-app notifications still work. Set the env var to re-enable "
+            "push (see .env.example)."
+        )
+
     # MongoDB (esp. in Docker Compose) can still be initializing when this
     # process starts — `depends_on` only waits for the container to launch,
     # not for Mongo to actually accept connections. Retry briefly instead
     # of giving up on the first failed ping.
     connected = False
-    for attempt in range(15):
+    # check_database_connection uses a 5s serverSelectionTimeout; 15 retries
+    # would freeze startup for ~90s when Mongo/Atlas is unreachable
+    # (e.g. IP not whitelisted). 5 retries ≈ 30s worst case, then serve
+    # anyway so /health can report the problem to the operator.
+    for attempt in range(5):
         if check_database_connection():
             connected = True
             break
-        print(f"MongoDB not ready yet, retrying ({attempt + 1}/15)...")
+        print(f"MongoDB not ready yet, retrying ({attempt + 1}/5)...")
         await asyncio.sleep(1)
 
     if connected:
@@ -73,13 +94,61 @@ app = FastAPI(
 )
 
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=[settings.FRONTEND_URL, "http://localhost:5173", "http://127.0.0.1:5173","https://civicai-theta.vercel.app"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+def _normalize_origin(origin: str) -> str:
+    # Browsers send `Origin` without a trailing slash; an allowlist entry
+    # like "https://app.example.com/" never matches and silently blocks
+    # every request (the classic "login freezes in production" bug).
+    return origin.strip().rstrip("/")
+
+
+_cors_origins = list(dict.fromkeys(
+    _normalize_origin(o)
+    for o in [
+        settings.FRONTEND_URL,
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "https://civicai-theta.vercel.app",
+    ]
+    if o and o.strip()
+))
+
+# NOTE: CORSMiddleware is registered AFTER the middleware decorators below,
+# because Starlette makes the last-added middleware outermost. CORS must sit
+# outermost so that even short-circuited 403/429 responses carry
+# Access-Control-Allow-Origin — without it the browser reports those as
+# opaque "CORS errors" and the frontend freezes with no useful message.
+
+# --- Rate limiting: in-memory fixed-window counter per client IP.
+# Not a distributed limiter (fine for one Render instance); the point is
+# to make RATE_LIMIT_PER_MINUTE actually enforced instead of decorative. ---
+_rate_buckets: dict[str, deque] = defaultdict(deque)
+
+
+@app.middleware("http")
+async def rate_limit_guard(request: Request, call_next):
+    # RATE_LIMIT_PER_MINUTE <= 0 disables the limiter (the pytest conftest
+    # sets it: every TestClient request shares one client "IP", so a full
+    # suite run would otherwise exhaust a real production budget).
+    if request.url.path.startswith("/api") and settings.RATE_LIMIT_PER_MINUTE > 0:
+        client_ip = request.headers.get("x-forwarded-for", "").split(",")[0].strip() \
+            or (request.client.host if request.client else "unknown")
+        now = time.monotonic()
+        bucket = _rate_buckets[client_ip]
+        while bucket and now - bucket[0] > 60:
+            bucket.popleft()
+        if len(bucket) >= settings.RATE_LIMIT_PER_MINUTE:
+            return JSONResponse(
+                status_code=429,
+                content={
+                    "success": False,
+                    "error": {
+                        "code": 429,
+                        "message": "Too many requests. Please slow down and try again shortly.",
+                    },
+                },
+            )
+        bucket.append(now)
+    return await call_next(request)
 
 
 # --- Demo mode: specific pre-seeded demo accounts (citizen@demo.com,
@@ -134,6 +203,34 @@ async def demo_mode_guard(request, call_next):
     return await call_next(request)
 
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=_cors_origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request, exc):
+    # Without this, any unexpected exception (e.g. Mongo server-selection
+    # timeout) returns Starlette's plain-text "Internal Server Error",
+    # which the frontend's response.json() chokes on — presenting as a
+    # frozen page instead of a retryable error.
+    logging.exception("Unhandled error on %s %s", request.method, request.url.path)
+    return JSONResponse(
+        status_code=500,
+        content={
+            "success": False,
+            "error": {
+                "code": 500,
+                "message": "Internal server error. The backend may be unreachable or misconfigured — please try again.",
+            },
+        },
+    )
+
+
 @app.exception_handler(StarletteHTTPException)
 async def http_exception_handler(request, exc):
     return JSONResponse(
@@ -144,10 +241,26 @@ async def http_exception_handler(request, exc):
 
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request, exc):
+    # Pydantic v2 puts raw ValueError objects under error["ctx"], which are
+    # not JSON-serializable — passing exc.errors() straight into a
+    # JSONResponse used to crash this handler (500 on any validation
+    # failure). Sanitize to plain, human-readable strings first.
+    details = []
+    for e in exc.errors():
+        loc = [str(p) for p in e.get("loc", []) if p not in ("body",)]
+        msg = e.get("msg", "Invalid value")
+        # "Value error, <our message>" — unwrap to the useful part.
+        if msg.startswith("Value error, "):
+            msg = msg[len("Value error, "):]
+        details.append({"field": ".".join(loc) or "request", "message": msg})
+
+    first = details[0]["message"] if details else "Validation failed"
     return JSONResponse(
         status_code=422,
-        content={"success": False, "error": {"code": 422, "message": "Validation failed",
-                                              "details": exc.errors()}},
+        content={
+            "success": False,
+            "error": {"code": 422, "message": first, "details": details},
+        },
     )
 
 

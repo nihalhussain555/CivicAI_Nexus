@@ -104,26 +104,23 @@ const Grievances = () => {
         ))}
       </div>
 
-      <div className="card" style={{ marginBottom: 16, padding: "10px 14px" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <Search size={15} style={{ color: "var(--text-faint)", flexShrink: 0 }} />
-          <input
-            className="input"
-            style={{ border: "none", padding: 0, flex: 1 }}
-            placeholder="Search by title, description, or reference ID (e.g. CIV-2026-3F7BDDD8)..."
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-          />
-          {searchInput && (
-            <button type="button" className="icon-button" aria-label="Clear search" onClick={() => setSearchInput("")}>
-              <X size={14} />
-            </button>
-          )}
-        </div>
+      <div className="card search-bar">
+        <Search size={15} />
+        <input
+          className="input"
+          placeholder="Search by title, description, or reference ID (e.g. CIV-2026-3F7BDDD8)..."
+          value={searchInput}
+          onChange={(e) => setSearchInput(e.target.value)}
+        />
+        {searchInput && (
+          <button type="button" className="icon-button" aria-label="Clear search" onClick={() => setSearchInput("")}>
+            <X size={14} />
+          </button>
+        )}
       </div>
 
       {tab === "assigned" && (
-        <div className="tabs" style={{ flexWrap: "wrap" }}>
+        <div className="tabs tabs-wrap">
           <button className={`tab ${status === "" ? "active" : ""}`} onClick={() => { setStatus(""); setPage(1); }}>All</button>
           {STATUSES.filter((s) => s !== "SUBMITTED" && s !== "AI_ANALYZED" && s !== "DEPARTMENT_ASSIGNED").map((s) => (
             <button key={s} className={`tab ${status === s ? "active" : ""}`} onClick={() => { setStatus(s); setPage(1); }}>
@@ -221,7 +218,7 @@ const Grievances = () => {
               <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                 {resultModal.skipped.map((s) => (
                   <div key={s.grievance_id} style={{ display: "flex", justifyContent: "space-between", fontSize: 12.5, color: "var(--text-muted)" }}>
-                    <span style={{ fontFamily: "monospace" }}>{s.grievance_id}</span>
+                    <span className="record-id">{s.grievance_id}</span>
                     <span>{s.reason}</span>
                   </div>
                 ))}

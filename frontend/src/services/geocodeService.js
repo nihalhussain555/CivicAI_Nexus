@@ -82,6 +82,10 @@ export const searchPlaces = async (query, near = null) => {
       latitude,
       longitude,
       district: guessDistrict(item.address),
+      city: item.address?.city || item.address?.town || item.address?.village ||
+        item.address?.suburb || item.address?.municipality || null,
+      state: item.address?.state || null,
+      pincode: item.address?.postcode || null,
       distanceKm: near ? Math.round(haversineKm(near[0], near[1], latitude, longitude)) : null,
     };
   });
@@ -158,5 +162,9 @@ export const reverseGeocode = async (latitude, longitude) => {
     label: buildShortLabel(data.address, data.display_name),
     fullAddress: data.display_name,
     district: guessDistrict(data.address), // canonical DISTRICTS value, or null
+    city: data.address?.city || data.address?.town || data.address?.village ||
+      data.address?.suburb || data.address?.municipality || null,
+    state: data.address?.state || null,
+    pincode: data.address?.postcode || null,
   };
 };

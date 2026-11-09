@@ -22,14 +22,14 @@ const Analytics = () => {
     <div>
       <div className="page-header"><div><h1>Analytics</h1><p>Deep dive into platform-wide performance.</p></div></div>
 
-      <div className="grid grid-4" style={{ marginBottom: 20 }}>
+      <div className="grid grid-4 stat-grid">
         <div className="stat-card"><span className="stat-label">Resolution rate</span><span className="stat-value">{stats?.resolution_rate ?? "—"}%</span></div>
         <div className="stat-card"><span className="stat-label">Escalation rate</span><span className="stat-value">{stats?.escalation_rate ?? "—"}%</span></div>
         <div className="stat-card"><span className="stat-label">Avg resolution</span><span className="stat-value">{stats?.avg_resolution_hours ?? "—"}h</span></div>
-        <div className="stat-card"><span className="stat-label">SLA breaches</span><span className="stat-value" style={{ color: "var(--danger)" }}>{stats?.sla_breaches ?? "—"}</span></div>
+        <div className="stat-card"><span className="stat-label">SLA breaches</span><span className="stat-value is-danger">{stats?.sla_breaches ?? "—"}</span></div>
       </div>
 
-      <div className="grid grid-2" style={{ marginBottom: 20, alignItems: "start" }}>
+      <div className="grid grid-2 chart-grid">
         <LineChartCard title="Grievance trends (30 days)" data={trends} />
         <PieChartCard title="Category distribution" data={categories} nameKey="category" />
       </div>

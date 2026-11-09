@@ -221,7 +221,7 @@ const Officers = () => {
         </button>
       </div>
 
-      <div className="grid grid-3" style={{ marginBottom: 20 }}>
+      <div className="grid grid-3 stat-grid">
         <div className="stat-card">
           <span className="stat-label">
             <Users size={13} />
@@ -358,43 +358,22 @@ const Officers = () => {
           description="Create an officer for the required district and department."
         />
       ) : (
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: 8,
-          }}
-        >
+        <>
           {officers.map((officer) => (
             <Link
               key={String(officer._id)}
               to={`/admin/officers/${officer._id}`}
               className="list-row"
             >
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 14,
-                  minWidth: 0,
-                }}
-              >
+              <div className="list-row-main">
                 <Avatar
                   user={officer}
                   size={40}
                 />
 
-                <div style={{ minWidth: 0 }}>
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 8,
-                      marginBottom: 4,
-                      flexWrap: "wrap",
-                    }}
-                  >
-                    <strong style={{ fontSize: 14 }}>
+                <div className="list-row-body">
+                  <div className="badge-row">
+                    <strong className="list-row-title">
                       {officer.name || "Unnamed officer"}
                     </strong>
 
@@ -410,14 +389,7 @@ const Officers = () => {
                     )}
                   </div>
 
-                  <div
-                    style={{
-                      fontSize: 12.5,
-                      color: "var(--text-muted)",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                    }}
-                  >
+                  <div className="list-row-sub">
                     {officer.email || "No email"}
                     {officer.specialization
                       ? ` · ${officer.specialization}`
@@ -426,47 +398,20 @@ const Officers = () => {
                 </div>
               </div>
 
-              <div
-                style={{
-                  display: "flex",
-                  gap: 18,
-                  fontSize: 13,
-                  flexShrink: 0,
-                }}
-              >
-                <div style={{ textAlign: "center" }}>
-                  <div style={{ fontWeight: 700 }}>
-                    {officer.open_cases || 0}
-                  </div>
-
-                  <div
-                    style={{
-                      fontSize: 10.5,
-                      color: "var(--text-faint)",
-                    }}
-                  >
-                    OPEN
-                  </div>
+              <div className="mini-stats">
+                <div className="mini-stat">
+                  <strong>{officer.open_cases || 0}</strong>
+                  <span>Open</span>
                 </div>
 
-                <div style={{ textAlign: "center" }}>
-                  <div style={{ fontWeight: 700 }}>
-                    {officer.cases_resolved || 0}
-                  </div>
-
-                  <div
-                    style={{
-                      fontSize: 10.5,
-                      color: "var(--text-faint)",
-                    }}
-                  >
-                    RESOLVED
-                  </div>
+                <div className="mini-stat">
+                  <strong>{officer.cases_resolved || 0}</strong>
+                  <span>Resolved</span>
                 </div>
               </div>
             </Link>
           ))}
-        </div>
+        </>
       )}
 
       <Modal

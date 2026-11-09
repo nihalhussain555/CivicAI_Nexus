@@ -23,7 +23,29 @@ const AIAnalysisPanel = ({ analysis }) => {
           <Sparkles size={16} color="var(--accent)" />
           <strong style={{ fontSize: 14 }}>AI Analysis</strong>
         </div>
-        <span className="ai-tag">AI generated · not final</span>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          {/*
+            Honest provider badge. When a configured real provider (Groq /
+            OpenAI / Gemini) is used we label it; when the pipeline had to
+            fall back to the offline deterministic rules — because no key is
+            set or the live call failed — we say so instead of letting mock
+            output masquerade as real AI. See provider.py: results carry
+            provider:"mock" on that path.
+          */}
+          {String(analysis.ai_provider).toLowerCase() === "mock" ? (
+            <span
+              className="ai-tag"
+              title="No live AI model was available, so this used the built-in offline rules."
+              style={{ borderColor: "var(--warning)", color: "var(--warning)" }}
+            >
+              Offline rules (no live AI)
+            </span>
+          ) : (
+            <span className="ai-tag">
+              {toDisplayText(analysis.ai_provider, "AI")} · not final
+            </span>
+          )}
+        </div>
       </div>
 
       {analysis.needs_department_review && (

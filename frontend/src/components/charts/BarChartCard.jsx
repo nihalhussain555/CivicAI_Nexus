@@ -1,6 +1,5 @@
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
-
-const COLORS = ["#4f46e5", "#6366f1", "#818cf8", "#a5b4fc", "#c7d2fe", "#0ea5e9", "#38bdf8", "#7dd3fc", "#0284c7"];
+import { seriesColor } from "./chartPalette";
 
 const BarChartCard = ({ title, data, dataKey = "count", nameKey = "category", height = 260 }) => (
   <div className="card">
@@ -12,7 +11,7 @@ const BarChartCard = ({ title, data, dataKey = "count", nameKey = "category", he
         <YAxis tick={{ fontSize: 11, fill: "var(--text-muted)" }} allowDecimals={false} />
         <Tooltip contentStyle={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 8, fontSize: 12.5 }} />
         <Bar dataKey={dataKey} radius={[6, 6, 0, 0]}>
-          {data?.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+          {data?.map((_, i) => <Cell key={i} fill={seriesColor(i)} />)}
         </Bar>
       </BarChart>
     </ResponsiveContainer>

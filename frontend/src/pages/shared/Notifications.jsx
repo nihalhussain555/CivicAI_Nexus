@@ -50,17 +50,16 @@ const Notifications = () => {
               key={n._id}
               to={n.related_grievance_id ? `${basePath}/${n.related_grievance_id}` : "#"}
               onClick={() => !n.read && markRead(n._id)}
-              className="list-row"
-              style={{ background: n.read ? undefined : "var(--accent-soft)", alignItems: "flex-start" }}
+              className={`list-row list-row-start${n.read ? "" : " list-row-unread"}`}
             >
               <div>
-                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+                <div className="badge-row">
                   <strong style={{ fontSize: 13.5 }}>{n.title}</strong>
                   <span className={`badge ${TYPE_COLOR[n.type] || "badge-neutral"}`}>{n.type.replace("_", " ")}</span>
                 </div>
                 <p style={{ fontSize: 13, color: "var(--text-muted)" }}>{n.message}</p>
               </div>
-              <span style={{ fontSize: 11.5, color: "var(--text-faint)", whiteSpace: "nowrap" }}>{formatDateTime(n.created_at)}</span>
+              <span className="row-time">{formatDateTime(n.created_at)}</span>
             </Link>
           ))}
           <Pagination page={data.page} totalPages={Math.ceil(data.total / data.limit)} onChange={setPage} />

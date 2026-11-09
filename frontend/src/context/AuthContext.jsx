@@ -11,13 +11,25 @@ export const AuthProvider = ({ children }) => {
     const token = localStorage.getItem("civicai_token");
     const storedUser = localStorage.getItem("civicai_user");
 
+    let parsedUser = null;
     if (token && storedUser) {
-      setUser(JSON.parse(storedUser));
+      try {
+        parsedUser = JSON.parse(storedUser);
+      } catch {
+        // Corrupt localStorage entry would throw here and leave `loading`
+        // true forever, pinning every protected route on a spinner.
+        localStorage.removeItem("civicai_token");
+        localStorage.removeItem("civicai_user");
+      }
+    }
+
+    if (token && parsedUser) {
+      setUser(parsedUser);
       // Re-validate the token / refresh user data from the server.
       authService
         .getMe()
         .then((res) => {
-          const freshUser = { ...JSON.parse(storedUser), ...res.data, id: res.data._id };
+          const freshUser = { ...parsedUser, ...res.data, id: res.data._id };
           setUser(freshUser);
           localStorage.setItem("civicai_user", JSON.stringify(freshUser));
         })
@@ -36,9 +48,19 @@ export const AuthProvider = ({ children }) => {
     const res = await authService.login(email, password);
     const { access_token, user: loggedInUser } = res.data;
     localStorage.setItem("civicai_token", access_token);
-    localStorage.setItem("civicai_user", JSON.stringify(loggedInUser));
-    setUser(loggedInUser);
-    return loggedInUser;
+    // /auth/login answers with a trimmed profile; district (which drives the
+    // admin scope guard and sidebar) only arrives from /auth/me.
+    let profile = loggedInUser;
+    try {
+      const me = await authService.getMe();
+      profile = { ...loggedInUser, ...me.data, id: me.data._id };
+    } catch {
+      // The token is already valid; a failed profile refresh shouldn't
+      // strand the user outside the app.
+    }
+    localStorage.setItem("civicai_user", JSON.stringify(profile));
+    setUser(profile);
+    return profile;
   };
 
   const register = async (data) => {

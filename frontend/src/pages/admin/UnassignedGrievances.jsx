@@ -261,20 +261,7 @@ const UnassignedGrievances = () => {
     <div>
       <div className="page-header">
         <div>
-          <div
-            style={{
-              display:
-                "flex",
-              alignItems:
-                "center",
-              gap: 7,
-              marginBottom: 5,
-              color:
-                "var(--accent)",
-              fontSize: 12,
-              fontWeight: 700,
-            }}
-          >
+          <div className="page-scope">
             <MapPin
               size={14}
             />
@@ -307,17 +294,7 @@ const UnassignedGrievances = () => {
         </button>
       </div>
 
-      <div
-        className="card"
-        style={{
-          display:
-            "flex",
-          alignItems:
-            "center",
-          gap: 12,
-          marginBottom: 18,
-        }}
-      >
+      <div className="card card-strip">
         <UserCheck
           size={20}
           color="var(--accent)"
@@ -332,14 +309,7 @@ const UnassignedGrievances = () => {
               : "s"}
           </strong>
 
-          <div
-            style={{
-              fontSize: 12,
-              color:
-                "var(--text-muted)",
-              marginTop: 2,
-            }}
-          >
+          <div className="card-strip-sub">
             Officers may self-claim
             these cases. Manual
             assignment is available
@@ -355,14 +325,14 @@ const UnassignedGrievances = () => {
             Select all
           </button>
           {selected.size > 0 && (
-            <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-              <span style={{ fontSize: 13, color: "var(--text-muted)" }}>{selected.size} selected</span>
+            <div className="bulk-action-group">
+              <span className="bulk-count">{selected.size} selected</span>
               <button className="btn btn-secondary btn-sm" onClick={() => setSelected(new Set())}>Clear</button>
               <button className="btn btn-primary btn-sm" disabled={!sameDepartment} onClick={openBulkModal}>
                 <Users size={14} /> Assign selected to officer
               </button>
               {!sameDepartment && (
-                <span style={{ fontSize: 12, color: "var(--warning)" }}>
+                <span className="bulk-hint">
                   Select cases from one department to bulk-assign
                 </span>
               )}
@@ -380,33 +350,16 @@ const UnassignedGrievances = () => {
           description="Every grievance in your district currently has an officer assigned."
         />
       ) : (
-        <div
-          style={{
-            display:
-              "grid",
-            gap: 12,
-          }}
-        >
+        <div className="queue-list">
           {items.map(
             (grievance) => (
               <div
                 key={
                   grievance.grievance_id
                 }
-                className="card"
-                style={{
-                  display:
-                    "flex",
-                  alignItems:
-                    "center",
-                  justifyContent:
-                    "space-between",
-                  gap: 20,
-                  flexWrap:
-                    "wrap",
-                }}
+                className="card queue-card"
               >
-                <div style={{ display: "flex", alignItems: "center", gap: 14, flex: 1, minWidth: 280 }}>
+                <div className="list-row-main">
                   <button
                     type="button"
                     className="bulk-checkbox"
@@ -416,22 +369,8 @@ const UnassignedGrievances = () => {
                     {selected.has(grievance.grievance_id) ? <CheckSquare size={18} /> : <Square size={18} />}
                   </button>
 
-                <div
-                  style={{
-                    flex: 1,
-                    minWidth: 280,
-                  }}
-                >
-                  <div
-                    style={{
-                      display:
-                        "flex",
-                      alignItems:
-                        "center",
-                      gap: 8,
-                      marginBottom: 8,
-                    }}
-                  >
+                <div className="queue-card-body">
+                  <div className="badge-row">
                     <strong>
                       {grievance.title ||
                         grievance.grievance_id}
@@ -446,27 +385,8 @@ const UnassignedGrievances = () => {
                     )}
                   </div>
 
-                  <div
-                    style={{
-                      display:
-                        "flex",
-                      flexWrap:
-                        "wrap",
-                      gap: 14,
-                      color:
-                        "var(--text-muted)",
-                      fontSize: 12.5,
-                    }}
-                  >
-                    <span
-                      style={{
-                        display:
-                          "flex",
-                        alignItems:
-                          "center",
-                        gap: 4,
-                      }}
-                    >
+                  <div className="meta-row">
+                    <span className="meta-item">
                       <MapPin
                         size={12}
                       />
@@ -474,15 +394,7 @@ const UnassignedGrievances = () => {
                       {grievance.district}
                     </span>
 
-                    <span
-                      style={{
-                        display:
-                          "flex",
-                        alignItems:
-                          "center",
-                        gap: 4,
-                      }}
-                    >
+                    <span className="meta-item">
                       <Building2
                         size={12}
                       />
@@ -492,15 +404,7 @@ const UnassignedGrievances = () => {
                       }
                     </span>
 
-                    <span
-                      style={{
-                        display:
-                          "flex",
-                        alignItems:
-                          "center",
-                        gap: 4,
-                      }}
-                    >
+                    <span className="meta-item">
                       <Clock
                         size={12}
                       />
@@ -508,19 +412,10 @@ const UnassignedGrievances = () => {
                       Waiting for
                       officer
                     </span>
-                  </div>
 
-                  <div
-                    style={{
-                      marginTop: 7,
-                      fontSize: 11,
-                      color:
-                        "var(--text-faint)",
-                    }}
-                  >
-                    {
-                      grievance.grievance_id
-                    }
+                    <span className="record-id">
+                      {grievance.grievance_id}
+                    </span>
                   </div>
                 </div>
                 </div>
@@ -581,33 +476,18 @@ const UnassignedGrievances = () => {
       >
         {selectedGrievance && (
           <>
-            <div
-              className="card"
-              style={{
-                marginBottom: 18,
-              }}
-            >
+            <div className="card modal-summary">
               <strong>
                 {selectedGrievance.title ||
                   selectedGrievance.grievance_id}
               </strong>
 
-              <div
-                style={{
-                  display:
-                    "grid",
-                  gap: 6,
-                  marginTop: 10,
-                  fontSize: 12.5,
-                  color:
-                    "var(--text-muted)",
-                }}
-              >
+              <div className="detail-list">
                 <div>
                   <b>Grievance:</b>{" "}
-                  {
-                    selectedGrievance.grievance_id
-                  }
+                  <span className="record-id">
+                    {selectedGrievance.grievance_id}
+                  </span>
                 </div>
 
                 <div>
@@ -641,25 +521,12 @@ const UnassignedGrievances = () => {
 
               {officers.length ===
               0 ? (
-                <div
-                  className="card"
-                  style={{
-                    display:
-                      "flex",
-                    alignItems:
-                      "center",
-                    gap: 10,
-                  }}
-                >
+                <div className="card card-inline">
                   <AlertTriangle
                     size={17}
                   />
 
-                  <span
-                    style={{
-                      fontSize: 13,
-                    }}
-                  >
+                  <span>
                     No active officer
                     is available for
                     this department
@@ -723,7 +590,7 @@ const UnassignedGrievances = () => {
           </>
         }
       >
-        <p style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 14 }}>
+        <p className="modal-intro">
           All {selected.size} selected cases are in <strong>{selectedItems[0]?.department}</strong>.
           Choose one officer to assign them all to — any case someone else takes in the
           meantime will be skipped automatically.
@@ -732,9 +599,9 @@ const UnassignedGrievances = () => {
         <div className="form-group">
           <label className="form-label">Select Officer</label>
           {bulkOfficers.length === 0 ? (
-            <div className="card" style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div className="card card-inline">
               <AlertTriangle size={17} />
-              <span style={{ fontSize: 13 }}>No active officer is available for this department and district.</span>
+              <span>No active officer is available for this department and district.</span>
             </div>
           ) : (
             <select className="select" value={bulkOfficer} onChange={(e) => setBulkOfficer(e.target.value)}>
@@ -756,18 +623,18 @@ const UnassignedGrievances = () => {
         footer={<button className="btn btn-primary" onClick={() => setBulkResult(null)}>Done</button>}
       >
         {bulkResult && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            <p style={{ fontSize: 13.5 }}>
+          <div className="stack">
+            <p>
               <strong style={{ color: "var(--priority-low)" }}>{bulkResult.assigned.length}</strong> assigned
               {bulkResult.skipped.length > 0 && (
                 <> · <strong style={{ color: "var(--warning)" }}>{bulkResult.skipped.length}</strong> skipped</>
               )}
             </p>
             {bulkResult.skipped.length > 0 && (
-              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              <div className="detail-list">
                 {bulkResult.skipped.map((s) => (
-                  <div key={s.grievance_id} style={{ display: "flex", justifyContent: "space-between", fontSize: 12.5, color: "var(--text-muted)" }}>
-                    <span style={{ fontFamily: "monospace" }}>{s.grievance_id}</span>
+                  <div key={s.grievance_id} className="kv-row">
+                    <span className="record-id">{s.grievance_id}</span>
                     <span>{s.reason}</span>
                   </div>
                 ))}

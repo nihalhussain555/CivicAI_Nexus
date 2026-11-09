@@ -213,14 +213,14 @@ const GrievanceDetail = () => {
 
   return (
     <div>
-      <button className="btn btn-ghost btn-sm" onClick={() => navigate(basePath)} style={{ marginBottom: 14 }}>
+      <button className="btn btn-ghost btn-sm btn-back" onClick={() => navigate(basePath)}>
         <ArrowLeft size={14} /> Back
       </button>
 
       <div className="page-header">
         <div>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6, flexWrap: "wrap" }}>
-            <span style={{ fontFamily: "monospace", fontSize: 12.5, color: "var(--text-faint)" }}>{grievance.grievance_id}</span>
+          <div className="badge-row">
+            <span className="record-id">{grievance.grievance_id}</span>
             <StatusBadge status={grievance.status} />
             <PriorityBadge priority={grievance.priority} />
             {grievance.incident_id && (
@@ -233,48 +233,47 @@ const GrievanceDetail = () => {
         </div>
       </div>
 
-      <div className="grid" style={{ gridTemplateColumns: "1.6fr 1fr", gap: 20, alignItems: "start" }}>
-        <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+      <div className="grid detail-split">
+        <div className="stack">
           <div className="card">
             <div className="section-title">Description</div>
-            <p style={{ fontSize: 13.5, color: "var(--text-muted)", lineHeight: 1.7 }}>{grievance.description}</p>
+            <p className="prose">{grievance.description}</p>
 
             {grievance.voice_transcript && (
-              <div style={{ marginTop: 14, padding: 12, background: "var(--surface-hover)", borderRadius: 10 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 700, marginBottom: 4 }}>
+              <div className="note-box">
+                <div className="sub-head">
                   <Mic size={12} /> Voice transcript
                 </div>
-                <p style={{ fontSize: 13, color: "var(--text-muted)" }}>{grievance.voice_transcript}</p>
+                <p className="prose-sm">{grievance.voice_transcript}</p>
               </div>
             )}
 
             {grievance.attachments?.length > 0 && (
-              <div style={{ marginTop: 14 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 700, marginBottom: 8 }}>
+              <div className="card-section">
+                <div className="sub-head">
                   <ImageIcon size={12} /> Attachments
                 </div>
-                <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+                <div className="thumb-row">
                   {grievance.attachments.map((a, i) => (
-                    <img key={i} src={`${uploadsBaseUrl}${a.url}`} alt={a.filename || "attachment"}
-                         style={{ width: 100, height: 100, objectFit: "cover", borderRadius: 10, border: "1px solid var(--border)" }} />
+                    <img key={i} className="thumb" src={`${uploadsBaseUrl}${a.url}`} alt={a.filename || "attachment"} />
                   ))}
                 </div>
               </div>
             )}
 
-            <div style={{ display: "flex", gap: 18, marginTop: 16, fontSize: 12.5, color: "var(--text-muted)", flexWrap: "wrap" }}>
-              <span style={{ display: "flex", alignItems: "center", gap: 5 }}>
+            <div className="meta-row">
+              <span className="meta-item">
                 <MapPin size={13} /> {grievance.location?.address || "No location provided"}
-                {grievance.district && <span className="badge badge-status" style={{ marginLeft: 4 }}>{grievance.district}</span>}
+                {grievance.district && <span className="badge badge-status">{grievance.district}</span>}
               </span>
-              <span style={{ display: "flex", alignItems: "center", gap: 5 }}>
+              <span className="meta-item">
                 <Clock size={13} /> Reported {formatDateTime(grievance.created_at)}
               </span>
             </div>
 
             {grievance.location?.coordinates?.length === 2 && (
-              <div style={{ marginTop: 16 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 700, marginBottom: 8 }}>
+              <div className="card-section">
+                <div className="sub-head">
                   <MapPin size={12} /> Where it was reported
                 </div>
                 <Suspense fallback={<div className="map-shell" style={{ height: 220, opacity: 0.5 }} />}>
@@ -285,31 +284,31 @@ const GrievanceDetail = () => {
                     showIncidents={false}
                   />
                 </Suspense>
-                <p className="form-hint" style={{ marginTop: 6 }}>
+                <p className="form-hint">
                   {grievance.location.address || "Pinned from the citizen's device — the map shows where the report was filed."}
                 </p>
               </div>
             )}
           </div>
 
-          <div className="card" style={{ borderColor: "var(--accent)" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
+          <div className="card card-accent">
+            <div className="card-head">
               <Sparkles size={15} color="var(--accent)" />
-              <strong style={{ fontSize: 14 }}>AI Analysis</strong>
+              <strong>AI Analysis</strong>
               <span className="ai-tag">AI generated</span>
             </div>
             <div className="grid grid-2">
-              <div><div style={{ fontSize: 12, color: "var(--text-muted)" }}>Category</div>
+              <div><div className="data-label">Category</div>
                 <strong>{CATEGORY_LABELS[grievance.category] || grievance.category}</strong></div>
-              <div><div style={{ fontSize: 12, color: "var(--text-muted)" }}>Severity</div>
+              <div><div className="data-label">Severity</div>
                 <PriorityBadge priority={grievance.severity} /></div>
-              <div><div style={{ fontSize: 12, color: "var(--text-muted)" }}>AI Confidence</div>
+              <div><div className="data-label">AI Confidence</div>
                 <strong>{Math.round((grievance.confidence || 0) * 100)}%</strong></div>
-              <div><div style={{ fontSize: 12, color: "var(--text-muted)" }}>Escalation Risk</div>
+              <div><div className="data-label">Escalation Risk</div>
                 <strong>{grievance.escalation_risk}</strong></div>
             </div>
             {grievance.ai_summary && (
-              <p style={{ fontSize: 13, color: "var(--text-muted)", marginTop: 14, lineHeight: 1.6 }}>{grievance.ai_summary}</p>
+              <p className="prose-sm card-section">{grievance.ai_summary}</p>
             )}
           </div>
 
@@ -325,9 +324,9 @@ const GrievanceDetail = () => {
           {grievance.resolution_note && (
             <div className="card">
               <div className="section-title">Resolution</div>
-              <p style={{ fontSize: 13.5, color: "var(--text-muted)", lineHeight: 1.7 }}>{grievance.resolution_note}</p>
+              <p className="prose">{grievance.resolution_note}</p>
               {grievance.citizen_feedback && (
-                <p style={{ fontSize: 12.5, color: "var(--text-faint)", marginTop: 10, fontStyle: "italic" }}>
+                <p className="quote-note">
                   Citizen feedback: "{grievance.citizen_feedback}"
                 </p>
               )}
@@ -338,10 +337,10 @@ const GrievanceDetail = () => {
               reason in plain words and the appeal route, never the signals or
               weights behind the score. */}
           {isOwnerCitizen && grievance.flagged_invalid && (
-            <div className="card" style={{ borderColor: "var(--danger)" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+            <div className="card card-danger">
+              <div className="card-head">
                 <ShieldAlert size={15} color="var(--danger)" />
-                <strong style={{ fontSize: 14 }}>Marked as false or misleading</strong>
+                <strong>Marked as false or misleading</strong>
                 {appealPending
                   ? <span className="badge badge-medium">Appeal pending</span>
                   : grievance.flag_appeal_status
@@ -350,20 +349,20 @@ const GrievanceDetail = () => {
                       </span>
                     : <span className="badge badge-neutral">No appeal yet</span>}
               </div>
-              <p style={{ fontSize: 13, color: "var(--text-muted)", lineHeight: 1.65, margin: 0 }}>
+              <p className="prose-sm">
                 {grievance.flagged_reason || "A reviewing officer could not confirm this report."}
               </p>
-              <p style={{ fontSize: 12.5, color: "var(--text-faint)", marginTop: 10, marginBottom: 0 }}>
+              <p className="muted-note card-section">
                 Your civic points for this report were reversed. The report itself is still visible to the
                 department and still counts towards the issue being fixed — nothing was deleted.
               </p>
               {grievance.flag_appeal_reason && (
-                <p style={{ fontSize: 12.5, color: "var(--text-muted)", marginTop: 10, marginBottom: 0 }}>
+                <p className="muted-note card-section">
                   <strong>Your appeal: </strong>{grievance.flag_appeal_reason}
                 </p>
               )}
               {grievance.flag_appeal_note && (
-                <p style={{ fontSize: 12.5, color: "var(--text-faint)", marginTop: 8, marginBottom: 0, fontStyle: "italic" }}>
+                <p className="quote-note">
                   Reviewer's note: "{grievance.flag_appeal_note}"
                 </p>
               )}
@@ -371,10 +370,10 @@ const GrievanceDetail = () => {
           )}
 
           {grievance.reopen_request_status && (
-            <div className="card" style={{ borderColor: grievance.reopen_request_status === "PENDING" ? "var(--warning)" : "var(--border)" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
+            <div className={`card${grievance.reopen_request_status === "PENDING" ? " card-warning" : ""}`}>
+              <div className="card-head">
                 <ShieldQuestion size={15} />
-                <strong style={{ fontSize: 14 }}>Reopen Request</strong>
+                <strong>Reopen Request</strong>
                 <span className={`badge ${
                   grievance.reopen_request_status === "PENDING" ? "badge-medium" :
                   grievance.reopen_request_status === "APPROVED" ? "badge-low" : "badge-critical"
@@ -382,9 +381,9 @@ const GrievanceDetail = () => {
                   {grievance.reopen_request_status}
                 </span>
               </div>
-              <p style={{ fontSize: 13, color: "var(--text-muted)", lineHeight: 1.6 }}>{grievance.reopen_reason}</p>
+              <p className="prose-sm">{grievance.reopen_reason}</p>
               {grievance.reopen_review_note && (
-                <p style={{ fontSize: 12.5, color: "var(--text-faint)", marginTop: 10, fontStyle: "italic" }}>
+                <p className="quote-note">
                   Staff note: "{grievance.reopen_review_note}"
                 </p>
               )}
@@ -394,10 +393,10 @@ const GrievanceDetail = () => {
           {isStaff && <CopilotPanel brief={copilotBrief} loading={copilotLoading} onRefresh={loadCopilot} />}
         </div>
 
-        <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+        <div className="stack">
           <div className="card">
             <div className="section-title">Actions</div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            <div className="stack-tight">
               {isStaff && grievance.status === "DEPARTMENT_ASSIGNED" && (
                 <button className="btn btn-primary btn-block" disabled={actionLoading}
                         onClick={() => runAction(() => acceptCase(grievanceId), "Case accepted")}>
@@ -440,7 +439,7 @@ const GrievanceDetail = () => {
                 </>
               )}
               {isOwnerCitizen && grievance.status === "CLOSED" && grievance.reopen_request_status === "PENDING" && (
-                <p style={{ fontSize: 13, color: "var(--text-muted)" }}>
+                <p className="prose-sm">
                   Your request to reopen this case is awaiting staff review.
                 </p>
               )}
@@ -479,7 +478,7 @@ const GrievanceDetail = () => {
                 </button>
               )}
               {isOwnerCitizen && grievance.flagged_invalid && appealPending && (
-                <p style={{ fontSize: 13, color: "var(--text-muted)" }}>
+                <p className="prose-sm">
                   Your appeal is with the department and awaiting a decision. You'll be notified either way.
                 </p>
               )}
@@ -489,10 +488,10 @@ const GrievanceDetail = () => {
                 </button>
               )}
               {!isStaff && !isOwnerCitizen && grievance.status === "CLOSED" && (
-                <p style={{ fontSize: 13, color: "var(--text-muted)" }}>This grievance has been closed.</p>
+                <p className="prose-sm">This grievance has been closed.</p>
               )}
               {isStaff && ["CLOSED", "CITIZEN_VERIFICATION", "RESOLUTION_SUBMITTED"].includes(grievance.status) && grievance.reopen_request_status !== "PENDING" && (
-                <p style={{ fontSize: 13, color: "var(--text-muted)" }}>
+                <p className="prose-sm">
                   {grievance.status === "CLOSED" ? "Case closed." : "Awaiting citizen verification."}
                 </p>
               )}
@@ -501,21 +500,21 @@ const GrievanceDetail = () => {
 
           <div className="card">
             <div className="section-title">Case Info</div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 10, fontSize: 13 }}>
-              <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <span style={{ color: "var(--text-muted)" }}>Department</span><strong>{grievance.department}</strong>
+            <div className="stack-tight">
+              <div className="kv-row">
+                <span>Department</span><strong>{grievance.department}</strong>
               </div>
-              <div style={{ display: "flex", justifyContent: "space-between" }}>
-                <span style={{ color: "var(--text-muted)" }}>Predicted resolution</span><strong>~{grievance.predicted_resolution_hours}h</strong>
+              <div className="kv-row">
+                <span>Predicted resolution</span><strong>~{grievance.predicted_resolution_hours}h</strong>
               </div>
               {grievance.sla_due_at && (
-                <div style={{ display: "flex", justifyContent: "space-between" }}>
-                  <span style={{ color: "var(--text-muted)" }}>SLA due</span><strong>{formatDateTime(grievance.sla_due_at)}</strong>
+                <div className="kv-row">
+                  <span>SLA due</span><strong>{formatDateTime(grievance.sla_due_at)}</strong>
                 </div>
               )}
               {grievance.reopen_count > 0 && (
-                <div style={{ display: "flex", justifyContent: "space-between" }}>
-                  <span style={{ color: "var(--text-muted)" }}>Reopened</span><strong>{grievance.reopen_count}×</strong>
+                <div className="kv-row">
+                  <span>Reopened</span><strong>{grievance.reopen_count}×</strong>
                 </div>
               )}
             </div>
@@ -613,7 +612,7 @@ const GrievanceDetail = () => {
           </>
         }
       >
-        <p style={{ fontSize: 13, color: "var(--text-muted)", marginBottom: 10 }}>
+        <p className="modal-intro">
           Citizen's reason: "{grievance.reopen_reason}"
         </p>
         <label className="form-label">Note (optional)</label>
@@ -647,7 +646,7 @@ const GrievanceDetail = () => {
           </>
         }
       >
-        <p style={{ fontSize: 13.5, color: "var(--text-muted)", lineHeight: 1.6 }}>
+        <p className="prose">
           This can't be undone. Once an officer accepts this case, it can no longer be deleted —
           only while it's still waiting to be picked up.
         </p>
@@ -668,14 +667,14 @@ const GrievanceDetail = () => {
         }
       >
         {copy && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            <p style={{ fontSize: 13, color: "var(--text-muted)", lineHeight: 1.6, margin: 0 }}>
+          <div className="stack-tight">
+            <p className="prose-sm">
               {copy.body}
             </p>
             {integrityModal?.kind === "appeal" && grievance.flag_appeal_reason && (
-              <div style={{ padding: 10, background: "var(--surface-hover)", borderRadius: 10, fontSize: 12.5 }}>
-                <strong style={{ color: "var(--text)" }}>Citizen's appeal: </strong>
-                <span style={{ color: "var(--text-muted)" }}>{grievance.flag_appeal_reason}</span>
+              <div className="note-box">
+                <strong>Citizen's appeal: </strong>
+                <span>{grievance.flag_appeal_reason}</span>
               </div>
             )}
             <div>

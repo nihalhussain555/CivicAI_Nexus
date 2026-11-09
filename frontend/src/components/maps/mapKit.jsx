@@ -148,7 +148,7 @@ const clusterIcon = (count, worstColor) =>
  * Colour modes
  * ------------------------------------------------------------------ */
 
-const PRIORITY_COLOR = { LOW: "#16a34a", MEDIUM: "#d97706", HIGH: "#ea580c", CRITICAL: "#dc2626" };
+const PRIORITY_COLOR = { LOW: "#15803d", MEDIUM: "#b45309", HIGH: "#c2410c", CRITICAL: "#d92d20" };
 
 const STATUS_GROUP = {
   SUBMITTED: "new", AI_ANALYZED: "new", DEPARTMENT_ASSIGNED: "new", REOPENED: "new",
@@ -157,7 +157,7 @@ const STATUS_GROUP = {
   CLOSED: "closed", WITHDRAWN: "hidden",
 };
 
-const GROUP_COLOR = { new: "#6366f1", active: "#0ea5e9", verifying: "#d97706", closed: "#16a34a", hidden: "#94a3b8" };
+const GROUP_COLOR = { new: "#315efb", active: "#0e7490", verifying: "#b45309", closed: "#15803d", hidden: "#8a94a8" };
 
 export const COLOR_MODES = {
   priority: {
@@ -181,9 +181,9 @@ export const COLOR_MODES = {
   age: {
     label: "How long it has waited",
     legend: [
-      { label: "Under a day", color: "#16a34a" },
-      { label: "1–7 days", color: "#d97706" },
-      { label: "Over a week", color: "#dc2626" },
+      { label: "Under a day", color: "#15803d" },
+      { label: "1–7 days", color: "#b45309" },
+      { label: "Over a week", color: "#d92d20" },
     ],
   },
 };
@@ -206,11 +206,11 @@ export const colorFor = (grievance, mode, now = Date.now()) => {
   if (mode === "status") return GROUP_COLOR[STATUS_GROUP[grievance.status]] || GROUP_COLOR.new;
   if (mode === "age") {
     const hours = (now - new Date(grievance.created_at).getTime()) / 3600000;
-    if (hours < 24) return "#16a34a";
-    if (hours < 24 * 7) return "#d97706";
-    return "#dc2626";
+    if (hours < 24) return "#15803d";
+    if (hours < 24 * 7) return "#b45309";
+    return "#d92d20";
   }
-  return PRIORITY_COLOR[grievance.priority] || "#4f46e5";
+  return PRIORITY_COLOR[grievance.priority] || "#315efb";
 };
 
 const radiusFor = (grievance, mode) => {
@@ -236,13 +236,13 @@ const MarkerPopup = ({ grievance, basePath, now }) => (
       {grievance.district ? ` · ${grievance.district}` : ""}
     </div>
     {isOverdue(grievance, now) && (
-      <div style={{ fontSize: 11.5, color: "#dc2626", fontWeight: 700 }}>Past its SLA deadline</div>
+      <div style={{ fontSize: 11.5, color: "var(--danger)", fontWeight: 700 }}>Past its SLA deadline</div>
     )}
     {grievance.flagged_invalid && (
-      <div style={{ fontSize: 11.5, color: "#94a3b8" }}>Flagged as false/misleading</div>
+      <div style={{ fontSize: 11.5, color: "var(--text-faint)" }}>Flagged as false/misleading</div>
     )}
     {basePath && (
-      <Link to={`${basePath}/${grievance.grievance_id}`} style={{ color: "#4f46e5", fontSize: 12, fontWeight: 700 }}>
+      <Link to={`${basePath}/${grievance.grievance_id}`} style={{ color: "var(--accent)", fontSize: 12, fontWeight: 700 }}>
         Open case →
       </Link>
     )}
@@ -369,7 +369,7 @@ const GrievanceMap = ({
                 key={incident.incident_id}
                 center={[lat, lng]}
                 radius={14 + Math.min(incident.report_count || 0, 20)}
-                pathOptions={{ color: "#dc2626", fillColor: "#dc2626", fillOpacity: 0.12, weight: 2, dashArray: "4" }}
+                pathOptions={{ color: "#d92d20", fillColor: "#d92d20", fillOpacity: 0.12, weight: 2, dashArray: "4" }}
               >
                 <Popup>
                   <div>
@@ -381,7 +381,7 @@ const GrievanceMap = ({
                       Several citizens reported the same problem in this area independently.
                     </div>
                     {incidentsPath && (
-                      <Link to={`${incidentsPath}/${incident.incident_id}`} style={{ color: "#4f46e5", fontSize: 12, fontWeight: 700 }}>
+                      <Link to={`${incidentsPath}/${incident.incident_id}`} style={{ color: "var(--accent)", fontSize: 12, fontWeight: 700 }}>
                         Open incident →
                       </Link>
                     )}

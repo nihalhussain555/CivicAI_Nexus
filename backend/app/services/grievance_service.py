@@ -7,6 +7,10 @@ from fastapi import HTTPException
 from app.config.database import grievances_collection, users_collection, incidents_collection
 from app.models.grievance import grievance_document, VALID_TRANSITIONS
 from app.services.ai_pipeline_service import run_pipeline
+from app.services.classification_service import (
+    canonical_department_or_raw,
+    departments_equal,
+)
 from app.services.incident_service import cluster_grievance
 from app.services.notification_service import notify
 from app.services.audit_service import log_action
@@ -59,7 +63,15 @@ def create_grievance(current_user: dict, data) -> dict:
     # `data.location` is a required field on GrievanceCreateRequest (with a
     # validated, non-optional `district`), so this is always present by
     # the time we get here — Pydantic rejects the request otherwise.
-    location = make_point(data.location.latitude, data.location.longitude, data.location.address)
+    location = make_point(
+        data.location.latitude,
+        data.location.longitude,
+        data.location.address,
+        city=getattr(data.location, "city", None),
+        state=getattr(data.location, "state", None),
+        pincode=getattr(data.location, "pincode", None),
+        detection_method=getattr(data.location, "detection_method", None),
+    )
     district = data.location.district
 
     # Trust is checked before anything expensive runs: an account with a
@@ -280,7 +292,10 @@ def assert_can_view(grievance: dict, current_user: dict):
 
     if role == "officer":
 
-        if grievance.get("department") != current_user.get("department"):
+        if not departments_equal(
+            grievance.get("department"),
+            current_user.get("department"),
+        ):
             raise HTTPException(
                 status_code=403,
                 detail="This case belongs to a different department",
@@ -482,8 +497,12 @@ def build_list_query(
 
     elif role == "officer":
 
-        query["department"] = current_user.get(
-            "department"
+        # Officer user documents may store a legacy department name while
+        # grievances always store the canonical one.
+        query["department"] = canonical_department_or_raw(
+            current_user.get(
+                "department"
+            )
         )
 
         if current_user.get("district"):

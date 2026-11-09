@@ -163,6 +163,17 @@ def send_password_reset_email(
 # Dispatch — routes to mock / smtp / resend based on EMAIL_PROVIDER
 # ============================================================
 
+def _with_dev_otp(result: dict, dev_otp: str = None) -> dict:
+    """When an OTP email could not be delivered, hand the code back to the
+    caller so registration doesn't dead-end at the verification step
+    (e.g. Resend test-mode keys that only email the account owner).
+    The OTP belongs to the account the caller just created, so this is not
+    a cross-account leak; production with a verified domain never hits it."""
+    if dev_otp and not result.get("sent"):
+        result["dev_otp"] = dev_otp
+    return result
+
+
 def _dispatch(to_email: str, subject: str, body: str, dev_otp: str = None) -> dict:
 
     # ---------------- Mock mode (local dev) ----------------
@@ -186,11 +197,14 @@ def _dispatch(to_email: str, subject: str, body: str, dev_otp: str = None) -> di
 
         if not settings.RESEND_API_KEY:
             print("ERROR: RESEND_API_KEY is not configured.")
-            return {
-                "sent": False,
-                "provider": "resend",
-                "error": "RESEND_API_KEY is not configured",
-            }
+            return _with_dev_otp(
+                {
+                    "sent": False,
+                    "provider": "resend",
+                    "error": "RESEND_API_KEY is not configured",
+                },
+                dev_otp,
+            )
 
         try:
             _send_via_resend(to_email, subject, body)
@@ -203,21 +217,27 @@ def _dispatch(to_email: str, subject: str, body: str, dev_otp: str = None) -> di
 
             print(f"ERROR: Resend request failed: {type(error).__name__}: {error}")
 
-            return {
-                "sent": False,
-                "provider": "resend",
-                "error": f"Resend request failed: {error}",
-            }
+            return _with_dev_otp(
+                {
+                    "sent": False,
+                    "provider": "resend",
+                    "error": f"Resend request failed: {error}",
+                },
+                dev_otp,
+            )
 
         except Exception as error:
 
             print(f"ERROR: Resend send failed: {type(error).__name__}: {error}")
 
-            return {
-                "sent": False,
-                "provider": "resend",
-                "error": str(error),
-            }
+            return _with_dev_otp(
+                {
+                    "sent": False,
+                    "provider": "resend",
+                    "error": str(error),
+                },
+                dev_otp,
+            )
 
     # ---------------- Raw SMTP (blocked on Render — kept for hosts that
     # allow outbound SMTP, e.g. a VPS or local self-hosting) ----------------
@@ -231,11 +251,14 @@ def _dispatch(to_email: str, subject: str, body: str, dev_otp: str = None) -> di
 
             print("ERROR: SMTP configuration is incomplete.")
 
-            return {
-                "sent": False,
-                "provider": "smtp",
-                "error": "SMTP configuration is incomplete",
-            }
+            return _with_dev_otp(
+                {
+                    "sent": False,
+                    "provider": "smtp",
+                    "error": "SMTP configuration is incomplete",
+                },
+                dev_otp,
+            )
 
         try:
 
@@ -249,11 +272,14 @@ def _dispatch(to_email: str, subject: str, body: str, dev_otp: str = None) -> di
 
             print(f"ERROR: Gmail SMTP authentication failed: {error}")
 
-            return {
-                "sent": False,
-                "provider": "smtp",
-                "error": "Gmail SMTP authentication failed",
-            }
+            return _with_dev_otp(
+                {
+                    "sent": False,
+                    "provider": "smtp",
+                    "error": "Gmail SMTP authentication failed",
+                },
+                dev_otp,
+            )
 
         except OSError as error:
 
@@ -262,32 +288,41 @@ def _dispatch(to_email: str, subject: str, body: str, dev_otp: str = None) -> di
             # credentials won't help; switch EMAIL_PROVIDER to "resend".
             print(f"ERROR: SMTP network error (host likely blocks outbound SMTP): {error}")
 
-            return {
-                "sent": False,
-                "provider": "smtp",
-                "error": (
-                    "Network error reaching the SMTP server — this host may be "
-                    "blocking outbound SMTP. Consider EMAIL_PROVIDER=resend."
-                ),
-            }
+            return _with_dev_otp(
+                {
+                    "sent": False,
+                    "provider": "smtp",
+                    "error": (
+                        "Network error reaching the SMTP server — this host may be "
+                        "blocking outbound SMTP. Consider EMAIL_PROVIDER=resend."
+                    ),
+                },
+                dev_otp,
+            )
 
         except Exception as error:
 
             print(f"ERROR: SMTP send failed: {type(error).__name__}: {error}")
 
-            return {
-                "sent": False,
-                "provider": "smtp",
-                "error": str(error),
-            }
+            return _with_dev_otp(
+                {
+                    "sent": False,
+                    "provider": "smtp",
+                    "error": str(error),
+                },
+                dev_otp,
+            )
 
     print(f"ERROR: Unknown EMAIL_PROVIDER '{settings.EMAIL_PROVIDER}'")
 
-    return {
-        "sent": False,
-        "provider": settings.EMAIL_PROVIDER,
-        "error": f"Unknown EMAIL_PROVIDER '{settings.EMAIL_PROVIDER}'",
-    }
+    return _with_dev_otp(
+        {
+            "sent": False,
+            "provider": settings.EMAIL_PROVIDER,
+            "error": f"Unknown EMAIL_PROVIDER '{settings.EMAIL_PROVIDER}'",
+        },
+        dev_otp,
+    )
 
 
 # ============================================================

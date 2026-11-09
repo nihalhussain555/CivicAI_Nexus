@@ -12,7 +12,7 @@ const pinIcon = L.divIcon({
   className: "location-pin-icon",
   html: `
     <svg width="32" height="42" viewBox="0 0 32 42" xmlns="http://www.w3.org/2000/svg">
-      <path d="M16 0C7.163 0 0 7.163 0 16c0 11 16 26 16 26s16-15 16-26C32 7.163 24.837 0 16 0z" fill="#4f46e5"/>
+      <path d="M16 0C7.163 0 0 7.163 0 16c0 11 16 26 16 26s16-15 16-26C32 7.163 24.837 0 16 0z" fill="#315efb"/>
       <circle cx="16" cy="16" r="6.5" fill="white"/>
     </svg>`,
   iconSize: [32, 42],
@@ -189,7 +189,7 @@ const LocationPicker = ({
   };
 
   return (
-    <div className="location-picker" style={{ borderRadius: 12, overflow: "hidden", border: "1px solid var(--border)", position: "relative" }}>
+    <div className="location-picker">
       <PlaceSearch near={center} onPick={handlePick} />
 
       <MapContainer center={center} zoom={hasPin ? 16 : 11} style={{ height, width: "100%" }} scrollWheelZoom>
@@ -202,7 +202,7 @@ const LocationPicker = ({
             key={report.grievance_id}
             center={report.position}
             radius={5}
-            pathOptions={{ color: "#ffffff", weight: 1, fillColor: "#94a3b8", fillOpacity: 0.8 }}
+            pathOptions={{ color: "#ffffff", weight: 1, fillColor: "#8a94a8", fillOpacity: 0.8 }}
           />
         ))}
         {hasPin && center && (

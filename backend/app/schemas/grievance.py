@@ -4,6 +4,11 @@ from pydantic import BaseModel, Field, field_validator
 from app.utils.constants import DISTRICTS
 
 
+# How a location got its coordinates — surfaced to staff so an approximate
+# or manually-searched pin is never mistaken for an exact GPS fix.
+DETECTION_METHODS = {"gps", "search", "manual", "approximate"}
+
+
 class LocationInput(BaseModel):
     latitude: float
     longitude: float
@@ -11,6 +16,53 @@ class LocationInput(BaseModel):
     # Required, and must be one of the canonical DISTRICTS — this is what
     # actually drives officer routing, so it can't be arbitrary free text.
     district: str = Field(..., min_length=2, max_length=80)
+
+    # Optional structured address parts + provenance. Every grievance stores
+    # these when available so the admin map/detail can show city, state,
+    # pincode and HOW the point was obtained (spec section 3).
+    city: Optional[str] = Field(None, max_length=120)
+    state: Optional[str] = Field(None, max_length=120)
+    pincode: Optional[str] = Field(None, max_length=12)
+    detection_method: Optional[str] = Field(None, max_length=20)
+
+    @field_validator("latitude")
+    @classmethod
+    def latitude_in_range(cls, value: float) -> float:
+        if value < -90 or value > 90:
+            raise ValueError("latitude must be between -90 and 90")
+        return value
+
+    @field_validator("longitude")
+    @classmethod
+    def longitude_in_range(cls, value: float) -> float:
+        if value < -180 or value > 180:
+            raise ValueError("longitude must be between -180 and 180")
+        return value
+
+    @field_validator("latitude", "longitude")
+    @classmethod
+    def reject_null_island(cls, value: float) -> float:
+        # (0,0) is the classic "no real location" placeholder (Null Island).
+        # Saving it would drop a marker in the Atlantic and misroute reports,
+        # so a coordinate pair sitting exactly on 0/0 is rejected up front.
+        if value == 0:
+            raise ValueError(
+                "a latitude/longitude of exactly 0 is not a valid location — "
+                "please use your current location or pick a real spot on the map"
+            )
+        return value
+
+    @field_validator("detection_method")
+    @classmethod
+    def method_is_known(cls, value: Optional[str]) -> Optional[str]:
+        if value is None:
+            return value
+        v = value.lower()
+        if v not in DETECTION_METHODS:
+            raise ValueError(
+                f"detection_method must be one of: {', '.join(sorted(DETECTION_METHODS))}"
+            )
+        return v
 
     @field_validator("district")
     @classmethod

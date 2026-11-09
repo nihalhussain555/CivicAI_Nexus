@@ -170,7 +170,10 @@ def test_officer_queue_reflects_department_assigned_cases():
 
     client.post("/api/grievances/", json={
         "title": "Queue test grievance",
-        "description": "Testing that newly submitted grievances appear in the officer priority queue.",
+        # Text must carry real sanitation vocabulary so the pipeline routes
+        # the case to this officer's department — the classifier cannot know
+        # a "test" complaint belongs to Sanitation from meta-wording alone.
+        "description": "Garbage not collected for four days; overflowing bins blocking the footpath.",
         "location": SAMPLE_LOCATION,
     }, headers=_auth_headers(citizen_token))
 

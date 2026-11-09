@@ -51,6 +51,10 @@ const Register = () => {
 
   const [verifying, setVerifying] = useState(false);
   const [resending, setResending] = useState(false);
+  // Shown only when the backend couldn't deliver the OTP email but handed
+  // us the code (e.g. a testing-mode email provider) — without this the
+  // user would sit on the OTP screen forever with no way to get the code.
+  const [devOtp, setDevOtp] = useState(null);
 
   const otpRefs = useRef([]);
 
@@ -184,9 +188,15 @@ const Register = () => {
     try {
       const res = await register(form);
 
+      setDevOtp(res.data?.email_sent ? null : res.data?.dev_otp ?? null);
+
       if (res.data?.email_sent) {
         toast.success(
           "Verification code sent — check your email."
+        );
+      } else if (res.data?.dev_otp) {
+        toast.info(
+          "Verification email could not be sent, so the code is shown on this screen."
         );
       } else {
         toast.error(
@@ -323,10 +333,17 @@ const Register = () => {
       );
 
       if (res.data?.email_sent) {
+        setDevOtp(null);
         toast.success(
           "A new code has been sent to your email."
         );
+      } else if (res.data?.dev_otp) {
+        setDevOtp(res.data.dev_otp);
+        toast.info(
+          "Email delivery failed again — the new code is shown on this screen."
+        );
       } else {
+        setDevOtp(null);
         toast.error(
           "We couldn't send the verification email right now. Please try again in a moment."
         );
@@ -659,13 +676,26 @@ const Register = () => {
                 </h1>
 
                 <p>
-                  We sent a {OTP_LENGTH}-digit
-                  verification code to{" "}
-                  <strong>
-                    {form.email}
-                  </strong>
-                  .
+                  {devOtp
+                    ? `We couldn't deliver the email right now, so enter this ${OTP_LENGTH}-digit code to continue:`
+                    : `We sent a ${OTP_LENGTH}-digit verification code to ${form.email}.`}
                 </p>
+
+                {devOtp && (
+                  <p
+                    style={{
+                      margin: "8px 0 0",
+                      fontSize: 22,
+                      letterSpacing: 6,
+                      fontWeight: 700,
+                      fontFamily: "monospace",
+                      color: "var(--accent, #7c3aed)",
+                      userSelect: "all",
+                    }}
+                  >
+                    {devOtp}
+                  </p>
+                )}
 
               </div>
 

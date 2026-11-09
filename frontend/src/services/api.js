@@ -1,6 +1,19 @@
 import axios from "axios";
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
+// API base URL resolution, in order:
+//  1. VITE_API_BASE_URL (set in .env.local for dev, or in the Vercel/Render
+//     dashboard for production).
+//  2. In a production *build* with no env var set, fall back to the deployed
+//     Render backend. Falling back to localhost here was a real bug: Vercel
+//     builds without the dashboard var silently pointed every visitor's
+//     requests at their own machine, which presented as "login/register do
+//     nothing".
+//  3. In dev with no env var, localhost:8000.
+const FALLBACK_PROD_URL = "https://civicai-nexus.onrender.com";
+
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL ||
+  (import.meta.env.PROD ? FALLBACK_PROD_URL : "http://localhost:8000");
 
 const api = axios.create({
   baseURL: `${API_BASE_URL}/api`,

@@ -223,7 +223,12 @@ def officer_leaderboard(limit: int = 10, current_user=Depends(get_current_user))
     match_stage = {"assigned_officer": {"$ne": None}}
 
     if current_user["role"] == "officer":
-        match_stage["department"] = current_user.get("department")
+        # User documents may carry legacy department names; grievances
+        # always store the canonical one.
+        match_stage["department"] = (
+            normalize_department(current_user.get("department"))
+            or current_user.get("department")
+        )
     elif current_user["role"] == "admin" and current_user.get("district"):
         match_stage["district"] = current_user["district"]
 

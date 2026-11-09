@@ -35,8 +35,8 @@ const LoadingSpinner = ({ size = 28, label }) => (
         position: absolute;
         inset: 0;
         border: 2px solid transparent;
-        border-top-color: #8b5cf6;
-        border-right-color: #a855f7;
+        border-top-color: var(--violet);
+        border-right-color: color-mix(in srgb, var(--violet) 78%, white);
         border-radius: 50%;
       }
 
@@ -46,7 +46,7 @@ const LoadingSpinner = ({ size = 28, label }) => (
 
       .ring-two {
         inset: 4px;
-        border-top-color: #6366f1;
+        border-top-color: var(--accent);
         border-right-color: transparent;
         animation: civicSpinReverse 0.8s linear infinite;
       }
@@ -55,10 +55,10 @@ const LoadingSpinner = ({ size = 28, label }) => (
         width: 7px;
         height: 7px;
         border-radius: 50%;
-        background: #8b5cf6;
+        background: var(--violet);
         box-shadow:
-          0 0 8px rgba(139, 92, 246, 0.8),
-          0 0 16px rgba(139, 92, 246, 0.4);
+          0 0 8px color-mix(in srgb, var(--violet) 65%, transparent),
+          0 0 16px color-mix(in srgb, var(--violet) 40%, transparent);
         animation: civicPulse 1s ease-in-out infinite;
       }
 

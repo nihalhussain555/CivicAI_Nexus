@@ -20,10 +20,10 @@ const AIInsights = () => {
           <p>Predictive signals across the platform. All figures are AI-generated estimates.</p></div>
       </div>
 
-      <div className="grid grid-3" style={{ marginBottom: 26 }}>
+      <div className="grid grid-3 stat-grid">
         <div className="stat-card">
           <span className="stat-label"><ShieldAlert size={13} /> SLA breaches</span>
-          <span className="stat-value" style={{ color: "var(--danger)" }}>{stats?.sla_breaches ?? "—"}</span>
+          <span className="stat-value is-danger">{stats?.sla_breaches ?? "—"}</span>
           <span className="stat-sub">Cases past their AI-predicted deadline</span>
         </div>
         <div className="stat-card">

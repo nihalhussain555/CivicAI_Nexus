@@ -1,4 +1,5 @@
 import hashlib
+import hmac
 import secrets
 from datetime import datetime, timedelta
 
@@ -141,7 +142,10 @@ def verify_otp(
             ),
         }
 
-    if hash_otp(otp_code) != user["otp_code_hash"]:
+    if not hmac.compare_digest(
+        hash_otp(otp_code),
+        str(user["otp_code_hash"]),
+    ):
 
         users_collection.update_one(
             {"_id": user["_id"]},

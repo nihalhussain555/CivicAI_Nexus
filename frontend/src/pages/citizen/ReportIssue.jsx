@@ -130,15 +130,19 @@ const ReportIssue = () => {
   const pin = location?.latitude ? [location.latitude, location.longitude] : null;
   const mapCenter = pin || DISTRICT_CENTERS[location?.district] || STATE_CENTER;
 
-  const resolveAddress = async (latitude, longitude, keepDistrict) => {
+  const resolveAddress = async (latitude, longitude, keepDistrict, method) => {
     setResolvingPin(true);
     try {
-      const { label, district } = await reverseGeocode(latitude, longitude);
+      const { label, district, city, state, pincode } = await reverseGeocode(latitude, longitude);
       setLocation((prev) => ({
         latitude,
         longitude,
         address: label,
+        city: city ?? prev?.city ?? null,
+        state: state ?? prev?.state ?? null,
+        pincode: pincode ?? prev?.pincode ?? null,
         district: keepDistrict || district || prev?.district || "",
+        detection_method: method ?? prev?.detection_method ?? "manual",
       }));
       if (!keepDistrict && district) setDistrictWasGuessed(true);
     } catch {
@@ -149,6 +153,7 @@ const ReportIssue = () => {
         longitude,
         address: prev?.address || `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`,
         district: prev?.district || "",
+        detection_method: method ?? prev?.detection_method ?? "manual",
       }));
     } finally {
       setResolvingPin(false);
@@ -166,8 +171,8 @@ const ReportIssue = () => {
       (pos) => {
         const { latitude, longitude } = pos.coords;
         setLocating(false);
-        setLocation((prev) => ({ ...prev, latitude, longitude }));
-        resolveAddress(latitude, longitude);
+        setLocation((prev) => ({ ...prev, latitude, longitude, detection_method: "gps" }));
+        resolveAddress(latitude, longitude, null, "gps");
       },
       (error) => {
         setLocating(false);
@@ -192,20 +197,25 @@ const ReportIssue = () => {
   // spot, but never overrule a district the citizen selected by hand.
   const handlePick = (lat, lng, source, place) => {
     const locked = districtConfirmed ? location?.district || "" : "";
+    const method = source === "search" ? "search" : "manual";
 
     if (place) {
       setLocation({
         latitude: lat,
         longitude: lng,
         address: place.label,
+        city: place.city ?? location?.city ?? null,
+        state: place.state ?? location?.state ?? null,
+        pincode: place.pincode ?? location?.pincode ?? null,
         district: locked || place.district || location?.district || "",
+        detection_method: method,
       });
       if (!locked && place.district) setDistrictWasGuessed(true);
       return;
     }
 
     setLocation((prev) => ({ ...(prev || {}), latitude: lat, longitude: lng }));
-    resolveAddress(lat, lng, locked);
+    resolveAddress(lat, lng, locked, method);
   };
 
   const handleDistrictChange = (value) => {
@@ -260,6 +270,10 @@ const ReportIssue = () => {
           longitude: location.longitude,
           address: location.address,
           district: location.district,
+          city: location.city || undefined,
+          state: location.state || undefined,
+          pincode: location.pincode || undefined,
+          detection_method: location.detection_method || "manual",
         },
       };
       const res = await submitGrievance(payload);
@@ -478,7 +492,7 @@ const ReportIssue = () => {
           </div>
           <h2 style={{ fontSize: 18, marginBottom: 8 }}>Grievance submitted</h2>
           <p style={{ color: "var(--text-muted)", fontSize: 13.5, marginBottom: 6 }}>
-            Reference ID: <strong style={{ fontFamily: "monospace" }}>{submitted.grievance_id}</strong>
+            Reference ID: <strong className="record-id">{submitted.grievance_id}</strong>
           </p>
           <p style={{ color: "var(--text-muted)", fontSize: 13.5, marginBottom: 24 }}>
             Routed to <strong>{submitted.department}</strong> ({submitted.district}). You'll be notified as it progresses.

@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import {
   UserRound,
   ClipboardList,
@@ -42,6 +42,38 @@ const ROLES = [
   },
 ];
 
+/*
+ * =====================================================
+ * DETERMINE THE CORRECT DASHBOARD
+ * =====================================================
+ *
+ * Admin users are divided into:
+ *
+ * 1. Super Admin
+ *    district is empty/null
+ *
+ * 2. District Admin
+ *    district exists
+ *
+ * District admins MUST go directly to:
+ *
+ * /admin/district
+ *
+ * They must never temporarily enter:
+ *
+ * /admin/dashboard
+ */
+const dashboardPathFor = (user) => {
+  if (user?.role === "citizen") return "/citizen/dashboard";
+  if (user?.role === "officer") return "/officer/dashboard";
+  if (user?.role === "admin") {
+    return user?.district && String(user.district).trim() !== ""
+      ? "/admin/district"
+      : "/admin/dashboard";
+  }
+  return "/";
+};
+
 const Login = () => {
   const { t } = useTranslation();
   const [selectedRole, setSelectedRole] = useState(null);
@@ -56,8 +88,16 @@ const Login = () => {
     password: "",
   });
 
-  const { login } = useAuth();
+  const { login, isAuthenticated, user } = useAuth();
   const toast = useToast();
+  const navigate = useNavigate();
+
+  // Already signed in? Don't show the login form again.
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      navigate(dashboardPathFor(user), { replace: true });
+    }
+  }, [isAuthenticated, user, navigate]);
 
   const validateEmail = (value) => {
     if (!value.trim()) {
@@ -96,6 +136,12 @@ const doLogin = async (
   loginEmail,
   loginPassword
 ) => {
+  // Guard against double submits (Enter key + button click) firing two
+  // POST /auth/login requests that race each other's state writes.
+  if (loading) {
+    return;
+  }
+
   setLoading(true);
 
   try {
@@ -133,37 +179,12 @@ const doLogin = async (
      * /admin/dashboard
      */
 
-    let target = "/";
+    const target = dashboardPathFor(user);
 
-    if (user?.role === "citizen") {
-      target = "/citizen/dashboard";
-    }
-
-    else if (user?.role === "officer") {
-      target = "/officer/dashboard";
-    }
-
-    else if (user?.role === "admin") {
-
-      /*
-       * District admin
-       */
-      if (
-        user?.district &&
-        String(user.district).trim() !== ""
-      ) {
-        target = "/admin/district";
-      }
-
-      /*
-       * Super admin
-       */
-      else {
-        target = "/admin/dashboard";
-      }
-    }
-
-    window.location.replace(target);
+    // login() already populated AuthContext state, so an SPA navigate is
+    // enough. window.location.replace would reload the whole app and re-run
+    // getMe() — a second 25s cold-start spinner on Render's free tier.
+    navigate(target, { replace: true });
 
   } catch (error) {
     toast.error(
