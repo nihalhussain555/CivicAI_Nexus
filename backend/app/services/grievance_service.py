@@ -5,7 +5,11 @@ from datetime import datetime
 from fastapi import HTTPException
 
 from app.config.database import grievances_collection, users_collection, incidents_collection
-from app.models.grievance import grievance_document, VALID_TRANSITIONS
+from app.models.grievance import (
+    grievance_document,
+    assert_transition_allowed,
+    REASON_REQUIRED_TRANSITIONS,
+)
 from app.services.ai_pipeline_service import run_pipeline
 from app.services.classification_service import (
     canonical_department_or_raw,
@@ -27,6 +31,34 @@ from app.utils.geo import make_point
 
 def make_grievance_id():
     return f"CIV-{datetime.utcnow():%Y}-{uuid.uuid4().hex[:8].upper()}"
+
+
+# Used when a transition is a consequence of the workflow rather than of a
+# person's decision — e.g. a citizen's "not resolved" verdict re-routes the
+# case to the department. Attributing that to the citizen would let a role
+# with no authority over routing appear in the audit trail as if it had one.
+SYSTEM_ACTOR = {"_id": None, "role": "system", "name": "System", "district": None}
+
+
+def history_entry(status, message, actor_role, timestamp=None, visibility="public"):
+    """One append-only lifecycle record.
+
+    Every write into grievance.history is built here — including the handful of
+    endpoints that update Mongo directly for atomicity (case acceptance, where
+    two officers can race for the same file). That is what lets the tracking
+    page treat `history` as a complete, uniformly-shaped audit log instead of
+    a best-effort guess with per-endpoint exceptions.
+    """
+    return {
+        "status": status,
+        "message": message,
+        "actor_role": actor_role,
+        # "internal" is for events that belong to the staff workflow, not the
+        # citizen's story. redact_for_citizen drops them; the document keeps
+        # both, which is the point of an audit history.
+        "visibility": visibility,
+        "timestamp": timestamp or datetime.utcnow(),
+    }
 
 
 def _notify_integrity_reviewers(grievance):
@@ -141,11 +173,18 @@ def create_grievance(current_user: dict, data) -> dict:
         "updated_at": now,
     })
     grievance["history"].extend([
-        {"status": "AI_ANALYZED", "message": "AI analysis completed", "actor_role": "system", "timestamp": now},
+        {
+            "status": "AI_ANALYZED",
+            "message": "AI analysis completed",
+            "actor_role": "system",
+            "visibility": "public",
+            "timestamp": now,
+        },
         {
             "status": "DEPARTMENT_ASSIGNED",
             "message": f"Routed to {ai_result['department']} ({district}) — AI-recommended",
             "actor_role": "system",
+            "visibility": "public",
             "timestamp": now,
         },
     ])
@@ -183,6 +222,13 @@ def create_grievance(current_user: dict, data) -> dict:
         "basis": authenticity.get("basis") if authenticity else None,
     }
     points_held = grievance["integrity"]["points_held"]
+
+    # The citizen ladder's "Verified" step. A report that automated screening
+    # cleared is confirmed as a genuine civic issue at submission; a report held
+    # for a human is only confirmed once that human decides (integrity triage,
+    # or an officer accepting the case) — see verified_at elsewhere in this file.
+    if not grievance["needs_authenticity_review"]:
+        grievance["verified_at"] = now
 
     grievances_collection.insert_one(grievance)
 
@@ -356,21 +402,28 @@ def transition_status(
     actor: dict,
     message: str = None,
     extra_fields: dict = None,
+    visibility: str = "public",
 ):
+    """The only sanctioned way to move a grievance between lifecycle states.
+
+    Everything the citizen's tracking page promises about status integrity is
+    paid for here: one legality check, one authority check, one append-only
+    history entry, one audit log line, one notification. Endpoints that update
+    `status` without going through this function are the bug, not the design.
+    """
     current_status = grievance["status"]
 
-    allowed = VALID_TRANSITIONS.get(
-        current_status,
-        set(),
-    )
+    try:
+        assert_transition_allowed(current_status, new_status, actor["role"])
+    except PermissionError as error:
+        raise HTTPException(status_code=403, detail=str(error))
+    except ValueError as error:
+        raise HTTPException(status_code=400, detail=str(error))
 
-    if new_status not in allowed:
+    if new_status in REASON_REQUIRED_TRANSITIONS and not (message or "").strip():
         raise HTTPException(
             status_code=400,
-            detail=(
-                f"Cannot transition from "
-                f"{current_status} to {new_status}"
-            ),
+            detail=f"A reason is required when moving a case to {new_status.replace('_', ' ').title()}",
         )
 
     # ---------------------------------------------------------
@@ -394,26 +447,30 @@ def transition_status(
 
     if actor["role"] == "officer":
 
-        if grievance.get(
-            "assigned_officer"
-        ) != actor["_id"]:
+        assigned = grievance.get("assigned_officer")
+
+        if assigned and assigned != actor["_id"]:
             raise HTTPException(
                 status_code=403,
-                detail=(
-                    "You can only modify grievances "
-                    "assigned to you"
-                ),
+                detail="You can only modify grievances assigned to you",
             )
+
+        # An unassigned case is the department's shared queue, so any officer in
+        # it may act on it — that is how a report gets rejected as out of scope
+        # or escalated before anyone has taken it. The department and district
+        # match that makes this true is assert_can_view's job, done at the
+        # endpoint; here we only have to stop anyone steering a colleague's
+        # case.
 
     now = datetime.utcnow()
 
-    history_item = {
-        "status": new_status,
-        "message": message
-        or f"Status changed to {new_status}",
-        "actor_role": actor["role"],
-        "timestamp": now,
-    }
+    history_item = history_entry(
+        new_status,
+        message or f"Status changed to {new_status}",
+        actor["role"],
+        timestamp=now,
+        visibility=visibility,
+    )
 
     update_fields = {
         "status": new_status,

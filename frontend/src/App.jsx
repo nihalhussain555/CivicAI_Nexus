@@ -34,6 +34,7 @@ const ResetPassword = lazy(() => import("./pages/auth/ResetPassword"));
 const CitizenDashboard = lazy(() => import("./pages/citizen/Dashboard"));
 const ReportIssue = lazy(() => import("./pages/citizen/ReportIssue"));
 const CitizenGrievances = lazy(() => import("./pages/citizen/Grievances"));
+const GrievanceTracking = lazy(() => import("./pages/citizen/GrievanceTracking"));
 const Rewards = lazy(() => import("./pages/citizen/Rewards"));
 
 // Officer
@@ -128,6 +129,10 @@ function App() {
                     <Route
                       path="grievances/:grievanceId"
                       element={<GrievanceDetail />}
+                    />
+                    <Route
+                      path="track/:grievanceId"
+                      element={<GrievanceTracking />}
                     />
                     <Route path="incidents" element={<Incidents />} />
                     <Route

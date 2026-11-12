@@ -4495,7 +4495,6 @@ textarea:focus-visible,
   font-size: 12.5px;
   font-weight: 600;
 }
-
 /* A <select> sizes itself to its longest option ("Malayalam"), which is what
    overflows the topbar on small phones. min-width: 0 lifts the flex item's
    automatic content minimum so the bar can actually shrink, and the option
@@ -4510,4 +4509,369 @@ textarea:focus-visible,
     text-overflow: ellipsis;
     white-space: nowrap;
   }
+}
+
+/* =========================================================
+   CITIZEN TRACKING PAGE
+   The one surface designed thumb-first: a single column that
+   stays readable at 360px, big tap targets, and enough measure
+   on a desktop without turning into a dashboard.
+========================================================= */
+
+.detail-back-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+
+.detail-back-row .btn-back { margin-bottom: 0; }
+
+.track-page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 760px;
+  margin: 0 auto;
+  padding-bottom: 8px;
+}
+
+.track-page .section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.track-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.track-topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+/* ---------- Hero: reference, stage, dates ---------- */
+
+.track-hero-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+/* The reference number is the thing a citizen reads out over the phone, so
+   it is a copy button rather than static text. */
+.track-reference {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: var(--accent-soft-text);
+  background: var(--accent-soft);
+  border: 1px solid transparent;
+  border-radius: var(--radius-pill);
+  padding: 7px 12px;
+  cursor: pointer;
+  min-height: 34px;
+}
+
+.track-reference:hover { border-color: var(--accent); }
+
+.track-title {
+  font-size: 20px;
+  line-height: 1.3;
+  letter-spacing: -0.3px;
+  margin-bottom: 16px;
+  overflow-wrap: anywhere;
+}
+
+.track-stage-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.track-stage-label { font-size: 14.5px; font-weight: 700; color: var(--accent); }
+
+.track-stage-percent {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.track-progress-track {
+  height: 8px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-hover);
+  overflow: hidden;
+  margin: 8px 0 10px;
+}
+
+.track-progress-fill {
+  display: block;
+  height: 100%;
+  min-width: 8px;
+  border-radius: inherit;
+  background: var(--accent-gradient);
+  transition: width 0.45s ease;
+}
+
+.track-stage-description {
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--text-muted);
+}
+
+.track-hero-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+  font-size: 12.5px;
+  color: var(--text-muted);
+}
+
+.track-hero-meta span { display: inline-flex; align-items: center; gap: 6px; }
+
+/* ---------- Facts: SLA + routing ---------- */
+
+.track-facts { align-items: start; }
+
+.track-count {
+  margin-left: auto;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--text-faint);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  padding: 2px 8px;
+  flex-shrink: 0;
+}
+
+.track-sla { display: flex; flex-direction: column; gap: 12px; }
+
+.track-sla-head { display: flex; align-items: flex-start; gap: 10px; }
+
+/* The icon leads the block and must not be squeezed by a long countdown. */
+.track-sla-head > svg { flex-shrink: 0; margin-top: 2px; color: var(--text-muted); }
+
+.track-sla-state { font-size: 13.5px; font-weight: 800; }
+.track-sla-when { font-size: 12.5px; color: var(--text-muted); margin-top: 2px; line-height: 1.45; }
+
+.track-sla-count {
+  margin-left: auto;
+  text-align: right;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  flex-shrink: 0;
+}
+
+.track-sla-count strong { font-size: 17px; font-variant-numeric: tabular-nums; letter-spacing: -0.2px; }
+.track-sla-count span { font-size: 11px; color: var(--text-faint); }
+
+.track-sla-track {
+  height: 6px;
+  border-radius: var(--radius-pill);
+  background: var(--surface-hover);
+  overflow: hidden;
+}
+
+.track-sla-fill { display: block; height: 100%; border-radius: inherit; background: var(--accent); }
+.track-sla-note { font-size: 12px; color: var(--text-faint); line-height: 1.5; }
+
+/* One colour per deadline outcome, so the state is readable at a glance
+   without the sentence. */
+.track-sla-on_track .track-sla-state { color: var(--success); }
+.track-sla-on_track .track-sla-fill { background: var(--success); }
+
+.track-sla-due_soon .track-sla-state { color: var(--warning); }
+.track-sla-due_soon .track-sla-fill { background: var(--warning); }
+
+.track-sla-at_risk .track-sla-state,
+.track-sla-breached .track-sla-state { color: var(--danger); }
+.track-sla-at_risk .track-sla-fill,
+.track-sla-breached .track-sla-fill { background: var(--danger); }
+
+.track-sla-met .track-sla-state { color: var(--success); }
+.track-sla-met .track-sla-fill { background: var(--success); }
+.track-sla-missed .track-sla-state { color: var(--danger); }
+.track-sla-missed .track-sla-fill { background: var(--priority-medium); }
+.track-sla-unknown .track-sla-state { color: var(--text-muted); }
+.track-sla-unknown .track-sla-fill { background: var(--border-strong); }
+
+/* ---------- Progress ladder additions ---------- */
+
+/* Pending and blocked extend the shared complaint timeline: the tracking
+   ladder has rungs the case will never reach again once it is rejected or
+   withdrawn, which the original four-state timeline had no way to show. */
+.timeline-step-pending .timeline-step-dot { background: var(--surface-2); }
+
+.timeline-step-blocked .timeline-step-dot {
+  border-color: var(--danger);
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.timeline-step-blocked .timeline-step-label { color: var(--text-muted); }
+
+.timeline-step-blocked .timeline-step-line,
+.timeline-step-pending .timeline-step-line { background: var(--border); }
+
+.timeline-step-meta {
+  font-size: 12px;
+  color: var(--text-faint);
+  margin-top: 3px;
+  line-height: 1.45;
+}
+
+.track-override-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  background: var(--warning-soft);
+  color: var(--warning);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  font-size: 12.5px;
+}
+
+.track-override-note svg { flex-shrink: 0; margin-top: 2px; }
+.track-override-note p { margin-top: 3px; line-height: 1.5; }
+
+/* ---------- Remarks, notifications, evidence ---------- */
+
+.track-remarks,
+.track-notifications {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.track-remark {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.track-remark > svg { flex-shrink: 0; margin-top: 3px; color: var(--accent); }
+.track-remark p { overflow-wrap: anywhere; }
+
+.track-remark-meta { display: block; font-size: 11.5px; color: var(--text-faint); margin-top: 3px; }
+
+.track-notification {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 11px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+}
+
+.track-notification svg { flex-shrink: 0; margin-top: 2px; color: var(--text-faint); }
+.track-notification strong { font-size: 12.5px; display: block; }
+.track-notification p { font-size: 12.5px; color: var(--text-muted); line-height: 1.5; margin-top: 2px; }
+.track-notification span { display: block; font-size: 11px; color: var(--text-faint); margin-top: 4px; }
+
+/* Unread notices are the ones the citizen has not opened elsewhere, so they
+   carry the accent rather than another badge. */
+.track-notification.unread {
+  background: var(--accent-soft);
+  border-color: color-mix(in srgb, var(--accent) 35%, var(--border));
+}
+
+.track-notification.unread svg { color: var(--accent); }
+
+.track-thumb {
+  padding: 0;
+  background: none;
+  border: 1px solid var(--border);
+  cursor: zoom-in;
+  overflow: hidden;
+  display: block;
+}
+
+.track-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.track-thumb:hover { border-color: var(--accent); }
+
+.track-evidence-full {
+  width: 100%;
+  border-radius: var(--radius-md);
+  display: block;
+  max-height: 62vh;
+  object-fit: contain;
+  background: var(--surface-2);
+}
+
+/* ---------- Rating ---------- */
+
+.track-rating { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+.track-rating-stars { display: flex; align-items: center; gap: 4px; }
+
+.track-rating-caption { font-size: 12.5px; color: var(--text-muted); }
+
+/* 44px tap targets — this is the one control on the page people use one-handed. */
+.track-star-button {
+  background: none;
+  border: none;
+  padding: 9px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  cursor: pointer;
+  color: var(--border-strong);
+}
+
+.track-star-button:hover { color: var(--warning); }
+
+.track-star { color: var(--border-strong); }
+.track-star.filled { color: var(--warning); fill: currentColor; }
+
+.track-modal-rating { display: flex; justify-content: center; padding: 6px 0 10px; }
+
+/* ---------- Chevron / footnote ---------- */
+
+.spin-up { transform: rotate(180deg); transition: transform 0.2s ease; }
+
+.track-footnote {
+  font-size: 12px;
+  color: var(--text-faint);
+  line-height: 1.6;
+  text-align: center;
+  padding: 4px 8px 0;
+}
+
+.track-footnote a { color: var(--accent); font-weight: 600; }
+
+/* ---------- Responsive ---------- */
+
+@media (max-width: 700px) {
+  .track-facts { grid-template-columns: 1fr; }
+  .track-title { font-size: 18px; }
+}
+
+@media (max-width: 460px) {
+  .track-hero-meta { gap: 6px 12px; font-size: 12px; }
+  .track-sla-count strong { font-size: 15px; }
+  .track-topbar .btn { padding-inline: 8px; }
 }

@@ -509,7 +509,7 @@ def seed_suspect_grievances(citizens, dept_docs, admin, start_index):
             })
             doc["history"] += [
                 {"status": "SUBMITTED", "actor_role": "admin", "timestamp": decided_at,
-                 "message": f"Integrity review: marked false/misleading by {admin['name']}. {flag['reason']}"},
+                 "message": f"Integrity review: marked false/misleading by a reviewing officer. {flag['reason']}"},
                 {"status": "SUBMITTED", "actor_role": "citizen",
                  "timestamp": created_at + timedelta(hours=3),
                  "message": "Citizen appealed the false-report flag."},
@@ -527,7 +527,7 @@ def seed_suspect_grievances(citizens, dept_docs, admin, start_index):
             doc["history"].append({
                 "status": "SUBMITTED", "actor_role": "admin",
                 "timestamp": created_at + timedelta(hours=1),
-                "message": f"Integrity review: confirmed genuine by {admin['name']}.",
+                "message": "Integrity review: confirmed genuine by a reviewing officer.",
             })
 
         grievances_collection.insert_one(doc)

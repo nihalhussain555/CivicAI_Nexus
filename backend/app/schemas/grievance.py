@@ -1,5 +1,5 @@
 from typing import Optional, List
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 from app.utils.constants import DISTRICTS
 
@@ -117,6 +117,37 @@ class ResolutionSubmitRequest(BaseModel):
 class VerificationRequest(BaseModel):
     verified: bool
     feedback: Optional[str] = None
+    # 1-5 satisfaction score, given alongside the verdict. Optional because a
+    # citizen who only wants to say "yes it's fixed" shouldn't be blocked by an
+    # unanswered star widget — but when it is present it is validated, so no
+    # rating outside the scale ever reaches the analytics.
+    rating: Optional[int] = Field(None, ge=1, le=5)
+
+
+class FeedbackUpdateRequest(BaseModel):
+    """Citizen correcting their own satisfaction rating after the fact."""
+    rating: Optional[int] = Field(None, ge=1, le=5)
+    feedback: Optional[str] = Field(None, max_length=1000)
+
+    @model_validator(mode="after")
+    def at_least_one_answer(self):
+        # An empty submission is a UI bug, not a way to wipe a real review.
+        if self.rating is None and not (self.feedback or "").strip():
+            raise ValueError("Give a rating or a comment — not neither")
+        return self
+
+
+class GrievanceRemarkRequest(BaseModel):
+    """Staff note on a case. PUBLIC is written for the reporter; INTERNAL is a
+    shift note that stays on the document and never reaches a citizen payload."""
+    text: str = Field(..., min_length=3, max_length=2000)
+    audience: str = Field("PUBLIC", pattern="^(PUBLIC|INTERNAL)$")
+
+
+class GrievanceRejectRequest(BaseModel):
+    """Staff closing a report as not actionable. The reason is required and is
+    the only thing the citizen is told, so it has to be worth reading."""
+    reason: str = Field(..., min_length=10, max_length=1000)
 
 
 class ReopenRequestCreate(BaseModel):

@@ -1,7 +1,8 @@
 import { lazy, Suspense, useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { MapPin, Clock, Sparkles, ArrowLeft, CheckCircle2, XCircle, PlayCircle, Send, AlertTriangle, ImageIcon, Mic, RotateCcw, ShieldQuestion, ShieldCheck, ShieldAlert, Gavel, Trash2,} from "lucide-react";
+import { MapPin, Clock, Sparkles, ArrowLeft, CheckCircle2, XCircle, PlayCircle, Send, AlertTriangle, ImageIcon, Mic, RotateCcw, ShieldQuestion, ShieldCheck, ShieldAlert, Gavel, Trash2, Radar, MessageSquare, Ban,} from "lucide-react";
 import { getGrievance, acceptCase, startProgress, submitResolution, escalateCase, verifyResolution, requestReopen, reviewReopenRequest, deleteGrievance, getCopilotBrief, triageIntegrity, unflagGrievance, appealFlag, reviewFlagAppeal,} from "../../services/grievanceService";
+import { addRemark, rejectGrievance } from "../../services/trackingService";
 import { uploadsBaseUrl } from "../../services/api";
 import { useAuth } from "../../hooks/useAuth";
 import { useToast } from "../../context/ToastContext";
@@ -17,6 +18,31 @@ import ErrorState from "../../components/common/ErrorState";
 import Modal from "../../components/common/Modal";
 
 const roleBasePath = { citizen: "/citizen/grievances", officer: "/officer/grievances", admin: "/admin/grievances" };
+
+// Mirrors the states VALID_TRANSITIONS lets REJECTED be reached from
+// (backend/app/models/grievance.py). Offering the button anywhere else would
+// only produce a 400 after the officer has written out their reason.
+const REJECTABLE_STATUSES = [
+  "SUBMITTED", "AI_ANALYZED", "DEPARTMENT_ASSIGNED",
+  "OFFICER_ACCEPTED", "IN_PROGRESS", "ESCALATED",
+];
+
+// The two audiences a remark can have. Kept as a list so the modal and the
+// staff-visible remarks card describe them in the same words.
+const AUDIENCES = [
+  {
+    key: "PUBLIC",
+    label: "Update for the citizen",
+    hint: "Appears on their tracking page and sends them a notification. Write it for them — plain words, no names or internal jargon.",
+    placeholder: "e.g. A drainage crew is scheduled for your street tomorrow morning.",
+  },
+  {
+    key: "INTERNAL",
+    label: "Internal note",
+    hint: "Stays on the case file for the department. It is never sent to the citizen.",
+    placeholder: "e.g. Waiting on the vendor quote before dispatching a crew.",
+  },
+];
 
 // Leaflet only downloads when a case actually has coordinates to plot — this
 // page is opened dozens of times a shift and most of them don't need a map.
@@ -48,6 +74,13 @@ const GrievanceDetail = () => {
   const [reopenReviewNote, setReopenReviewNote] = useState("");
 
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+
+  const [remarkOpen, setRemarkOpen] = useState(false);
+  const [remarkText, setRemarkText] = useState("");
+  const [remarkAudience, setRemarkAudience] = useState("PUBLIC");
+
+  const [rejectOpen, setRejectOpen] = useState(false);
+  const [rejectReason, setRejectReason] = useState("");
 
   // Integrity decisions share one modal because they all need a reason on
   // record and all reload the case afterwards. `kind` picks the wording and
@@ -136,6 +169,28 @@ const GrievanceDetail = () => {
     if (done) setIntegrityModal(null);
   };
 
+  const openRemark = () => {
+    setRemarkText("");
+    setRemarkAudience("PUBLIC");
+    setRemarkOpen(true);
+  };
+
+  const submitRemark = async () => {
+    const done = await runAction(
+      () => addRemark(grievanceId, { text: remarkText.trim(), audience: remarkAudience }),
+      remarkAudience === "PUBLIC" ? "Update posted — the citizen has been notified" : "Internal note added",
+    );
+    if (done) setRemarkOpen(false);
+  };
+
+  const submitRejection = async () => {
+    const done = await runAction(
+      () => rejectGrievance(grievanceId, rejectReason.trim()),
+      "Case rejected",
+    );
+    if (done) setRejectOpen(false);
+  };
+
   if (error) return <ErrorState description={error} onRetry={load} />;
   if (!grievance) return <div className="page-loading"><LoadingSpinner label="Loading grievance..." /></div>;
 
@@ -211,11 +266,23 @@ const GrievanceDetail = () => {
     };
   })();
 
+  const activeAudience = AUDIENCES.find((option) => option.key === remarkAudience);
+
   return (
     <div>
-      <button className="btn btn-ghost btn-sm btn-back" onClick={() => navigate(basePath)}>
-        <ArrowLeft size={14} /> Back
-      </button>
+      <div className="detail-back-row">
+        <button className="btn btn-ghost btn-sm btn-back" onClick={() => navigate(basePath)}>
+          <ArrowLeft size={14} /> Back
+        </button>
+        {/* The citizen's own case page is the tracking view; this file is the
+            full record behind it. Staff have no tracking page, so the link
+            only appears for the reporter. */}
+        {isOwnerCitizen && (
+          <Link className="btn btn-secondary btn-sm" to={`/citizen/track/${grievance.grievance_id}`}>
+            <Radar size={14} /> Live tracking
+          </Link>
+        )}
+      </div>
 
       <div className="page-header">
         <div>
@@ -321,6 +388,32 @@ const GrievanceDetail = () => {
             />
           )}
 
+          {/* Staff see both audiences. This is the only place the internal
+              shift notes appear at all — the citizen's tracking page is built
+              from the PUBLIC subset, so seeing it here shows the officer
+              exactly what the reporter does and what they don't. */}
+          {isStaff && grievance.remarks?.length > 0 && (
+            <div className="card">
+              <div className="section-title">Case remarks</div>
+              <ul className="track-remarks">
+                {[...grievance.remarks].reverse().map((remark) => (
+                  <li key={remark.remark_id} className="track-remark">
+                    <MessageSquare size={14} />
+                    <div>
+                      <p className="prose">{remark.text}</p>
+                      <span className="track-remark-meta">
+                        {remark.author_name} · {formatDateTime(remark.created_at)}
+                      </span>
+                      <span className={`badge ${remark.audience === "PUBLIC" ? "badge-low" : "badge-neutral"}`}>
+                        {remark.audience === "PUBLIC" ? "Visible to citizen" : "Internal"}
+                      </span>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
           {grievance.resolution_note && (
             <div className="card">
               <div className="section-title">Resolution</div>
@@ -364,6 +457,23 @@ const GrievanceDetail = () => {
               {grievance.flag_appeal_note && (
                 <p className="quote-note">
                   Reviewer's note: "{grievance.flag_appeal_note}"
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* The same reason the tracking page shows as an override banner — the
+              case file stays truthful for staff, who also get who decided it. */}
+          {grievance.rejection_reason && (
+            <div className="card card-danger">
+              <div className="card-head">
+                <Ban size={15} color="var(--danger)" />
+                <strong>Rejected — the department will not action this</strong>
+              </div>
+              <p className="prose">{grievance.rejection_reason}</p>
+              {isStaff && grievance.rejected_by_name && (
+                <p className="muted-note card-section">
+                  By {grievance.rejected_by_name} · {formatDateTime(grievance.rejected_at)}
                 </p>
               )}
             </div>
@@ -418,6 +528,19 @@ const GrievanceDetail = () => {
                 <button className="btn btn-secondary btn-block" disabled={actionLoading}
                         onClick={() => runAction(() => escalateCase(grievanceId), "Case escalated")}>
                   <AlertTriangle size={15} /> Escalate
+                </button>
+              )}
+              {/* Remarks and rejection are the two tracking-system capabilities
+                  that exist nowhere else in this UI, so they live here next to
+                  the workflow buttons that move the case along. */}
+              {isStaff && (
+                <button className="btn btn-secondary btn-block" disabled={actionLoading} onClick={openRemark}>
+                  <MessageSquare size={15} /> Post an update
+                </button>
+              )}
+              {isStaff && REJECTABLE_STATUSES.includes(grievance.status) && (
+                <button className="btn btn-danger btn-block" onClick={() => setRejectOpen(true)}>
+                  <Ban size={15} /> Reject case
                 </button>
               )}
               {isOwnerCitizen
@@ -685,6 +808,81 @@ const GrievanceDetail = () => {
             </div>
           </div>
         )}
+      </Modal>
+
+      <Modal
+        open={remarkOpen}
+        title="Post an update on this case"
+        onClose={() => setRemarkOpen(false)}
+        footer={
+          <>
+            <button className="btn btn-secondary" onClick={() => setRemarkOpen(false)}>Cancel</button>
+            <button className="btn btn-primary" disabled={actionLoading || remarkText.trim().length < 3}
+                    onClick={submitRemark}>
+              <MessageSquare size={15} /> {remarkAudience === "PUBLIC" ? "Send update" : "Save note"}
+            </button>
+          </>
+        }
+      >
+        <div className="stack-tight">
+          <div>
+            <div className="sub-head">Who is this for?</div>
+            <div className="badge-row">
+              {AUDIENCES.map((option) => (
+                <button key={option.key} type="button"
+                        className={`btn btn-sm ${remarkAudience === option.key ? "btn-primary" : "btn-secondary"}`}
+                        onClick={() => setRemarkAudience(option.key)}>
+                  {option.label}
+                </button>
+              ))}
+            </div>
+            <p className="form-hint">{activeAudience?.hint}</p>
+          </div>
+          <div>
+            <label className="form-label">Message</label>
+            <textarea className="textarea" value={remarkText}
+                      onChange={(e) => setRemarkText(e.target.value)}
+                      maxLength={2000}
+                      placeholder={activeAudience?.placeholder} />
+            <p className="form-hint">
+              An update never moves the case along — use the workflow buttons for that.
+            </p>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal
+        open={rejectOpen}
+        title="Reject this report?"
+        onClose={() => setRejectOpen(false)}
+        footer={
+          <>
+            <button className="btn btn-secondary" onClick={() => setRejectOpen(false)}>Cancel</button>
+            <button className="btn btn-danger" disabled={actionLoading || rejectReason.trim().length < 10}
+                    onClick={submitRejection}>
+              <Ban size={15} /> Reject case
+            </button>
+          </>
+        }
+      >
+        <div className="stack-tight">
+          <p className="prose-sm">
+            The department will not act on this report. It is not deleted — it ends up as Rejected with your
+            reason attached, and the citizen would have to file a fresh report if the issue is real.
+          </p>
+          <div>
+            <label className="form-label">Reason (required — this is the whole explanation they get)</label>
+            <textarea className="textarea" value={rejectReason}
+                      onChange={(e) => setRejectReason(e.target.value)}
+                      maxLength={1000}
+                      placeholder="Why can't this be acted on? e.g. the location is a private driveway, not a public road." />
+            <p className="form-hint">
+              {rejectReason.trim().length < 10
+                ? `${10 - rejectReason.trim().length} more characters needed`
+                : `${rejectReason.trim().length} characters`}
+            </p>
+          </div>
+        </div>
       </Modal>
     </div>
   );

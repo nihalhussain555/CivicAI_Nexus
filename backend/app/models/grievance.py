@@ -1,4 +1,5 @@
 from datetime import datetime
+from uuid import uuid4
 
 
 # Valid grievance lifecycle states (see spec: GRIEVANCE STATES)
@@ -11,6 +12,7 @@ GRIEVANCE_STATES = [
     "RESOLUTION_SUBMITTED",
     "CITIZEN_VERIFICATION",
     "CLOSED",
+    "REJECTED",
     "REOPENED",
     "ESCALATED",
 ]
@@ -18,15 +20,15 @@ GRIEVANCE_STATES = [
 # Allowed forward transitions. Kept explicit so the API can reject
 # a status change that doesn't make sense for the domain.
 VALID_TRANSITIONS = {
-    "SUBMITTED": {"AI_ANALYZED", "WITHDRAWN"},
-    "AI_ANALYZED": {"DEPARTMENT_ASSIGNED", "WITHDRAWN"},
-    "DEPARTMENT_ASSIGNED": {"OFFICER_ACCEPTED", "ESCALATED", "WITHDRAWN"},
-    "OFFICER_ACCEPTED": {"IN_PROGRESS", "ESCALATED"},
-    "IN_PROGRESS": {"RESOLUTION_SUBMITTED", "ESCALATED"},
+    "SUBMITTED": {"AI_ANALYZED", "WITHDRAWN", "REJECTED"},
+    "AI_ANALYZED": {"DEPARTMENT_ASSIGNED", "WITHDRAWN", "REJECTED"},
+    "DEPARTMENT_ASSIGNED": {"OFFICER_ACCEPTED", "ESCALATED", "WITHDRAWN", "REJECTED"},
+    "OFFICER_ACCEPTED": {"IN_PROGRESS", "ESCALATED", "REJECTED"},
+    "IN_PROGRESS": {"RESOLUTION_SUBMITTED", "ESCALATED", "REJECTED"},
     "RESOLUTION_SUBMITTED": {"CITIZEN_VERIFICATION"},
     "CITIZEN_VERIFICATION": {"CLOSED", "REOPENED"},
     "REOPENED": {"DEPARTMENT_ASSIGNED", "OFFICER_ACCEPTED", "IN_PROGRESS"},
-    "ESCALATED": {"OFFICER_ACCEPTED", "IN_PROGRESS", "DEPARTMENT_ASSIGNED"},
+    "ESCALATED": {"OFFICER_ACCEPTED", "IN_PROGRESS", "DEPARTMENT_ASSIGNED", "REJECTED"},
     # A CLOSED case can only move to REOPENED via an approved reopen
     # request (see routes/grievances.py reopen-request endpoints) — never
     # directly by the citizen, and never back to any other state.
@@ -35,12 +37,151 @@ VALID_TRANSITIONS = {
     # officer has accepted it (see the DELETE endpoint). No transitions
     # out of WITHDRAWN; if the issue still needs reporting, file a new one.
     "WITHDRAWN": set(),
+    # Terminal — staff judged the report not actionable and said why. The
+    # only way back into the pipeline is a fresh report (or, if it was also
+    # closed earlier, an approved reopen request).
+    "REJECTED": set(),
 }
+
+# Who is allowed to drive each transition. VALID_TRANSITIONS answers "is this
+# move legal"; this answers "is *you* the one who may make it". A citizen can
+# only ever act at the two verification steps on their own case; everything
+# else is staff work. Checked in grievance_service.transition_status, so an
+# endpoint that forgets its own role check still cannot smuggle a move through.
+TRANSITION_AUTHORITY = {
+    "AI_ANALYZED": {"system"},
+    "DEPARTMENT_ASSIGNED": {"system", "officer", "admin"},
+    "OFFICER_ACCEPTED": {"officer", "admin"},
+    "IN_PROGRESS": {"officer", "admin"},
+    "RESOLUTION_SUBMITTED": {"officer", "admin"},
+    "CITIZEN_VERIFICATION": {"officer", "admin"},
+    "ESCALATED": {"officer", "admin"},
+    "REJECTED": {"officer", "admin"},
+    "CLOSED": {"citizen"},
+    "REOPENED": {"citizen", "officer", "admin"},
+    "WITHDRAWN": {"citizen"},
+}
+
+# Transitions that only make sense with a written reason attached, because
+# the citizen is going to read it and decide what to do next.
+REASON_REQUIRED_TRANSITIONS = {"REJECTED", "REOPENED"}
+
+# --- Citizen-facing tracking ladder -------------------------------------
+# The internal states above are workflow bookkeeping; a citizen thinking about
+# their pothole does not think in "DEPARTMENT_ASSIGNED". TRACKING_STAGES is the
+# single place that translates one into the other, so the API, the tracking
+# page and any future letterhead all say the same thing about the same case.
+#
+# "Verified" has no state of its own: a report is verified the moment the
+# screening it went through (AI authenticity + duplicate check) is cleared,
+# either automatically at submission or by a human in integrity review. That
+# moment is stored in `verified_at`, and the stage stays open until then.
+TRACKING_STAGES = [
+    {"key": "SUBMITTED", "label": "Submitted", "description": "We have your report."},
+    {"key": "AI_PROCESSING", "label": "AI Processing", "description": "The report was read, classified and routed."},
+    {"key": "VERIFIED", "label": "Verified", "description": "The report was confirmed as a genuine civic issue."},
+    {"key": "ASSIGNED", "label": "Assigned", "description": "A department owns the case."},
+    {"key": "IN_PROGRESS", "label": "In Progress", "description": "Field work is underway."},
+    {"key": "RESOLUTION_SUBMITTED", "label": "Resolution Submitted", "description": "The department says the work is done."},
+    {"key": "CITIZEN_FEEDBACK", "label": "Citizen Feedback", "description": "Waiting for you to confirm and rate the fix."},
+    {"key": "RESOLVED", "label": "Resolved", "description": "Closed with your confirmation."},
+]
+
+TRACKING_STAGE_KEYS = [stage["key"] for stage in TRACKING_STAGES]
+
+# Internal state -> ladder position. Exception states (REOPENED, ESCALATED,
+# REJECTED, WITHDRAWN) are not on the ladder; they are reported alongside the
+# furthest stage the case actually reached, which is why escalate/reject read
+# history rather than guessing.
+STAGE_INDEX_BY_STATUS = {
+    "SUBMITTED": 0,
+    "AI_ANALYZED": 1,
+    "DEPARTMENT_ASSIGNED": 3,
+    "OFFICER_ACCEPTED": 3,
+    "IN_PROGRESS": 4,
+    "RESOLUTION_SUBMITTED": 5,
+    "CITIZEN_VERIFICATION": 6,
+    "CLOSED": 7,
+}
+
+# States that sit outside the happy path but still deserve to be named out loud.
+OVERRIDE_STATES = {
+    "REOPENED": {
+        "label": "Reopened",
+        "reason_field": "reopen_reason",
+        "note_field": "reopen_review_note",
+    },
+    "ESCALATED": {
+        "label": "Escalated",
+        "reason_field": None,
+        "note_field": None,
+    },
+    "REJECTED": {
+        "label": "Rejected",
+        "reason_field": "rejection_reason",
+        "note_field": None,
+    },
+    "WITHDRAWN": {
+        "label": "Withdrawn",
+        "reason_field": None,
+        "note_field": None,
+    },
+}
+
+
+def make_remark_id():
+    return f"REM-{uuid4().hex[:12].upper()}"
+
+
+def remark_document(
+    text,
+    audience,
+    author_id,
+    author_name,
+    author_role,
+    department=None,
+    district=None,
+):
+    """One staff remark on a grievance.
+
+    `author_name` is kept for staff readers only — the citizen-facing tracking
+    projection rebuilds a department+district designation from these fields and
+    never shows the person's name, id or contact details.
+    """
+    return {
+        "remark_id": make_remark_id(),
+        "text": text,
+        "audience": audience,              # PUBLIC | INTERNAL
+        "author_id": author_id,
+        "author_name": author_name,
+        "author_role": author_role,
+        "department": department,
+        "district": district,
+        "created_at": datetime.utcnow(),
+    }
+
+def assert_transition_allowed(current_status, new_status, actor_role):
+    """The one legal-and-authorised question every status change must pass.
+
+    Returns nothing; raises ValueError with a citizen-safe explanation when the
+    move is illegal (bad edge) or unauthorised (right edge, wrong person). Call
+    sites translate that into 400/403 — see grievance_service.transition_status.
+    """
+    if new_status not in VALID_TRANSITIONS.get(current_status, set()):
+        raise ValueError(
+            f"Cannot move a grievance from {current_status} to {new_status}"
+        )
+
+    allowed_roles = TRANSITION_AUTHORITY.get(new_status)
+    if allowed_roles is not None and actor_role not in allowed_roles:
+        raise PermissionError(
+            f"A {actor_role} cannot move a grievance to {new_status}"
+        )
+
 
 # Statuses in which no officer has accepted the case yet — a citizen may
 # still delete/withdraw the grievance during any of these.
 DELETABLE_STATUSES = {"SUBMITTED", "AI_ANALYZED", "DEPARTMENT_ASSIGNED"}
-
 # --- Reopen-request policy (guards against gaming the civic rewards
 # system by closing then instantly re-requesting a fresh resolution) ---
 REOPEN_WINDOW_DAYS = 30      # can only request reopen within this many days of resolution
@@ -112,11 +253,16 @@ def grievance_document(
 
         # --- lifecycle ---
         "status": "SUBMITTED",
+        # When the report was confirmed genuine: automatically at submission
+        # if screening cleared it, or later by a human in integrity review.
+        # Drives the "Verified" stage on the citizen tracking ladder.
+        "verified_at": None,
         "history": [
             {
                 "status": "SUBMITTED",
                 "message": "Grievance submitted by citizen",
                 "actor_role": "citizen",
+                "visibility": "public",
                 "timestamp": now,
             }
         ],
@@ -132,7 +278,21 @@ def grievance_document(
         "resolved_at": None,
         "citizen_verified": None,       # True / False / None
         "citizen_feedback": None,
+        "citizen_rating": None,         # 1-5 satisfaction, given with the verdict
+        "citizen_feedback_at": None,
         "reopen_count": 0,
+
+        # --- staff remarks on the case ---
+        # PUBLIC remarks are for the citizen, INTERNAL ones are shift notes.
+        # Both live on the same array so the audit story of who said what when
+        # is one list, and the tracking projection filters by audience.
+        "remarks": [],
+
+        # --- rejection (staff: report is not actionable) ---
+        "rejection_reason": None,
+        "rejected_at": None,
+        "rejected_by": None,            # staff-only id
+        "rejected_by_name": None,       # staff-only name
 
         # --- reopen requests (citizen asking to reopen a CLOSED case) ---
         "reopen_request_status": None,  # None | PENDING | APPROVED | REJECTED

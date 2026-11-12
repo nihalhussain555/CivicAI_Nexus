@@ -21,6 +21,9 @@ from app.schemas.grievance import (
     GrievancePreviewRequest,
     ResolutionSubmitRequest,
     VerificationRequest,
+    FeedbackUpdateRequest,
+    GrievanceRemarkRequest,
+    GrievanceRejectRequest,
     AssignOfficerRequest,
     FlagInvalidRequest,
     ReopenRequestCreate,
@@ -33,6 +36,7 @@ from app.models.grievance import (
     REOPEN_WINDOW_DAYS,
     MAX_REOPEN_REQUESTS,
     DELETABLE_STATUSES,
+    remark_document,
 )
 
 from app.services.ai_pipeline_service import (
@@ -49,9 +53,16 @@ from app.services.grievance_service import (
     get_grievance_or_404,
     assert_can_view,
     transition_status,
+    history_entry,
+    SYSTEM_ACTOR,
     build_list_query,
     paginate,
     release_held_submission_award,
+)
+
+from app.services.tracking_service import (
+    build_tracking_view,
+    FEEDBACK_OPEN_STATUSES,
 )
 
 from app.services.copilot_service import (
@@ -610,15 +621,16 @@ def bulk_accept_cases(
                     "assigned_officer": current_user["_id"],
                     "assigned_officer_name": current_user.get("name"),
                     "assigned_at": now,
+                    "verified_at": grievance.get("verified_at") or now,
                     "updated_at": now,
                 },
                 "$push": {
-                    "history": {
-                        "status": "OFFICER_ACCEPTED",
-                        "message": "Bulk-accepted by officer",
-                        "actor_role": "officer",
-                        "timestamp": now,
-                    }
+                    "history": history_entry(
+                        "OFFICER_ACCEPTED",
+                        "Bulk-accepted by an officer",
+                        current_user["role"],
+                        timestamp=now,
+                    )
                 },
             },
         )
@@ -710,15 +722,16 @@ def bulk_assign_officer(
                     "assigned_at": now,
                     "assigned_by": current_user["_id"],
                     "assigned_by_name": current_user.get("name"),
+                    "verified_at": grievance.get("verified_at") or now,
                     "updated_at": now,
                 },
                 "$push": {
-                    "history": {
-                        "status": "OFFICER_ACCEPTED",
-                        "message": f"Bulk-assigned to {officer['name']} by admin",
-                        "actor_role": "admin",
-                        "timestamp": now,
-                    }
+                    "history": history_entry(
+                        "OFFICER_ACCEPTED",
+                        f"Assigned to an officer by an admin",
+                        current_user["role"],
+                        timestamp=now,
+                    )
                 },
             },
         )
@@ -904,6 +917,9 @@ def accept_case(
 
     now = datetime.utcnow()
 
+    # An officer taking the case onto themselves is a human verdict that the
+    # report is real work, which is exactly what the "Verified" rung of the
+    # citizen's tracking ladder waits for.
     result = (
         grievances_collection.update_one(
             {
@@ -934,11 +950,21 @@ def accept_case(
                         current_user.get(
                             "name"
                         ),
+                    "verified_at":
+                        grievance.get("verified_at") or now,
                     "status":
                         "OFFICER_ACCEPTED",
                     "updated_at":
                         now,
-                }
+                },
+                "$push": {
+                    "history": history_entry(
+                        "OFFICER_ACCEPTED",
+                        "An officer accepted the case",
+                        current_user["role"],
+                        timestamp=now,
+                    )
+                },
             },
         )
     )
@@ -960,6 +986,17 @@ def accept_case(
         cycle=grievance.get("reopen_count", 0),
     )
     release_held_submission_award(grievance)
+
+    # Acceptance moves the state through an atomic update rather than
+    # transition_status, because two officers can reach for the same case in the
+    # same second. That makes this the one place the audit line has to be
+    # written by hand — the citizen's tracking page must not be able to show a
+    # stage the audit trail has never heard of.
+    log_action(
+        current_user["_id"], current_user["role"], "GRIEVANCE_STATUS_CHANGE",
+        "grievance", grievance_id,
+        {"from": "DEPARTMENT_ASSIGNED", "to": "OFFICER_ACCEPTED"},
+    )
 
     updated = (
         get_grievance_or_404(
@@ -1167,11 +1204,24 @@ def assign_officer(
                         current_user.get(
                             "name"
                         ),
+                    "verified_at":
+                        grievance.get("verified_at") or now,
                     "status":
                         "OFFICER_ACCEPTED",
                     "updated_at":
                         now,
-                }
+                },
+                # This path used to move the state without recording the move,
+                # which left an admin-assigned case with a hole in its own
+                # tracking timeline. Every status write now carries its entry.
+                "$push": {
+                    "history": history_entry(
+                        "OFFICER_ACCEPTED",
+                        "Assigned to an officer by an admin",
+                        current_user["role"],
+                        timestamp=now,
+                    )
+                },
             },
         )
     )
@@ -1205,6 +1255,12 @@ def assign_officer(
         notification_type="INFO",
         related_grievance_id=
             grievance_id,
+    )
+
+    log_action(
+        current_user["_id"], current_user["role"], "GRIEVANCE_STATUS_CHANGE",
+        "grievance", grievance_id,
+        {"from": "DEPARTMENT_ASSIGNED", "to": "OFFICER_ACCEPTED"},
     )
 
     updated = (
@@ -1425,6 +1481,10 @@ def verify_resolution(
                     True,
                 "citizen_feedback":
                     data.feedback,
+                "citizen_rating":
+                    data.rating,
+                "citizen_feedback_at":
+                    datetime.utcnow(),
             },
         )
 
@@ -1456,13 +1516,23 @@ def verify_resolution(
         grievance,
         "REOPENED",
         current_user,
-        message=
-            "Citizen rejected the resolution",
+        message=(
+            "Citizen reopened the case: "
+            + (data.feedback or "the fix did not hold")
+        ),
         extra_fields={
             "citizen_verified":
                 False,
             "citizen_feedback":
                 data.feedback,
+            "citizen_rating":
+                data.rating,
+            "citizen_feedback_at":
+                datetime.utcnow(),
+            "reopen_reason":
+                data.feedback,
+            "reopen_requested_at":
+                datetime.utcnow(),
             "reopen_count":
                 grievance.get(
                     "reopen_count",
@@ -1471,10 +1541,13 @@ def verify_resolution(
         },
     )
 
+    # Re-routing is the workflow's move, not the citizen's: they can reject a
+    # fix, but putting a case back in a department's queue is system work, and
+    # the audit trail should not read as if a reporter did it themselves.
     updated = transition_status(
         updated,
         "DEPARTMENT_ASSIGNED",
-        current_user,
+        SYSTEM_ACTOR,
         message=(
             "Re-routed to department "
             "after citizen reopened "
@@ -1545,12 +1618,12 @@ def flag_invalid_report(
                 "updated_at": now,
             },
             "$push": {
-                "history": {
-                    "status": grievance["status"],
-                    "message": f"Flagged as false/misleading: {data.reason}",
-                    "actor_role": current_user["role"],
-                    "timestamp": now,
-                }
+                "history": history_entry(
+                    grievance["status"],
+                    f"Flagged as false/misleading: {data.reason}",
+                    current_user["role"],
+                    timestamp=now,
+                )
             },
         },
     )
@@ -1650,12 +1723,12 @@ def request_reopen(
                 "updated_at": now,
             },
             "$push": {
-                "history": {
-                    "status": grievance["status"],
-                    "message": f"Citizen requested to reopen: {data.reason}",
-                    "actor_role": "citizen",
-                    "timestamp": now,
-                }
+                "history": history_entry(
+                    grievance["status"],
+                    f"Citizen requested to reopen: {data.reason}",
+                    "citizen",
+                    timestamp=now,
+                )
             },
         },
     )
@@ -1781,12 +1854,12 @@ def review_reopen_request(
                 "updated_at": now,
             },
             "$push": {
-                "history": {
-                    "status": grievance["status"],
-                    "message": f"Reopen request rejected: {data.note or 'No reason given'}",
-                    "actor_role": current_user["role"],
-                    "timestamp": now,
-                }
+                "history": history_entry(
+                    grievance["status"],
+                    f"Reopen request rejected: {data.note or 'No reason given'}",
+                    current_user["role"],
+                    timestamp=now,
+                )
             },
         },
     )
@@ -1862,5 +1935,196 @@ def delete_grievance(
     return {
         "success": True,
         "message": "Grievance deleted.",
+        "data": strip_staff_fields(serialize_document(updated), current_user),
+    }
+
+
+# ============================================================
+# CITIZEN TRACKING
+# ------------------------------------------------------------
+# Everything below answers "where is my complaint?" without handing over the
+# staff-side document. The projection is built from a whitelist in
+# tracking_service, so a new field added to a grievance tomorrow is invisible
+# to citizens until someone deliberately puts it in the view.
+# ============================================================
+
+@router.get("/{grievance_id}/tracking")
+def grievance_tracking(
+    grievance_id: str,
+    current_user=Depends(get_current_user),
+):
+    """The citizen's tracking view of one grievance: reference id, live status,
+    progress ladder, SLA countdown, department, remarks, evidence, feedback
+    options and the notifications we have already sent about it.
+
+    Authorization is the same rule as the case itself — you may track a
+    grievance only if you may see it (its reporter, their department's
+    officer, an admin with jurisdiction) — and the payload is identical for
+    every viewer, because it is defined as the public-safe view.
+    """
+    grievance = get_grievance_or_404(grievance_id)
+    assert_can_view(grievance, current_user)
+
+    return {
+        "success": True,
+        "data": build_tracking_view(grievance, current_user),
+    }
+
+
+@router.post("/{grievance_id}/remarks")
+def add_grievance_remark(
+    grievance_id: str,
+    data: GrievanceRemarkRequest,
+    current_user=Depends(require_staff),
+):
+    """Staff note on a case, addressed either to the reporter (PUBLIC) or to
+    the department's own record (INTERNAL).
+
+    Remarks never change a status — that is what /reject, /resolve and the
+    rest are for — so a note cannot quietly move a case along. PUBLIC remarks
+    are what the citizen's tracking page shows as "officer updates"; INTERNAL
+    ones are dropped from every citizen payload (see redact_for_citizen) while
+    staying on the document as part of the audit record.
+    """
+    grievance = get_grievance_or_404(grievance_id)
+    assert_can_view(grievance, current_user)
+
+    remark = remark_document(
+        text=data.text.strip(),
+        audience=data.audience,
+        author_id=current_user["_id"],
+        author_name=current_user.get("name"),
+        author_role=current_user["role"],
+        department=grievance.get("department") or current_user.get("department"),
+        district=grievance.get("district"),
+    )
+
+    grievances_collection.update_one(
+        {"grievance_id": grievance_id},
+        {"$push": {"remarks": remark},
+         "$set": {"updated_at": remark["created_at"]}},
+    )
+
+    if data.audience == "PUBLIC":
+        notify(
+            grievance["citizen_id"],
+            "Update on your grievance",
+            f"The department handling {grievance_id} has left you an update: {remark['text']}",
+            notification_type="STATUS_CHANGE",
+            related_grievance_id=grievance_id,
+        )
+
+    log_action(
+        current_user["_id"], current_user["role"], "GRIEVANCE_REMARK_ADDED",
+        "grievance", grievance_id, {"audience": data.audience},
+    )
+
+    updated = get_grievance_or_404(grievance_id)
+
+    return {
+        "success": True,
+        "message": "Remark added.",
+        "data": strip_staff_fields(serialize_document(updated), current_user),
+    }
+
+
+@router.put("/{grievance_id}/reject")
+def reject_grievance(
+    grievance_id: str,
+    data: GrievanceRejectRequest,
+    current_user=Depends(require_staff),
+):
+    """Staff: this report will not be acted on, and here is why.
+
+    Rejection is a lifecycle state like any other, so it goes through the same
+    legality and authority checks — which is exactly why a citizen cannot
+    reject their own case (they can withdraw it) and a resolved case cannot be
+    rejected after the fact. The reason is mandatory because it is the only
+    explanation the reporter gets, and it is recorded in the audit log.
+    """
+    grievance = get_grievance_or_404(grievance_id)
+    assert_can_view(grievance, current_user)
+
+    now = datetime.utcnow()
+
+    updated = transition_status(
+        grievance,
+        "REJECTED",
+        current_user,
+        message=f"Rejected: {data.reason.strip()}",
+        extra_fields={
+            "rejection_reason": data.reason.strip(),
+            "rejected_at": now,
+            "rejected_by": current_user["_id"],
+            "rejected_by_name": current_user.get("name"),
+        },
+    )
+
+    log_action(
+        current_user["_id"], current_user["role"], "GRIEVANCE_REJECTED",
+        "grievance", grievance_id,
+        {"reason": data.reason.strip(), "from": grievance["status"]},
+    )
+
+    return {
+        "success": True,
+        "message": "Grievance rejected.",
+        "data": serialize_document(updated),
+    }
+
+
+@router.put("/{grievance_id}/feedback")
+def update_grievance_feedback(
+    grievance_id: str,
+    data: FeedbackUpdateRequest,
+    current_user=Depends(get_current_user),
+):
+    """Citizen: set or correct the satisfaction rating on a fix.
+
+    Allowed while the case sits in the reporter's verification step and after
+    they have confirmed it — a change of mind five days later is still honest
+    feedback. It is not allowed while the department is mid-work, because there
+    is nothing there yet to rate.
+    """
+    grievance = get_grievance_or_404(grievance_id)
+
+    if (
+        current_user["role"] != "citizen"
+        or grievance.get("citizen_id") != current_user["_id"]
+    ):
+        raise HTTPException(
+            status_code=403,
+            detail="Only the reporting citizen can rate this grievance",
+        )
+
+    if grievance["status"] not in FEEDBACK_OPEN_STATUSES:
+        raise HTTPException(
+            status_code=400,
+            detail="Feedback can only be given once the department has submitted a resolution",
+        )
+
+    now = datetime.utcnow()
+
+    fields = {"citizen_feedback_at": now, "updated_at": now}
+    if data.rating is not None:
+        fields["citizen_rating"] = data.rating
+    if data.feedback is not None:
+        fields["citizen_feedback"] = data.feedback.strip()
+
+    grievances_collection.update_one(
+        {"grievance_id": grievance_id},
+        {"$set": fields},
+    )
+
+    log_action(
+        current_user["_id"], current_user["role"], "GRIEVANCE_FEEDBACK_UPDATED",
+        "grievance", grievance_id, {"rating": data.rating},
+    )
+
+    updated = get_grievance_or_404(grievance_id)
+
+    return {
+        "success": True,
+        "message": "Thanks — your feedback was recorded.",
         "data": strip_staff_fields(serialize_document(updated), current_user),
     }

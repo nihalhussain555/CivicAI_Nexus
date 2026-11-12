@@ -49,7 +49,7 @@ const Grievances = () => {
         <EmptyState icon={FileText} title="No grievances found" description="Try a different filter, or report a new issue." />
       ) : (
         <>
-          {data.items.map((g) => <GrievanceCard key={g.grievance_id} grievance={g} basePath="/citizen/grievances" />)}
+          {data.items.map((g) => <GrievanceCard key={g.grievance_id} grievance={g} basePath="/citizen/track" />)}
           <Pagination page={data.page || 1} totalPages={data.total_pages || 1} onChange={setPage} />
         </>
       )}

@@ -55,14 +55,76 @@ STAFF_ONLY_FIELDS = (
     "integrity",
 )
 
+# Who is handling a case is disclosed to a citizen as a department and a date
+# (see tracking_service.build_officer), never as a named individual. These are
+# the convenience copies of staff names that the workflow writes onto the
+# document for staff screens.
+STAFF_IDENTITY_FIELDS = (
+    "assigned_officer_name",
+    "assigned_by_name",
+    "rejected_by",
+    "rejected_by_name",
+)
+
+# Kept separate from the two lists above because it is not a field to remove —
+# it is a nested array whose *entries* carry identities and internal visibility.
+# Nested arrays need entry-by-entry handling rather than key removal:
+# `history` and `remarks` carry both citizen-safe and staff-only rows.
+def _public_remark(remark):
+    if not isinstance(remark, dict) or remark.get("audience") != "PUBLIC":
+        return None
+    return {
+        "remark_id": remark.get("remark_id"),
+        "text": remark.get("text"),
+        "created_at": remark.get("created_at"),
+        "department": remark.get("department"),
+        "author_role": remark.get("author_role"),
+    }
+
+
+def redact_for_citizen(data):
+    """Citizen-safe shape of a grievance (or list of them).
+
+    Three rules, applied to every payload a citizen is given:
+      * staff-only analysis fields are absent (they teach how to dodge them),
+      * individual staff identities are absent (a department is disclosed,
+        a person is not),
+      * internal log entries and internal shift notes are absent — they stay
+        on the document, which is what makes the audit history complete.
+    """
+    if isinstance(data, list):
+        return [redact_for_citizen(item) for item in data]
+
+    if not isinstance(data, dict):
+        return data
+
+    safe = {
+        key: value
+        for key, value in data.items()
+        if key not in STAFF_ONLY_FIELDS and key not in STAFF_IDENTITY_FIELDS
+    }
+
+    history = safe.get("history")
+    if isinstance(history, list):
+        safe["history"] = [
+            entry for entry in history
+            if isinstance(entry, dict)
+            and not (entry.get("visibility") == "internal")
+        ]
+
+    remarks = safe.get("remarks")
+    if isinstance(remarks, list):
+        safe["remarks"] = [
+            public for public in (_public_remark(remark) for remark in remarks)
+            if public
+        ]
+
+    return safe
+
 
 def strip_staff_fields(data, user):
     """Removes staff-only fields from a serialized grievance (or list of
     them) when the viewer is a citizen. Staff get the data untouched."""
     if not user or user.get("role") != "citizen":
         return data
-    if isinstance(data, list):
-        return [strip_staff_fields(item, user) for item in data]
-    if isinstance(data, dict):
-        return {k: v for k, v in data.items() if k not in STAFF_ONLY_FIELDS}
-    return data
+    return redact_for_citizen(data)

@@ -40,6 +40,7 @@ from app.services.grievance_service import (
     assert_can_view,
     build_list_query,
     get_grievance_or_404,
+    history_entry,
     paginate,
 )
 from app.services.notification_service import notify
@@ -56,13 +57,16 @@ from app.utils.helpers import serialize_document, serialize_documents
 router = APIRouter(prefix="/api/grievances", tags=["Integrity"])
 
 
-def _history_entry(grievance, message, actor_role):
-    return {
-        "status": grievance["status"],
-        "message": message,
-        "actor_role": actor_role,
-        "timestamp": datetime.utcnow(),
-    }
+def _history_entry(grievance, message, actor_role, visibility="public"):
+    """Append-only lifecycle record for an integrity decision.
+
+    These entries reach the citizen's tracking page, so they name the *role*
+    that decided, never the person: who on the staff made a call is internal
+    information, while the fact and the reason are the citizen's to know.
+    """
+    return history_entry(
+        grievance["status"], message, actor_role, visibility=visibility
+    )
 
 
 def _flagged_by_name(grievance):
@@ -204,6 +208,9 @@ def triage_grievance(
             "integrity.human_decision": "GENUINE",
             "integrity.human_decision_at": now,
             "integrity.human_decision_by": current_user["_id"],
+            # A human has now answered "is this real?" — the rung the citizen's
+            # ladder is waiting on when automated screening held the case.
+            "verified_at": grievance.get("verified_at") or now,
             "updated_at": now,
         }
         grievances_collection.update_one(
@@ -212,7 +219,7 @@ def triage_grievance(
                 "$set": updates,
                 "$push": {"history": _history_entry(
                     grievance,
-                    f"Integrity review: confirmed genuine by {current_user['name']}."
+                    "Integrity review: confirmed genuine by a reviewing officer."
                     + (f" {data.note}" if data.note else ""),
                     current_user["role"],
                 )},
@@ -257,7 +264,7 @@ def triage_grievance(
                 },
                 "$push": {"history": _history_entry(
                     grievance,
-                    f"Integrity review: marked false/misleading by {current_user['name']}."
+                    "Integrity review: marked false or misleading by a reviewing officer."
                     + (f" {data.note}" if data.note else ""),
                     current_user["role"],
                 )},
@@ -332,7 +339,7 @@ def unflag_grievance(
             },
             "$push": {"history": _history_entry(
                 grievance,
-                f"False-report flag reversed by {current_user['name']}: {data.note}",
+                f"False-report flag reversed by staff: {data.note}",
                 current_user["role"],
             )},
         },
@@ -486,7 +493,7 @@ def review_flag_appeal(
             "$inc": {"flag_appeal_count": 1},
             "$push": {"history": _history_entry(
                 grievance,
-                f"Flag appeal {status.lower()} by {current_user['name']}: {data.note}",
+                f"Flag appeal {status.lower()} by a reviewing officer: {data.note}",
                 current_user["role"],
             )},
         },
