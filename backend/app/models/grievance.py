@@ -29,17 +29,16 @@ VALID_TRANSITIONS = {
     "CITIZEN_VERIFICATION": {"CLOSED", "REOPENED"},
     "REOPENED": {"DEPARTMENT_ASSIGNED", "OFFICER_ACCEPTED", "IN_PROGRESS"},
     "ESCALATED": {"OFFICER_ACCEPTED", "IN_PROGRESS", "DEPARTMENT_ASSIGNED", "REJECTED"},
-    # A CLOSED case can only move to REOPENED via an approved reopen
-    # request (see routes/grievances.py reopen-request endpoints) — never
-    # directly by the citizen, and never back to any other state.
+    # Once the reporter has confirmed the fix, the only way back into the
+    # pipeline is the department reopening the case itself (see the staff-only
+    # edge below) — never the citizen, and never into any other state.
     "CLOSED": {"REOPENED"},
     # Terminal — a citizen can only delete/withdraw a grievance before an
     # officer has accepted it (see the DELETE endpoint). No transitions
     # out of WITHDRAWN; if the issue still needs reporting, file a new one.
     "WITHDRAWN": set(),
     # Terminal — staff judged the report not actionable and said why. The
-    # only way back into the pipeline is a fresh report (or, if it was also
-    # closed earlier, an approved reopen request).
+    # only way back into the pipeline is a fresh report.
     "REJECTED": set(),
 }
 
@@ -58,6 +57,9 @@ TRANSITION_AUTHORITY = {
     "ESCALATED": {"officer", "admin"},
     "REJECTED": {"officer", "admin"},
     "CLOSED": {"citizen"},
+    # "Reopened" means two different things depending on where the case is
+    # coming from, so the role rule is edge-aware rather than state-shaped:
+    # see STAFF_REOPEN_FROM.
     "REOPENED": {"citizen", "officer", "admin"},
     "WITHDRAWN": {"citizen"},
 }
@@ -65,6 +67,14 @@ TRANSITION_AUTHORITY = {
 # Transitions that only make sense with a written reason attached, because
 # the citizen is going to read it and decide what to do next.
 REASON_REQUIRED_TRANSITIONS = {"REJECTED", "REOPENED"}
+
+# Reopening after the reporter has already confirmed the fix is the
+# department's decision, not the citizen's button. It re-routes the file,
+# reverses the resolution reward and restarts the SLA clock, so it is opened
+# from the case file by staff who can act on it. Before that confirmation —
+# while the case is still in the verification step — "not resolved" is the
+# citizen's own answer to the department's claim and stays theirs to give.
+STAFF_REOPEN_FROM = {"CLOSED"}
 
 # --- Citizen-facing tracking ladder -------------------------------------
 # The internal states above are workflow bookkeeping; a citizen thinking about
@@ -109,7 +119,7 @@ OVERRIDE_STATES = {
     "REOPENED": {
         "label": "Reopened",
         "reason_field": "reopen_reason",
-        "note_field": "reopen_review_note",
+        "note_field": None,
     },
     "ESCALATED": {
         "label": "Escalated",
@@ -172,6 +182,18 @@ def assert_transition_allowed(current_status, new_status, actor_role):
             f"Cannot move a grievance from {current_status} to {new_status}"
         )
 
+    # The one transition whose permission depends on the edge rather than the
+    # target state: a citizen may reject a fix that is still in front of them,
+    # but not reopen a case they already said was resolved.
+    if (
+        new_status == "REOPENED"
+        and current_status in STAFF_REOPEN_FROM
+        and actor_role == "citizen"
+    ):
+        raise PermissionError(
+            "A confirmed resolution can only be reopened by the department"
+        )
+
     allowed_roles = TRANSITION_AUTHORITY.get(new_status)
     if allowed_roles is not None and actor_role not in allowed_roles:
         raise PermissionError(
@@ -182,10 +204,6 @@ def assert_transition_allowed(current_status, new_status, actor_role):
 # Statuses in which no officer has accepted the case yet — a citizen may
 # still delete/withdraw the grievance during any of these.
 DELETABLE_STATUSES = {"SUBMITTED", "AI_ANALYZED", "DEPARTMENT_ASSIGNED"}
-# --- Reopen-request policy (guards against gaming the civic rewards
-# system by closing then instantly re-requesting a fresh resolution) ---
-REOPEN_WINDOW_DAYS = 30      # can only request reopen within this many days of resolution
-MAX_REOPEN_REQUESTS = 3      # lifetime cap per grievance
 
 # --- Integrity flag / appeal policy ---
 # A citizen can contest a staff "false report" flag. Once a flag has been
@@ -294,14 +312,11 @@ def grievance_document(
         "rejected_by": None,            # staff-only id
         "rejected_by_name": None,       # staff-only name
 
-        # --- reopen requests (citizen asking to reopen a CLOSED case) ---
-        "reopen_request_status": None,  # None | PENDING | APPROVED | REJECTED
+        # --- reopening (staff putting a confirmed-and-closed case back in play) ---
         "reopen_reason": None,
-        "reopen_requested_at": None,
-        "reopen_reviewed_by": None,
-        "reopen_reviewed_by_name": None,
-        "reopen_reviewed_at": None,
-        "reopen_review_note": None,
+        "reopened_at": None,
+        "reopened_by": None,            # staff-only id
+        "reopened_by_name": None,       # staff-only name
 
         # --- civic rewards integrity flag ---
         "flagged_invalid": False,       # staff-marked false/misleading (blocks further points)

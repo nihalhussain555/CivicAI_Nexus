@@ -125,7 +125,9 @@ class VerificationRequest(BaseModel):
 
 
 class FeedbackUpdateRequest(BaseModel):
-    """Citizen correcting their own satisfaction rating after the fact."""
+    """Citizen's rating for the repair currently in front of them. Editable
+    until they confirm that fix; a rework brings a new round, not a redo of
+    this answer."""
     rating: Optional[int] = Field(None, ge=1, le=5)
     feedback: Optional[str] = Field(None, max_length=1000)
 
@@ -150,13 +152,11 @@ class GrievanceRejectRequest(BaseModel):
     reason: str = Field(..., min_length=10, max_length=1000)
 
 
-class ReopenRequestCreate(BaseModel):
+class GrievanceReopenRequest(BaseModel):
+    """Staff reopening a case the citizen already confirmed as resolved.
+    Same rule as a rejection: the reason is mandatory, because it is the
+    sentence the citizen reads when the case comes back to life."""
     reason: str = Field(..., min_length=10, max_length=1000)
-
-
-class ReopenReviewRequest(BaseModel):
-    approve: bool
-    note: Optional[str] = Field(None, max_length=1000)
 
 
 class AssignOfficerRequest(BaseModel):

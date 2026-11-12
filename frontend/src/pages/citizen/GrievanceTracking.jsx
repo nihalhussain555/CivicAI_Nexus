@@ -20,10 +20,10 @@ import {
   UserCheck,
 } from "lucide-react";
 import { getTracking, updateFeedback } from "../../services/trackingService";
-import { requestReopen, deleteGrievance, verifyResolution } from "../../services/grievanceService";
+import { deleteGrievance, verifyResolution } from "../../services/grievanceService";
 import { uploadsBaseUrl } from "../../services/api";
 import { useToast } from "../../context/ToastContext";
-import { formatDate, formatDateTime, formatRelative, getErrorMessage, toDisplayText } from "../../utils/helpers";
+import { formatDate, formatDateTime, formatRelative, getErrorMessage, reopenTimes, toDisplayText } from "../../utils/helpers";
 import { CATEGORY_LABELS, STATUS_LABELS } from "../../utils/constants";
 import StatusBadge from "../../components/grievances/StatusBadge";
 import PriorityBadge from "../../components/grievances/PriorityBadge";
@@ -39,6 +39,30 @@ import Modal from "../../components/common/Modal";
 // a status change is pushed by notification the moment it happens.
 const REFRESH_MS = 45000;
 
+// A case that has stopped moving in every sense: nothing can be put back into
+// the queue from the reporter's side once it is here, so the honest suggestion
+// is a fresh report rather than a button that would only fail.
+const FINISHED_STATUSES = ["CLOSED", "REJECTED", "WITHDRAWN"];
+
+// What the rating card says when it is showing rather than offering the stars.
+// The rating belongs to the repair being verified, so a filed one stays filed.
+function ratingNote(status, hasRating) {
+  if (hasRating) return "Your rating went in with your confirmation, so it stays locked to this repair.";
+  if (status === "REJECTED") return "There is nothing to rate on a rejected report.";
+  if (status === "WITHDRAWN") return "There is nothing to rate on a report you withdrew.";
+  if (status === "CLOSED") return "This case was closed without a rating.";
+  return "You can rate the fix once the department submits one.";
+}
+
+function reopenNote(reopen) {
+  if (!reopen.count) {
+    return "Once you confirm a fix the case closes. Putting it back in the queue after that is the department's decision, not a button on your page.";
+  }
+  return reopen.reason
+    ? `The department has reopened this case ${reopenTimes(reopen.count)} — their reason: “${reopen.reason}”`
+    : `The department has reopened this case ${reopenTimes(reopen.count)}.`;
+}
+
 const GrievanceTracking = () => {
   const { grievanceId } = useParams();
   const navigate = useNavigate();
@@ -52,9 +76,6 @@ const GrievanceTracking = () => {
   const [feedbackOpen, setFeedbackOpen] = useState(false);
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState("");
-
-  const [reopenOpen, setReopenOpen] = useState(false);
-  const [reopenReason, setReopenReason] = useState("");
 
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [evidenceOpen, setEvidenceOpen] = useState(null);
@@ -330,51 +351,40 @@ const GrievanceTracking = () => {
               {feedback.rating ? "Change your rating" : "Rate the resolution"}
             </button>
             <p className="form-hint">
-              {data.status === "CITIZEN_VERIFICATION"
-                ? "Confirming the fix closes your case. You can still ask for it to be reopened afterwards."
-                : "Your case is closed — you can still correct this rating."}
+              One rating for this repair. Confirming the fix files your answer with the case —
+              after that only the department can take it back, and a rework asks you again.
             </p>
           </div>
         ) : (
-          <p className="muted-note">
-            {data.status === "REJECTED"
-              ? "There is nothing to rate on a rejected report."
-              : "You can rate the fix once the department submits one."}
-          </p>
+          <p className="muted-note">{ratingNote(data.status, Boolean(feedback.rating))}</p>
         )}
       </section>
 
       {/* ---------------- Reopen ---------------- */}
       <section className="card">
         <div className="section-title">Is it actually fixed?</div>
-        {reopen.request_status === "PENDING" ? (
-          <p className="prose-sm">
-            Your request to reopen this case is with {toDisplayText(data.department, "the department")} for review.
-            Filed {formatRelative(reopen.requested_at)}.
-          </p>
-        ) : reopen.request_status === "REJECTED" ? (
-          <p className="prose-sm">
-            A reopen request was reviewed and declined.
-            {reopen.review_note && <> Their reason: “{toDisplayText(reopen.review_note)}”</>}
-          </p>
-        ) : reopen.count > 0 ? (
-          <p className="prose-sm">This case has been reopened {reopen.count} time{reopen.count > 1 ? "s" : ""}.</p>
-        ) : null}
 
-        {permissions.can_request_reopen ? (
-          <button className="btn btn-secondary btn-block" onClick={() => setReopenOpen(true)}>
-            <RotateCcw size={15} /> Request to reopen
-          </button>
+        {data.status === "CITIZEN_VERIFICATION" ? (
+          <p className="prose-sm">
+            This step is yours: rate the repair above, then confirm the fix when it holds.
+            If it does not, say so on the{" "}
+            <Link to={`/citizen/grievances/${data.grievance_id}`}>case file</Link>{" "}
+            and the case goes straight back to the department.
+          </p>
         ) : (
-          /* Explains a missing button, which is only useful when no request is
-             already sitting in front of the department — the pending line above
-             says that for itself. */
-          data.status === "CLOSED" && !reopen.can_request && reopen.request_status !== "PENDING" && (
-            <p className="muted-note">
-              A reopen request can be made within {reopen.window_days} days of the fix
-              ({reopen.max} per case). {reopen.count >= reopen.max ? "This case has used them." : ""}
+          <p className="prose-sm">{reopenNote(reopen)}</p>
+        )}
+
+        {FINISHED_STATUSES.includes(data.status) && (
+          <div className="stack-tight">
+            <p className="prose-sm">
+              If the problem comes back, a fresh report is the fastest route — same department,
+              and this case is already on file as the history of that spot.
             </p>
-          )
+            <Link className="btn btn-secondary btn-block" to="/citizen/report">
+              <RotateCcw size={15} /> Report it again
+            </Link>
+          </div>
         )}
       </section>
 
@@ -467,7 +477,8 @@ const GrievanceTracking = () => {
       >
         <div className="stack-tight">
           <p className="prose-sm">
-            Your rating is how the department is measured on this kind of issue. It does not change your case status.
+            Your rating is how the department is measured on this kind of issue. Saving the stars
+            alone does not move your case; confirming the fix does, and files this rating with it.
           </p>
           <div className="track-modal-rating">
             <StarRating value={rating} onChange={setRating} size={34} />
@@ -478,32 +489,6 @@ const GrievanceTracking = () => {
                       placeholder="Was the work complete, timely, courteous?" />
           </div>
         </div>
-      </Modal>
-
-      <Modal
-        open={reopenOpen}
-        title="Request to reopen this case"
-        onClose={() => setReopenOpen(false)}
-        footer={
-          <>
-            <button className="btn btn-secondary" onClick={() => setReopenOpen(false)}>Cancel</button>
-            <button className="btn btn-primary" disabled={busy || reopenReason.trim().length < 10}
-                    onClick={() => runAction(
-                      () => requestReopen(grievanceId, reopenReason.trim()),
-                      "Reopen request submitted — awaiting staff review",
-                      () => { setReopenOpen(false); setReopenReason(""); },
-                    )}>
-              Submit request
-            </button>
-          </>
-        }
-      >
-        <p className="modal-intro">
-          This goes to {toDisplayText(data.department, "the department")} for review; it does not reopen the case by itself.
-        </p>
-        <label className="form-label">What is still wrong? (10+ characters)</label>
-        <textarea className="textarea" value={reopenReason} onChange={(e) => setReopenReason(e.target.value)}
-                  placeholder="Describe what was not fixed — the more specific, the faster it can be checked." />
       </Modal>
 
       <Modal

@@ -48,6 +48,14 @@ export const titleCase = (value) => {
     .join(" ");
 };
 
+// How many times a case has come back, in the words a reader actually parses
+// at a glance — "reopened once", not "reopened 1 time".
+export const reopenTimes = (count) => {
+  if (count === 1) return "once";
+  if (count === 2) return "twice";
+  return `${count} times`;
+};
+
 export const getErrorMessage = (error) => {
   const data = error?.response?.data;
 

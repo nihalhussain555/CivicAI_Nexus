@@ -16,8 +16,6 @@ from app.models.grievance import (
     TRACKING_STAGES,
     STAGE_INDEX_BY_STATUS,
     OVERRIDE_STATES,
-    REOPEN_WINDOW_DAYS,
-    MAX_REOPEN_REQUESTS,
     DELETABLE_STATUSES,
 )
 
@@ -25,9 +23,12 @@ from app.models.grievance import (
 SLA_AT_RISK_RATIO = 0.75
 SLA_DUE_SOON_RATIO = 0.9
 
-# Statuses in which a satisfaction rating is still the citizen's to give:
-# while they are verifying the fix, and afterwards if they change their mind.
-FEEDBACK_OPEN_STATUSES = {"CITIZEN_VERIFICATION", "CLOSED"}
+# The citizen's own step on the ladder, and the only one that carries an
+# answer they can give about the fix in front of them: the satisfaction rating
+# belongs to the repair being verified, not to the case forever. Confirming
+# the fix files that answer with the case; a rework comes back through this
+# step as a fresh round, and the rating it earns is rateable again.
+FEEDBACK_OPEN_STATUSES = {"CITIZEN_VERIFICATION"}
 
 # Statuses in which the clock is no longer running: either the fix is in for
 # verification (the department has met its deadline or missed it — settled) or
@@ -337,30 +338,18 @@ def build_evidence(grievance):
 
 
 def build_reopen(grievance):
-    status = grievance.get("status")
-    resolved_at = grievance.get("resolved_at") or grievance.get("updated_at")
-    within_window = True
-    if isinstance(resolved_at, datetime):
-        within_window = (datetime.utcnow() - resolved_at).days <= REOPEN_WINDOW_DAYS
+    """How many times this file has been reopened, and the standing reason.
 
-    request_status = grievance.get("reopen_request_status")
-    times_used = grievance.get("reopen_count", 0)
-
+    There is deliberately no "may the citizen reopen this" in here. Saying a
+    fix did not hold is the reporter's answer while the case is still in their
+    verification step; once they have confirmed it, putting the case back in
+    play is the department's decision, taken from the case file. What the
+    reporter is owed is the reason it came back, which is why this reads as
+    history rather than as a queue they are waiting in.
+    """
     return {
-        "count": times_used,
-        "max": MAX_REOPEN_REQUESTS,
-        "window_days": REOPEN_WINDOW_DAYS,
-        "request_status": request_status,
+        "count": grievance.get("reopen_count", 0),
         "reason": grievance.get("reopen_reason"),
-        "requested_at": _iso(grievance.get("reopen_requested_at")),
-        "review_note": grievance.get("reopen_review_note"),
-        "reviewed_at": _iso(grievance.get("reopen_reviewed_at")),
-        "can_request": (
-            status == "CLOSED"
-            and request_status != "PENDING"
-            and times_used < MAX_REOPEN_REQUESTS
-            and within_window
-        ),
     }
 
 
@@ -370,8 +359,9 @@ def build_feedback(grievance):
         "comment": grievance.get("citizen_feedback"),
         "verified": grievance.get("citizen_verified"),
         "submitted_at": _iso(grievance.get("citizen_feedback_at")),
-        # A citizen can rate the fix while it is being verified, and correct
-        # that rating afterwards — see the feedback route for the same rule.
+        # One rating per repair: open through the verification step, filed
+        # the moment the citizen confirms the fix. See the feedback route,
+        # which enforces the same rule from the same constant.
         "can_rate": grievance.get("status") in FEEDBACK_OPEN_STATUSES,
     }
 
@@ -408,10 +398,10 @@ def notification_history(grievance):
 def build_tracking_view(grievance, viewer=None):
     """The whole citizen tracking payload, built field by field.
 
-    `viewer` only decides whether the owner-only actions (rate, withdraw,
-    reopen) are offered. Every field in here is safe for the reporter to read
-    whatever the viewer's role is, so staff get the identical projection —
-    one definition of "what the citizen sees", no second copy to drift.
+    `viewer` only decides whether the owner-only actions (rate, withdraw) are
+    offered. Every field in here is safe for the reporter to read whatever the
+    viewer's role is, so staff get the identical projection — one definition of
+    "what the citizen sees", no second copy to drift.
     """
     history = _public_history(grievance)
     stages, index, override = build_stages(grievance, history)
@@ -419,7 +409,6 @@ def build_tracking_view(grievance, viewer=None):
     submitted_at = grievance.get("created_at")
 
     is_owner = bool(viewer) and grievance.get("citizen_id") == viewer.get("_id")
-    reopen = build_reopen(grievance)
     can_appeal = bool(grievance.get("flagged_invalid")) and grievance.get(
         "flag_appeal_status"
     ) in (None, "REJECTED") and (grievance.get("flag_appeal_count") or 0) < 2
@@ -498,7 +487,7 @@ def build_tracking_view(grievance, viewer=None):
 
         # --- citizen side ---
         "feedback": build_feedback(grievance),
-        "reopen": reopen,
+        "reopen": build_reopen(grievance),
         "remarks": build_remarks(grievance),
         "timeline": [
             {
@@ -530,7 +519,6 @@ def build_tracking_view(grievance, viewer=None):
         "permissions": {
             "is_owner": is_owner,
             "can_give_feedback": is_owner and grievance.get("status") in FEEDBACK_OPEN_STATUSES,
-            "can_request_reopen": reopen["can_request"] and is_owner,
             "can_withdraw": is_owner and (
                 grievance.get("status") in DELETABLE_STATUSES
                 and not grievance.get("assigned_officer")

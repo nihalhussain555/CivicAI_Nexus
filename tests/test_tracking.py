@@ -17,6 +17,7 @@ from app.config.database import (
     audit_logs_collection,
     departments_collection,
     grievances_collection,
+    notifications_collection,
     users_collection,
 )
 from app.models.department import department_document
@@ -413,7 +414,7 @@ def test_remark_does_not_change_status():
 
 
 # ---------------------------------------------------------------------------
-# Feedback, rating and reopen requests
+# Feedback, one rating per repair, and who may reopen a closed case
 # ---------------------------------------------------------------------------
 
 def test_rating_is_bounded_to_one_to_five():
@@ -449,24 +450,123 @@ def test_feedback_cannot_be_given_before_a_resolution_exists():
     assert r.status_code == 403
 
 
-def test_reopen_request_is_shown_on_the_ladder_with_its_reason():
-    gid, citizen, staff = _to_researched_case("TRK14")
+def test_one_rating_per_repair_that_locks_with_the_confirmation():
+    gid, citizen, staff = _to_researched_case("TRK16")
+    client.put(f"/api/grievances/{gid}/resolve", json={"resolution_note": "Cleared."},
+               headers=_auth(staff["officer"]))
+
+    # While the fix is still in front of them the answer is editable, because
+    # nothing about this repair is final yet.
+    r = client.put(f"/api/grievances/{gid}/feedback", json={"rating": 4}, headers=_auth(citizen))
+    assert r.status_code == 200, r.text
+    assert grievances_collection.find_one({"grievance_id": gid})["citizen_rating"] == 4
+
+    # Confirming the fix is what files it.
+    r = client.put(f"/api/grievances/{gid}/verify",
+                   json={"verified": True, "feedback": "All clear, thank you.", "rating": 5},
+                   headers=_auth(citizen))
+    assert r.status_code == 200, r.text
+
+    r = client.get(f"/api/grievances/{gid}/tracking", headers=_auth(citizen))
+    data = r.json()["data"]
+    assert data["feedback"]["rating"] == 5
+    assert data["feedback"]["can_rate"] is False
+    assert data["permissions"]["can_give_feedback"] is False
+
+    # A change of mind five days later is not a second rating.
+    r = client.put(f"/api/grievances/{gid}/feedback", json={"rating": 1}, headers=_auth(citizen))
+    assert r.status_code == 400, r.text
+    grievance = grievances_collection.find_one({"grievance_id": gid})
+    assert grievance["citizen_rating"] == 5
+    assert grievance["citizen_feedback"] == "All clear, thank you."
+
+    # The department reworks the job, and that next repair is rateable again.
+    r = client.put(f"/api/grievances/{gid}/reopen",
+                   json={"reason": "A second pickup was missed on the same street."},
+                   headers=_auth(staff["officer"]))
+    assert r.status_code == 200, r.text
+    client.put(f"/api/grievances/{gid}/accept", headers=_auth(staff["officer"]))
+    client.put(f"/api/grievances/{gid}/start", headers=_auth(staff["officer"]))
+    client.put(f"/api/grievances/{gid}/resolve", json={"resolution_note": "Both pickups done."},
+               headers=_auth(staff["officer"]))
+
+    r = client.get(f"/api/grievances/{gid}/tracking", headers=_auth(citizen))
+    data = r.json()["data"]
+    assert data["status"] == "CITIZEN_VERIFICATION"
+    assert data["feedback"]["can_rate"] is True
+    assert data["permissions"]["can_give_feedback"] is True
+
+    r = client.put(f"/api/grievances/{gid}/feedback", json={"rating": 2}, headers=_auth(citizen))
+    assert r.status_code == 200, r.text
+
+    # The round it replaced is not lost — it is part of the case record.
+    grievance = grievances_collection.find_one({"grievance_id": gid})
+    messages = " | ".join(entry["message"] for entry in grievance["history"])
+    assert "rated this fix 4/5" in messages
+    assert "rated it 5/5" in messages
+    assert "rated this fix 2/5" in messages
+    assert grievance["citizen_rating"] == 2
+
+    # And confirming without an answer of its own keeps the one on file.
+    r = client.put(f"/api/grievances/{gid}/verify", json={"verified": True}, headers=_auth(citizen))
+    assert r.status_code == 200, r.text
+    grievance = grievances_collection.find_one({"grievance_id": gid})
+    assert grievance["citizen_rating"] == 2
+
+
+def test_reopening_a_confirmed_case_is_the_departments_call_alone():
+    gid, citizen, staff = _to_researched_case("TRK17")
     client.put(f"/api/grievances/{gid}/resolve", json={"resolution_note": "Cleared."},
                headers=_auth(staff["officer"]))
     client.put(f"/api/grievances/{gid}/verify", json={"verified": True, "rating": 3},
                headers=_auth(citizen))
 
-    r = client.post(f"/api/grievances/{gid}/reopen-request",
-                    json={"reason": "The bin behind the gate was never touched and is overflowing again."},
-                    headers=_auth(citizen))
+    # The citizen has no reopen action left to them, at either door.
+    r = client.put(f"/api/grievances/{gid}/reopen",
+                   json={"reason": "It is overflowing again."}, headers=_auth(citizen))
+    assert r.status_code == 403, r.text
+
+    r = client.put(f"/api/grievances/{gid}/verify",
+                   json={"verified": False, "feedback": "Not actually fixed."},
+                   headers=_auth(citizen))
+    assert r.status_code == 403, r.text
+    assert r.json()["error"]["message"] == "A confirmed resolution can only be reopened by the department"
+    assert grievances_collection.find_one({"grievance_id": gid})["status"] == "CLOSED"
+
+    # A reopen needs a reason the reporter can act on.
+    r = client.put(f"/api/grievances/{gid}/reopen", json={"reason": "too short"},
+                   headers=_auth(staff["admin"]))
+    assert r.status_code == 422
+
+    r = client.put(f"/api/grievances/{gid}/reopen",
+                   json={"reason": "The crew missed the second bin; a fresh pickup is booked."},
+                   headers=_auth(staff["admin"]))
     assert r.status_code == 200, r.text
 
+    grievance = grievances_collection.find_one({"grievance_id": gid})
+    assert grievance["status"] == "DEPARTMENT_ASSIGNED"
+    assert grievance["reopen_count"] == 1
+    assert grievance["assigned_officer"] is None
+    assert grievance["citizen_verified"] is None
+    assert "REOPENED" in [entry["status"] for entry in grievance["history"]]
+
+    assert len(list(audit_logs_collection.find(
+        {"entity_id": gid, "action": "GRIEVANCE_REOPENED"}
+    ))) == 1
+    notes = list(notifications_collection.find({"related_grievance_id": gid}))
+    assert any("reopened" in f"{n.get('title')} {n.get('message')}".lower() for n in notes)
+
+    # What the reporter is told: the case is moving again, and why. Who in the
+    # office pressed the button stays on the staff side of the payload.
     r = client.get(f"/api/grievances/{gid}/tracking", headers=_auth(citizen))
+    payload = json.dumps(r.json())
     data = r.json()["data"]
-    assert data["reopen"]["request_status"] == "PENDING"
-    assert "overflowing again" in data["reopen"]["reason"]
-    assert data["permissions"]["can_request_reopen"] is False, "one request at a time"
-    assert any(entry["status"] == "CLOSED" for entry in data["timeline"])
+    assert data["reopen"]["count"] == 1
+    assert "fresh pickup is booked" in data["reopen"]["reason"]
+    assert "can_request_reopen" not in data["permissions"]
+    assert data["officer"]["assigned"] is False
+    assert staff["admin_name"] not in payload
+    assert "reopened_by" not in payload
 
 
 def test_escalated_case_shows_progress_and_says_so():

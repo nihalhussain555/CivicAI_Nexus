@@ -61,7 +61,7 @@ STAFF_ONLY_FIELDS = (
 # What these entries remove is everything that turns that name into a way of
 # reaching or indexing the person: internal account ids, and the convenience
 # copies of names for staff actions the citizen is not entitled to (who routed
-# the file, who judged it not actionable).
+# the file, who judged it not actionable, who decided to reopen it).
 STAFF_IDENTITY_FIELDS = (
     "assigned_officer",
     "assigned_by",
@@ -71,8 +71,8 @@ STAFF_IDENTITY_FIELDS = (
     "flagged_by",
     "flag_reversed_by",
     "flag_appeal_reviewed_by",
-    "reopen_reviewed_by",
-    "reopen_reviewed_by_name",
+    "reopened_by",
+    "reopened_by_name",
 )
 
 # Kept separate from the two lists above because it is not a field to remove —

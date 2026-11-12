@@ -26,15 +26,12 @@ from app.schemas.grievance import (
     GrievanceRejectRequest,
     AssignOfficerRequest,
     FlagInvalidRequest,
-    ReopenRequestCreate,
-    ReopenReviewRequest,
+    GrievanceReopenRequest,
     BulkGrievanceIdsRequest,
     BulkAssignRequest,
 )
 
 from app.models.grievance import (
-    REOPEN_WINDOW_DAYS,
-    MAX_REOPEN_REQUESTS,
     DELETABLE_STATUSES,
     remark_document,
 )
@@ -1475,14 +1472,24 @@ def verify_resolution(
             "CLOSED",
             current_user,
             message=
-                "Citizen verified the resolution",
+                # The rating rides in the history line so that the one the
+                # next repair replaces is still on the record.
+                "Citizen verified the resolution"
+                + (f" — rated it {data.rating}/5" if data.rating is not None else ""),
             extra_fields={
                 "citizen_verified":
                     True,
+                # An omitted rating on the confirm request means "keep the one
+                # they already sent", not "erase it": this is the moment the
+                # rating locks, so overwriting it here would lose it for good.
                 "citizen_feedback":
-                    data.feedback,
+                    data.feedback
+                    if data.feedback is not None
+                    else grievance.get("citizen_feedback"),
                 "citizen_rating":
-                    data.rating,
+                    data.rating
+                    if data.rating is not None
+                    else grievance.get("citizen_rating"),
                 "citizen_feedback_at":
                     datetime.utcnow(),
             },
@@ -1531,8 +1538,6 @@ def verify_resolution(
                 datetime.utcnow(),
             "reopen_reason":
                 data.feedback,
-            "reopen_requested_at":
-                datetime.utcnow(),
             "reopen_count":
                 grievance.get(
                     "reopen_count",
@@ -1661,216 +1666,79 @@ def flag_invalid_report(
     }
 
 
-@router.post("/{grievance_id}/reopen-request")
-def request_reopen(
+@router.put("/{grievance_id}/reopen")
+def reopen_closed_case(
     grievance_id: str,
-    data: ReopenRequestCreate,
-    current_user=Depends(get_current_user),
+    data: GrievanceReopenRequest,
+    current_user=Depends(require_staff),
 ):
-    """Citizen asks to reopen a CLOSED case that wasn't actually fixed.
-    This does NOT reopen it immediately — it queues a request for staff
-    review, so closing a case and instantly re-requesting resolution can't
-    be used to farm resolution points twice."""
-    grievance = get_grievance_or_404(grievance_id)
+    """Staff-only: put a case the citizen already confirmed back into the pipeline.
 
-    if (
-        current_user["role"] != "citizen"
-        or grievance.get("citizen_id") != current_user["_id"]
-    ):
-        raise HTTPException(
-            status_code=403,
-            detail="Only the reporting citizen can request to reopen this grievance",
-        )
+    Reopening after confirmation is a department decision rather than a button
+    on the citizen's tracking page. It reverses the resolution reward, clears
+    the assignment and restarts the clock on a file everyone believed was
+    finished — work that only someone who can act on it should be able to
+    start. The reason is mandatory because it is the sentence the citizen
+    reads when the case comes back to life.
+    """
+    grievance = get_grievance_or_404(grievance_id)
+    assert_can_view(grievance, current_user)
 
     if grievance["status"] != "CLOSED":
         raise HTTPException(
             status_code=400,
-            detail="Only a closed grievance can be requested for reopening",
+            detail="Only a closed grievance can be reopened",
         )
 
-    if grievance.get("reopen_request_status") == "PENDING":
-        raise HTTPException(
-            status_code=400,
-            detail="A reopen request is already pending review for this grievance",
-        )
+    reason = data.reason.strip()
 
-    if grievance.get("reopen_count", 0) >= MAX_REOPEN_REQUESTS:
-        raise HTTPException(
-            status_code=400,
-            detail=f"This grievance has already been reopened the maximum of {MAX_REOPEN_REQUESTS} times",
-        )
+    # Claw back the +30 "resolved" reward — the case turned out not to
+    # actually be fixed, so that outcome-based payoff wasn't earned.
+    # Submission and officer-verification points stand; the report itself was
+    # still real. This runs before the cycle counter moves, so the reversal
+    # lands on the cycle that just ended.
+    reverse_resolution_points(grievance)
 
-    anchor = grievance.get("resolved_at") or grievance.get("updated_at")
-    if anchor and (datetime.utcnow() - anchor).days > REOPEN_WINDOW_DAYS:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Reopen requests must be made within {REOPEN_WINDOW_DAYS} days of resolution",
-        )
-
-    now = datetime.utcnow()
-
-    grievances_collection.update_one(
-        {"grievance_id": grievance_id},
-        {
-            "$set": {
-                "reopen_request_status": "PENDING",
-                "reopen_reason": data.reason,
-                "reopen_requested_at": now,
-                "reopen_reviewed_by": None,
-                "reopen_reviewed_by_name": None,
-                "reopen_reviewed_at": None,
-                "reopen_review_note": None,
-                "updated_at": now,
-            },
-            "$push": {
-                "history": history_entry(
-                    grievance["status"],
-                    f"Citizen requested to reopen: {data.reason}",
-                    "citizen",
-                    timestamp=now,
-                )
-            },
+    updated = transition_status(
+        grievance,
+        "REOPENED",
+        current_user,
+        message=f"Reopened by {current_user['role']}: {reason}",
+        extra_fields={
+            "citizen_verified": None,
+            "reopen_count": grievance.get("reopen_count", 0) + 1,
+            "reopen_reason": reason,
+            "reopened_at": datetime.utcnow(),
+            "reopened_by": current_user["_id"],
+            "reopened_by_name": current_user.get("name"),
         },
     )
 
-    assigned_officer = grievance.get("assigned_officer")
-    if assigned_officer:
-        notify(
-            assigned_officer,
-            "Reopen Requested",
-            f"The citizen has requested to reopen grievance {grievance_id}, saying the issue isn't actually resolved.",
-            notification_type="INFO",
-            related_grievance_id=grievance_id,
-        )
-
-    log_action(
-        current_user["_id"],
-        current_user["role"],
-        "GRIEVANCE_REOPEN_REQUESTED",
-        "grievance",
-        grievance_id,
-        {"reason": data.reason},
-    )
-
-    updated = get_grievance_or_404(grievance_id)
-
-    return {
-        "success": True,
-        "message": "Reopen request submitted; awaiting staff review.",
-        "data": strip_staff_fields(serialize_document(updated), current_user),
-    }
-
-
-@router.put("/{grievance_id}/reopen-request/review")
-def review_reopen_request(
-    grievance_id: str,
-    data: ReopenReviewRequest,
-    current_user=Depends(require_staff),
-):
-    """Officer/admin approves or rejects a pending reopen request."""
-    grievance = get_grievance_or_404(grievance_id)
-    assert_can_view(grievance, current_user)
-
-    if grievance.get("reopen_request_status") != "PENDING":
-        raise HTTPException(
-            status_code=400,
-            detail="There is no pending reopen request for this grievance",
-        )
-
-    now = datetime.utcnow()
-
-    if data.approve:
-
-        grievances_collection.update_one(
-            {"grievance_id": grievance_id},
-            {
-                "$set": {
-                    "reopen_request_status": "APPROVED",
-                    "reopen_reviewed_by": current_user["_id"],
-                    "reopen_reviewed_by_name": current_user.get("name"),
-                    "reopen_reviewed_at": now,
-                    "reopen_review_note": data.note,
-                }
-            },
-        )
-
-        # Claw back the +30 "resolved" reward — the case turned out not to
-        # actually be fixed, so that outcome-based payoff wasn't earned.
-        # Submission and officer-verification points stand; the report
-        # itself was still real.
-        reverse_resolution_points(grievance)
-
-        grievance = get_grievance_or_404(grievance_id)
-
-        updated = transition_status(
-            grievance,
-            "REOPENED",
-            current_user,
-            message=f"Reopen request approved: {data.note or grievance.get('reopen_reason', '')}",
-            extra_fields={
-                "citizen_verified": None,
-                "reopen_count": grievance.get("reopen_count", 0) + 1,
-            },
-        )
-
-        updated = transition_status(
-            updated,
-            "DEPARTMENT_ASSIGNED",
-            current_user,
-            message="Re-routed to department after reopen request was approved",
-            extra_fields={
-                "assigned_officer": None,
-                "assigned_officer_name": None,
-                "assigned_at": None,
-                "assigned_by": None,
-                "assigned_by_name": None,
-            },
-        )
-
-        log_action(
-            current_user["_id"],
-            current_user["role"],
-            "GRIEVANCE_REOPEN_APPROVED",
-            "grievance",
-            grievance_id,
-            {"note": data.note},
-        )
-
-        return {
-            "success": True,
-            "message": "Reopen request approved; grievance re-routed to the department.",
-            "data": serialize_document(updated),
-        }
-
-    grievances_collection.update_one(
-        {"grievance_id": grievance_id},
-        {
-            "$set": {
-                "reopen_request_status": "REJECTED",
-                "reopen_reviewed_by": current_user["_id"],
-                "reopen_reviewed_by_name": current_user.get("name"),
-                "reopen_reviewed_at": now,
-                "reopen_review_note": data.note,
-                "updated_at": now,
-            },
-            "$push": {
-                "history": history_entry(
-                    grievance["status"],
-                    f"Reopen request rejected: {data.note or 'No reason given'}",
-                    current_user["role"],
-                    timestamp=now,
-                )
-            },
+    # Re-routing is the workflow's move, not the officer's, exactly as it is
+    # when a citizen rejects a fix: putting a file back in a department's
+    # queue is system work, and the audit trail should not read as if one
+    # person re-triaged their own case.
+    updated = transition_status(
+        updated,
+        "DEPARTMENT_ASSIGNED",
+        SYSTEM_ACTOR,
+        message="Re-routed to the department after the reopen",
+        extra_fields={
+            "assigned_officer": None,
+            "assigned_officer_name": None,
+            "assigned_at": None,
+            "assigned_by": None,
+            "assigned_by_name": None,
         },
     )
 
     notify(
         grievance["citizen_id"],
-        "Reopen Request Rejected",
+        "Case reopened",
         (
-            f"Your request to reopen grievance {grievance_id} was reviewed and declined. "
-            + (data.note or "")
-        ).strip(),
+            f"{grievance_id} has been reopened and is being looked at again. "
+            f"The department's reason: {reason}"
+        ),
         notification_type="INFO",
         related_grievance_id=grievance_id,
     )
@@ -1878,17 +1746,15 @@ def review_reopen_request(
     log_action(
         current_user["_id"],
         current_user["role"],
-        "GRIEVANCE_REOPEN_REJECTED",
+        "GRIEVANCE_REOPENED",
         "grievance",
         grievance_id,
-        {"note": data.note},
+        {"reason": reason},
     )
-
-    updated = get_grievance_or_404(grievance_id)
 
     return {
         "success": True,
-        "message": "Reopen request rejected.",
+        "message": "Case reopened and re-routed to the department.",
         "data": serialize_document(updated),
     }
 
@@ -2079,12 +1945,15 @@ def update_grievance_feedback(
     data: FeedbackUpdateRequest,
     current_user=Depends(get_current_user),
 ):
-    """Citizen: set or correct the satisfaction rating on a fix.
+    """Citizen: give or correct the satisfaction rating on the fix in front of them.
 
-    Allowed while the case sits in the reporter's verification step and after
-    they have confirmed it — a change of mind five days later is still honest
-    feedback. It is not allowed while the department is mid-work, because there
-    is nothing there yet to rate.
+    One rating per repair. It stays editable while the case is in the
+    reporter's verification step, because nothing there is final yet; the
+    moment they confirm the fix the rating is filed with the case and stops
+    being editable — as does the comment, since the two are one piece of
+    feedback. If the work is later redone, the case comes back through
+    verification and that round is rateable on its own terms, with the earlier
+    rating still on the case history.
     """
     grievance = get_grievance_or_404(grievance_id)
 
@@ -2100,7 +1969,11 @@ def update_grievance_feedback(
     if grievance["status"] not in FEEDBACK_OPEN_STATUSES:
         raise HTTPException(
             status_code=400,
-            detail="Feedback can only be given once the department has submitted a resolution",
+            detail=(
+                "A rating belongs to the verification step. Once you confirm the fix it is "
+                "filed with the case — if the problem comes back, the department reopens it "
+                "and you can rate the next repair."
+            ),
         )
 
     now = datetime.utcnow()
@@ -2111,9 +1984,27 @@ def update_grievance_feedback(
     if data.feedback is not None:
         fields["citizen_feedback"] = data.feedback.strip()
 
+    # Written into the audit history as well as onto the rating fields, so the
+    # rating a later round replaces is not the rating the case loses.
+    given = []
+    if data.rating is not None:
+        given.append(f"rated this fix {data.rating}/5")
+    if (data.feedback or "").strip():
+        given.append(f"added “{data.feedback.strip()}”")
+
     grievances_collection.update_one(
         {"grievance_id": grievance_id},
-        {"$set": fields},
+        {
+            "$set": fields,
+            "$push": {
+                "history": history_entry(
+                    grievance["status"],
+                    "Citizen " + " and ".join(given),
+                    "citizen",
+                    timestamp=now,
+                )
+            },
+        },
     )
 
     log_action(

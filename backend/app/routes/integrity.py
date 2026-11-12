@@ -367,8 +367,8 @@ def create_flag_appeal(
     data: FlagAppealRequest,
     current_user=Depends(get_current_user),
 ):
-    """Citizen contests a false-report flag. Mirrors the reopen-request flow:
-    the citizen asks, staff decide, nothing is self-service."""
+    """Citizen contests a false-report flag: the citizen asks, staff decide,
+    nothing is self-service."""
     grievance = get_grievance_or_404(grievance_id)
 
     if grievance.get("citizen_id") != current_user["_id"]:

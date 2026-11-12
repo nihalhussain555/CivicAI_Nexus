@@ -1,12 +1,12 @@
 import { lazy, Suspense, useEffect, useState, useCallback } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { MapPin, Clock, Sparkles, ArrowLeft, CheckCircle2, XCircle, PlayCircle, Send, AlertTriangle, ImageIcon, Mic, RotateCcw, ShieldQuestion, ShieldCheck, ShieldAlert, Gavel, Trash2, Radar, MessageSquare, Ban,} from "lucide-react";
-import { getGrievance, acceptCase, startProgress, submitResolution, escalateCase, verifyResolution, requestReopen, reviewReopenRequest, deleteGrievance, getCopilotBrief, triageIntegrity, unflagGrievance, appealFlag, reviewFlagAppeal,} from "../../services/grievanceService";
+import { getGrievance, acceptCase, startProgress, submitResolution, escalateCase, verifyResolution, reopenCase, deleteGrievance, getCopilotBrief, triageIntegrity, unflagGrievance, appealFlag, reviewFlagAppeal,} from "../../services/grievanceService";
 import { addRemark, rejectGrievance } from "../../services/trackingService";
 import { uploadsBaseUrl } from "../../services/api";
 import { useAuth } from "../../hooks/useAuth";
 import { useToast } from "../../context/ToastContext";
-import { getErrorMessage, formatDateTime } from "../../utils/helpers";
+import { getErrorMessage, formatDateTime, reopenTimes } from "../../utils/helpers";
 import { CATEGORY_LABELS } from "../../utils/constants";
 import PriorityBadge from "../../components/grievances/PriorityBadge";
 import StatusBadge from "../../components/grievances/StatusBadge";
@@ -67,11 +67,8 @@ const GrievanceDetail = () => {
   const [verifyOpen, setVerifyOpen] = useState(null); // true/false
   const [feedback, setFeedback] = useState("");
 
-  const [reopenRequestOpen, setReopenRequestOpen] = useState(false);
+  const [reopenOpen, setReopenOpen] = useState(false);
   const [reopenReason, setReopenReason] = useState("");
-
-  const [reopenReviewOpen, setReopenReviewOpen] = useState(null); // true (approve) / false (reject)
-  const [reopenReviewNote, setReopenReviewNote] = useState("");
 
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
 
@@ -189,6 +186,17 @@ const GrievanceDetail = () => {
       "Case rejected",
     );
     if (done) setRejectOpen(false);
+  };
+
+  const submitReopen = async () => {
+    const done = await runAction(
+      () => reopenCase(grievanceId, reopenReason.trim()),
+      "Case reopened — it is back in the department's queue",
+    );
+    if (done) {
+      setReopenOpen(false);
+      setReopenReason("");
+    }
   };
 
   if (error) return <ErrorState description={error} onRetry={load} />;
@@ -479,22 +487,20 @@ const GrievanceDetail = () => {
             </div>
           )}
 
-          {grievance.reopen_request_status && (
-            <div className={`card${grievance.reopen_request_status === "PENDING" ? " card-warning" : ""}`}>
+          {/* A reopen is a decision already taken, not a request someone is
+              waiting in a queue for: this says what happened and why. */}
+          {grievance.reopen_count > 0 && (
+            <div className="card card-warning">
               <div className="card-head">
                 <ShieldQuestion size={15} />
-                <strong>Reopen Request</strong>
-                <span className={`badge ${
-                  grievance.reopen_request_status === "PENDING" ? "badge-medium" :
-                  grievance.reopen_request_status === "APPROVED" ? "badge-low" : "badge-critical"
-                }`}>
-                  {grievance.reopen_request_status}
-                </span>
+                <strong>
+                  This case was reopened {reopenTimes(grievance.reopen_count)}
+                </strong>
               </div>
-              <p className="prose-sm">{grievance.reopen_reason}</p>
-              {grievance.reopen_review_note && (
-                <p className="quote-note">
-                  Staff note: "{grievance.reopen_review_note}"
+              {grievance.reopen_reason && <p className="prose-sm">{grievance.reopen_reason}</p>}
+              {isStaff && grievance.reopened_by_name && (
+                <p className="muted-note card-section">
+                  By {grievance.reopened_by_name} · {formatDateTime(grievance.reopened_at)}
                 </p>
               )}
             </div>
@@ -561,27 +567,14 @@ const GrievanceDetail = () => {
                   </button>
                 </>
               )}
-              {isOwnerCitizen && grievance.status === "CLOSED" && grievance.reopen_request_status === "PENDING" && (
-                <p className="prose-sm">
-                  Your request to reopen this case is awaiting staff review.
-                </p>
-              )}
-              {isOwnerCitizen && grievance.status === "CLOSED" && grievance.reopen_request_status !== "PENDING" && (
-                <button className="btn btn-secondary btn-block" onClick={() => setReopenRequestOpen(true)}>
-                  <RotateCcw size={15} /> Request to reopen
+              {/* After the reporter confirms a fix, reopening is a decision the
+                  department takes from this file. The citizen's own "not
+                  resolved" answer stays where it belongs — on the
+                  verification step above, before anything is final. */}
+              {isStaff && grievance.status === "CLOSED" && (
+                <button className="btn btn-secondary btn-block" onClick={() => setReopenOpen(true)}>
+                  <RotateCcw size={15} /> Reopen closed case
                 </button>
-              )}
-              {isStaff && grievance.reopen_request_status === "PENDING" && (
-                <>
-                  <button className="btn btn-primary btn-block" disabled={actionLoading}
-                          onClick={() => setReopenReviewOpen(true)}>
-                    <CheckCircle2 size={15} /> Approve reopen
-                  </button>
-                  <button className="btn btn-secondary btn-block" disabled={actionLoading}
-                          onClick={() => setReopenReviewOpen(false)}>
-                    <XCircle size={15} /> Reject reopen
-                  </button>
-                </>
               )}
               {/* Integrity: nothing here changes the case's stage, only what
                   the platform believes about it. */}
@@ -613,7 +606,7 @@ const GrievanceDetail = () => {
               {!isStaff && !isOwnerCitizen && grievance.status === "CLOSED" && (
                 <p className="prose-sm">This grievance has been closed.</p>
               )}
-              {isStaff && ["CLOSED", "CITIZEN_VERIFICATION", "RESOLUTION_SUBMITTED"].includes(grievance.status) && grievance.reopen_request_status !== "PENDING" && (
+              {isStaff && ["CLOSED", "CITIZEN_VERIFICATION", "RESOLUTION_SUBMITTED"].includes(grievance.status) && (
                 <p className="prose-sm">
                   {grievance.status === "CLOSED" ? "Case closed." : "Awaiting citizen verification."}
                 </p>
@@ -704,50 +697,38 @@ const GrievanceDetail = () => {
       </Modal>
 
       <Modal
-        open={reopenRequestOpen}
-        title="Request to reopen this case"
-        onClose={() => setReopenRequestOpen(false)}
+        open={reopenOpen}
+        title="Reopen this closed case?"
+        onClose={() => setReopenOpen(false)}
         footer={
           <>
-            <button className="btn btn-secondary" onClick={() => setReopenRequestOpen(false)}>Cancel</button>
+            <button className="btn btn-secondary" onClick={() => setReopenOpen(false)}>Cancel</button>
             <button className="btn btn-primary" disabled={actionLoading || reopenReason.trim().length < 10}
-                    onClick={() => runAction(
-                      () => requestReopen(grievanceId, reopenReason),
-                      "Reopen request submitted — awaiting staff review"
-                    ).then(() => { setReopenRequestOpen(false); setReopenReason(""); })}>
-              Submit request
+                    onClick={submitReopen}>
+              <RotateCcw size={15} /> Reopen case
             </button>
           </>
         }
       >
-        <label className="form-label">Why isn't this actually resolved?</label>
-        <textarea className="textarea" value={reopenReason} onChange={(e) => setReopenReason(e.target.value)}
-                  placeholder="Describe what's still wrong — this goes to staff for review before the case reopens..." />
-      </Modal>
-
-      <Modal
-        open={reopenReviewOpen !== null}
-        title={reopenReviewOpen ? "Approve reopen request" : "Reject reopen request"}
-        onClose={() => setReopenReviewOpen(null)}
-        footer={
-          <>
-            <button className="btn btn-secondary" onClick={() => setReopenReviewOpen(null)}>Cancel</button>
-            <button className={`btn ${reopenReviewOpen ? "btn-primary" : "btn-danger"}`} disabled={actionLoading}
-                    onClick={() => runAction(
-                      () => reviewReopenRequest(grievanceId, { approve: !!reopenReviewOpen, note: reopenReviewNote }),
-                      reopenReviewOpen ? "Reopen approved — re-routed to department" : "Reopen request rejected"
-                    ).then(() => { setReopenReviewOpen(null); setReopenReviewNote(""); })}>
-              {reopenReviewOpen ? "Approve & reopen" : "Reject request"}
-            </button>
-          </>
-        }
-      >
-        <p className="modal-intro">
-          Citizen's reason: "{grievance.reopen_reason}"
-        </p>
-        <label className="form-label">Note (optional)</label>
-        <textarea className="textarea" value={reopenReviewNote} onChange={(e) => setReopenReviewNote(e.target.value)}
-                  placeholder="Add context for the citizen..." />
+        <div className="stack-tight">
+          <p className="prose-sm">
+            The citizen has already confirmed this fix. Reopening puts the file back in the
+            department's queue with no officer on it, reverses the resolution points and asks
+            for a fresh repair — which the citizen then rates as its own round.
+          </p>
+          <div>
+            <label className="form-label">Reason (required — this is what the citizen is told)</label>
+            <textarea className="textarea" value={reopenReason}
+                      onChange={(e) => setReopenReason(e.target.value)}
+                      maxLength={1000}
+                      placeholder="What was missed? e.g. the bin behind the gate was never reached and is overflowing again." />
+            <p className="form-hint">
+              {reopenReason.trim().length < 10
+                ? `${10 - reopenReason.trim().length} more characters needed`
+                : `${reopenReason.trim().length} characters`}
+            </p>
+          </div>
+        </div>
       </Modal>
 
       <Modal
