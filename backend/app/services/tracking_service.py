@@ -11,7 +11,7 @@ the same document.
 
 from datetime import datetime, timezone
 
-from app.config.database import notifications_collection
+from app.config.database import notifications_collection, users_collection
 from app.models.grievance import (
     TRACKING_STAGES,
     STAGE_INDEX_BY_STATUS,
@@ -262,15 +262,17 @@ def build_sla(grievance, now=None):
 
 
 def build_officer(grievance):
-    """Who is handling the case, without saying who they are.
+    """Who is handling the case, named.
 
-    Citizens get the department and district that own the file and the date it
-    was picked up. The officer's name, account id and contact details stay on
-    the staff side of the API — a reporter is entitled to know their case is
-    with the right desk, not to know which individual is working it.
+    Accountability is the point of a tracking system: the reporter is told
+    which desk owns the file, since when, and the name of the officer working
+    it. What stays staff-side is everything that would let them be contacted
+    off the case — the account id, email and phone. Knowing who to ask about
+    your pothole is not the same as holding their address book.
     """
-    if not grievance.get("assigned_officer"):
-        return {"assigned": False, "designation": None, "since": None}
+    officer_id = grievance.get("assigned_officer")
+    if not officer_id:
+        return {"assigned": False, "name": None, "designation": None, "since": None}
 
     department = grievance.get("department") or "the responsible"
     district = grievance.get("district")
@@ -279,8 +281,18 @@ def build_officer(grievance):
     if district:
         designation = f"{designation}, {district} district"
 
+    # `assigned_officer_name` is what the workflow copies over when someone
+    # accepts or assigns a case. Records written before that copy existed carry
+    # only the id, so read the name off the account rather than showing the
+    # reporter a case that belongs to somebody unnamed.
+    name = grievance.get("assigned_officer_name")
+    if not name:
+        account = users_collection.find_one({"_id": officer_id}, {"name": 1}) or {}
+        name = account.get("name")
+
     return {
         "assigned": True,
+        "name": name,
         "designation": designation,
         "since": _iso(grievance.get("assigned_at")),
     }

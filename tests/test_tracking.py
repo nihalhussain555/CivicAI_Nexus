@@ -147,27 +147,71 @@ def test_tracking_view_carries_the_whole_citizen_story():
     assert all(note["created_at"] for note in data["notifications"])
 
 
-def test_tracking_view_exposes_no_staff_identity_or_internal_scoring():
+def test_the_reporter_is_told_who_has_the_case_and_nothing_beyond_that():
     staff = _staff("TRK2")
     citizen = _register_citizen("track2@test.com")
     gid = _file_grievance(citizen)
     client.put(f"/api/grievances/{gid}/accept", headers=_auth(staff["officer"]))
 
+    officer_id = str(users_collection.find_one(
+        {"email": "officer_trk2@test.com"}, {"_id": 1}
+    )["_id"])
+
     r = client.get(f"/api/grievances/{gid}/tracking", headers=_auth(citizen))
+    assert r.status_code == 200, r.text
+    data = r.json()["data"]
     payload = json.dumps(r.json())
 
-    # named individuals, contact details and internal account ids stay staff-side
-    for forbidden in (staff["officer_name"], staff["admin_name"], "citizen_id",
-                      "email", "@test.com", "assigned_officer_name",
+    # Accountability: the person working the file is named to the person who
+    # reported the problem, alongside the desk and district they belong to.
+    assert data["officer"]["assigned"] is True
+    assert data["officer"]["name"] == staff["officer_name"]
+    assert "field officer" in data["officer"]["designation"]
+    assert data["department"]
+
+    # ... and naming them is where it stops. No account id to look them up by,
+    # no other staff member's name, and none of the staff-side scoring that
+    # decides how a report is treated.
+    for forbidden in (officer_id, staff["admin_name"], "citizen_id",
+                      "email", "@test.com", "assigned_officer", "assigned_by",
                       "authenticity", "content_fingerprint", "integrity",
                       "trust_score", "similar_cases", "duplicate_of"):
         assert forbidden not in payload, f"{forbidden} leaked into a citizen payload"
 
-    # ... while the case still says *who owns the work* in usable terms
-    data = r.json()["data"]
-    assert data["officer"]["assigned"] is True
-    assert "field officer" in data["officer"]["designation"]
-    assert data["department"]
+
+def test_the_case_file_names_the_officer_without_their_account():
+    """The legacy endpoints the case file reads from redact by a denylist, so
+    the officer rule has to hold there exactly as it does in the tracking view.
+    """
+    staff = _staff("TRK2B")
+    citizen = _register_citizen("track2b@test.com")
+    gid = _file_grievance(citizen)
+    client.put(f"/api/grievances/{gid}/accept", headers=_auth(staff["officer"]))
+
+    officer_id = str(users_collection.find_one(
+        {"email": "officer_trk2b@test.com"}, {"_id": 1}
+    )["_id"])
+
+    headers = _auth(citizen)
+    detail = client.get(f"/api/grievances/{gid}", headers=headers).json()["data"]
+    assert detail["assigned_officer_name"] == staff["officer_name"]
+
+    # The id is replaced by the yes/no the delete gate actually needs.
+    assert "assigned_officer" not in detail
+    assert "assigned_by" not in detail
+    assert detail["has_assigned_officer"] is True
+
+    listed = client.get("/api/grievances/my", headers=headers).json()["data"]
+    rows = listed.get("items") if isinstance(listed, dict) else listed
+    mine = next(row for row in rows if row["grievance_id"] == gid)
+    assert mine["assigned_officer_name"] == staff["officer_name"]
+    assert "assigned_officer" not in mine
+    assert officer_id not in json.dumps(mine)
+
+    # Staff keep the id — it is how their own queue says "this one is yours".
+    staff_view = client.get(f"/api/grievances/{gid}",
+                            headers=_auth(staff["officer"])).json()["data"]
+    assert str(staff_view["assigned_officer"]) == officer_id
 
 
 def test_anonymous_and_foreign_viewers_are_turned_away():
@@ -332,9 +376,14 @@ def test_public_remark_reaches_the_citizen_internal_one_does_not():
     assert len(remarks) == 1
     assert "Thursday morning" in remarks[0]["text"]
     assert "supervisor" not in payload
-    # the citizen is told which desk spoke, never which person
-    assert "Priya Raman" not in payload
+    # A remark is attributed to the desk that wrote it — the author of a note is
+    # not necessarily the officer named on the case, and the person who filed
+    # the report needs to know who owns the work, not who was on shift.
     assert remarks[0]["designation"]
+    assert "Priya Raman" not in remarks[0]["designation"]
+    # The assigned officer *is* named, in their own block (see
+    # test_the_reporter_is_told_who_has_the_case_and_nothing_beyond_that).
+    assert r.json()["data"]["officer"]["name"] == "Priya Raman"
 
     # the plain grievance endpoint redacts the same way
     r = client.get(f"/api/grievances/{gid}", headers=_auth(citizen))

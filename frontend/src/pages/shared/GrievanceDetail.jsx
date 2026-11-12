@@ -545,7 +545,7 @@ const GrievanceDetail = () => {
               )}
               {isOwnerCitizen
                 && ["SUBMITTED", "AI_ANALYZED", "DEPARTMENT_ASSIGNED"].includes(grievance.status)
-                && !grievance.assigned_officer && (
+                && !grievance.has_assigned_officer && (
                 <button className="btn btn-danger btn-block" disabled={actionLoading}
                         onClick={() => setDeleteConfirmOpen(true)}>
                   <Trash2 size={15} /> Delete grievance
@@ -627,6 +627,13 @@ const GrievanceDetail = () => {
               <div className="kv-row">
                 <span>Department</span><strong>{grievance.department}</strong>
               </div>
+              {/* The same name the reporter sees on their tracking page — this
+                  payload is redacted for everyone, so both sides read one line. */}
+              {grievance.assigned_officer_name && (
+                <div className="kv-row">
+                  <span>Officer</span><strong>{grievance.assigned_officer_name}</strong>
+                </div>
+              )}
               <div className="kv-row">
                 <span>Predicted resolution</span><strong>~{grievance.predicted_resolution_hours}h</strong>
               </div>

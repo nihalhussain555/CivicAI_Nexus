@@ -55,15 +55,24 @@ STAFF_ONLY_FIELDS = (
     "integrity",
 )
 
-# Who is handling a case is disclosed to a citizen as a department and a date
-# (see tracking_service.build_officer), never as a named individual. These are
-# the convenience copies of staff names that the workflow writes onto the
-# document for staff screens.
+# Who is handling a case is disclosed to the reporter as a name, a department
+# and a date (see tracking_service.build_officer) — being able to ask a named
+# person about your file is the accountability the tracking page promises.
+# What these entries remove is everything that turns that name into a way of
+# reaching or indexing the person: internal account ids, and the convenience
+# copies of names for staff actions the citizen is not entitled to (who routed
+# the file, who judged it not actionable).
 STAFF_IDENTITY_FIELDS = (
-    "assigned_officer_name",
+    "assigned_officer",
+    "assigned_by",
     "assigned_by_name",
     "rejected_by",
     "rejected_by_name",
+    "flagged_by",
+    "flag_reversed_by",
+    "flag_appeal_reviewed_by",
+    "reopen_reviewed_by",
+    "reopen_reviewed_by_name",
 )
 
 # Kept separate from the two lists above because it is not a field to remove —
@@ -103,6 +112,12 @@ def redact_for_citizen(data):
         for key, value in data.items()
         if key not in STAFF_ONLY_FIELDS and key not in STAFF_IDENTITY_FIELDS
     }
+
+    # The reporter's own actions depend on whether anyone has picked the case
+    # up yet (see the DELETE endpoint's guard), so that answer has to survive
+    # redaction — as a yes/no, not as the officer's account id.
+    if "assigned_officer" in data:
+        safe["has_assigned_officer"] = bool(data.get("assigned_officer"))
 
     history = safe.get("history")
     if isinstance(history, list):

@@ -226,10 +226,16 @@ const GrievanceTracking = () => {
               <span><UserCheck size={13} /> Officer</span>
               <strong>
                 {officer.assigned
-                  ? toDisplayText(officer.designation)
+                  ? toDisplayText(officer.name, officer.designation)
                   : "Not yet picked up"}
               </strong>
             </div>
+            {officer.assigned && (
+              <p className="form-hint">
+                {toDisplayText(officer.designation)} · anything you send goes through this case file —
+                the officer's contact details stay private.
+              </p>
+            )}
             {officer.since && (
               <div className="kv-row">
                 <span><BadgeCheck size={13} /> Assigned</span>
