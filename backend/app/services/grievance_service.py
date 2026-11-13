@@ -593,7 +593,16 @@ def build_list_query(
             ]
 
     if status:
-        query["status"] = status
+        # One status is an exact match. A comma-separated list means "any of
+        # these", which is how the citizen's own list asks for a group of
+        # statuses at once — "In progress" is eight of the twelve, and the
+        # alternative is eight round trips or a filter that lies about what it
+        # showed. Values are matched as data, never as operators.
+        wanted = [token.strip() for token in status.split(",") if token.strip()]
+        if len(wanted) == 1:
+            query["status"] = wanted[0]
+        elif wanted:
+            query["status"] = {"$in": wanted}
     elif role == "citizen":
         # Deleted/withdrawn grievances shouldn't linger in the citizen's
         # own list by default — that's the whole point of deleting one.

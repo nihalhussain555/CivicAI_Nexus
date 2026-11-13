@@ -83,6 +83,66 @@ export const PRIORITIES = [
   "CRITICAL",
 ];
 
+// What a citizen actually asks about their own reports: is anyone working on
+// it, is it my turn, or is it finished. Twelve statuses answer none of those
+// questions, so the list groups them here — using the same plain-language
+// ladder the tracking page already draws (TRACKING_STAGES in
+// backend/app/models/grievance.py), so the filter and the timeline never
+// disagree about what "Resolved" means. `statuses` are real statuses: the
+// bucket is a query the backend runs unchanged, not a computed idea.
+export const STATUS_BUCKETS = [
+  {
+    key: "progress",
+    label: "In progress",
+    statuses: [
+      "SUBMITTED",
+      "AI_ANALYZED",
+      "DEPARTMENT_ASSIGNED",
+      "OFFICER_ACCEPTED",
+      "IN_PROGRESS",
+      "RESOLUTION_SUBMITTED",
+      "REOPENED",
+      "ESCALATED",
+    ],
+  },
+  { key: "action", label: "Needs your action", statuses: ["CITIZEN_VERIFICATION"] },
+  { key: "resolved", label: "Resolved", statuses: ["CLOSED"] },
+  { key: "rejected", label: "Not taken up", statuses: ["REJECTED"] },
+];
+
+// Every status the citizen's list can filter on: the buckets first, so the
+// common case is one tap, then the exact statuses behind a "Specific status"
+// select. Built from STATUS_BUCKETS so a status cannot be forgotten in one of
+// the two views — anything missing from a bucket still appears below it.
+export const UNBUCKETED_STATUSES = STATUSES.filter(
+  (s) => !STATUS_BUCKETS.some((bucket) => bucket.statuses.includes(s))
+);
+
+// What a category is *called*, as opposed to CATEGORY_LABELS above, which maps
+// a category to the department that owns it. Someone filtering incidents is
+// naming the problem, not the desk behind it.
+export const CATEGORY_NAMES = {
+  WASTE: "Waste",
+  WATER: "Water supply",
+  ROAD: "Roads",
+  ELECTRICITY: "Electricity",
+  STREET_LIGHT: "Street lights",
+  DRAINAGE: "Drainage",
+  TRAFFIC: "Traffic",
+  PUBLIC_SAFETY: "Public safety",
+  GENERAL: "General",
+};
+
+// Incident lifecycle — a different machine from the grievance statuses, and
+// much shorter (see backend/app/models/incident.py).
+export const INCIDENT_STATUSES = ["ACTIVE", "MONITORING", "RESOLVED"];
+
+export const INCIDENT_STATUS_LABELS = {
+  ACTIVE: "Active",
+  MONITORING: "Being watched",
+  RESOLVED: "Resolved",
+};
+
 // The languages a citizen can report in. Mirrors SUPPORTED_LANGUAGES on the
 // backend (app/services/translation_service.py); this is the complaint language,
 // not the app chrome — the interface menus only translate into the four

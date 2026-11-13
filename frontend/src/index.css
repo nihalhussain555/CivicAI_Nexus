@@ -1132,6 +1132,96 @@ input, select, textarea { font-family: inherit; }
 /* A tab strip nested inside a panel card needs neither the rule nor the gap. */
 .tabs-plain { margin-bottom: 0; border-bottom: none; }
 
+/* ---------- List filters ---------- */
+
+/* Pill chips instead of tabs for the citizen-facing list pages. Tabs sit on
+   the content and imply "views of the whole page"; these are queries that
+   stack, so they get their own quiet panel and the results stay the loudest
+   thing on screen. */
+.filter-toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px 16px;
+  margin-bottom: 20px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.filter-row { display: flex; align-items: center; gap: 12px; }
+
+.filter-row-label {
+  flex-shrink: 0;
+  width: 84px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+.filter-chips { display: flex; flex-wrap: wrap; gap: 7px; }
+
+/* .filter-pill, not .filter-chip: the admin map toolbar already owns that
+   name with a tinted active state, and two rules for one class means the
+   later one silently wins. These are the list pages' filters. */
+.filter-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 13px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.filter-pill:hover {
+  color: var(--text);
+  background: var(--surface-hover);
+  border-color: var(--border-strong);
+}
+
+/* Filled, not merely recoloured: which pill is on has to survive a screen
+   with the colour taken away, and a keyboard user needs to see it too. */
+.filter-pill.active {
+  color: var(--text-inverse);
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.filter-pill.active:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+
+.filter-pill:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--accent-ring); }
+
+.filter-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 9px; }
+
+/* The shared .select is a form control and fills its row; in a filter bar it
+   sits beside chips, so it shrinks to its own line height. */
+.filter-select {
+  width: auto;
+  min-width: 178px;
+  min-height: 32px;
+  padding: 5px 32px 5px 11px;
+  font-size: 13px;
+}
+
+/* How many rows the filters actually found, beside the way out of them. */
+.filter-foot { display: flex; align-items: center; gap: 10px; }
+
+.filter-count { margin-left: auto; font-size: 12px; color: var(--text-faint); }
+
+@media (max-width: 560px) {
+  .filter-row { flex-direction: column; align-items: flex-start; gap: 7px; }
+  .filter-row-label { width: auto; }
+  .filter-select { width: 100%; }
+}
+
 /* ---------- Table-like list ---------- */
 
 .list-row {

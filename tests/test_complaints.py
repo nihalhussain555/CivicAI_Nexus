@@ -3,8 +3,9 @@
 from fastapi.testclient import TestClient
 
 from app.main import app
-from app.config.database import departments_collection, users_collection
+from app.config.database import departments_collection, grievances_collection, users_collection
 from app.models.department import department_document
+from app.models.grievance import grievance_document
 from app.models.user import user_document
 from app.utils.security import hash_password
 
@@ -181,3 +182,45 @@ def test_officer_queue_reflects_department_assigned_cases():
     r = client.get("/api/grievances/queue", headers=_auth_headers(officer_token))
     assert r.status_code == 200
     assert r.json()["data"]["total"] >= 1
+
+
+def test_the_citizens_own_list_filters_by_a_group_of_statuses():
+    """The citizen's list offers "In progress" and "Resolved", not twelve
+    internal statuses — and one bucket is several statuses at once, so the
+    backend has to answer "any of these" in the same single query the page
+    already makes. Priority rides along because the page filters on it too."""
+    token = register_citizen("gcitizen8@test.com")
+    citizen_id = users_collection.find_one({"email": "gcitizen8@test.com"})["_id"]
+
+    for status, priority in [
+        ("IN_PROGRESS", "HIGH"),
+        ("CLOSED", "LOW"),
+        ("REJECTED", "HIGH"),
+        ("WITHDRAWN", "LOW"),
+    ]:
+        grievances_collection.insert_one({
+            **grievance_document(
+                grievance_id=f"GRPFILTER-{status}", citizen_id=citizen_id,
+                title=f"A {status.title()} case",
+                description="Garbage has not been collected from our street for four days.",
+                location=SAMPLE_LOCATION, district="Chennai",
+            ),
+            "status": status,
+            "priority": priority,
+        })
+
+    def listed(**params):
+        r = client.get("/api/grievances/my", params=params, headers=_auth_headers(token))
+        assert r.status_code == 200
+        return {g["status"] for g in r.json()["data"]["items"]}
+
+    assert listed(status="IN_PROGRESS,CLOSED") == {"IN_PROGRESS", "CLOSED"}
+    # A lone value keeps its old exact-match meaning.
+    assert listed(status="CLOSED") == {"CLOSED"}
+    # Deleted cases stay out of the default view, and come back when asked for.
+    assert "WITHDRAWN" not in listed()
+    assert listed(status="WITHDRAWN") == {"WITHDRAWN"}
+    assert listed(priority="HIGH") == {"IN_PROGRESS", "REJECTED"}
+    assert listed(status="IN_PROGRESS,CLOSED,REJECTED", priority="HIGH") == {"IN_PROGRESS", "REJECTED"}
+    # Nothing matches a status this system does not have; that is not an error.
+    assert listed(status="NOT_A_STATUS") == set()

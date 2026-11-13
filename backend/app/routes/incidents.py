@@ -41,6 +41,10 @@ def list_incidents(
             "total": total,
             "page": page,
             "limit": limit,
+            # The list pages paginate off this; without it the control simply
+            # never renders, so a filtered crowd of incidents looks like all
+            # of them fit on one screen.
+            "total_pages": (total + limit - 1) // limit,
         },
     }
 

@@ -263,6 +263,7 @@ def submit_grievance(
 @router.get("/my")
 def my_grievances(
     status: str = None,
+    priority: str = None,
     search: str = None,
     page: int = 1,
     limit: int = 20,
@@ -273,6 +274,7 @@ def my_grievances(
     query = build_list_query(
         current_user,
         status=status,
+        priority=priority,
         search=search,
     )
 
