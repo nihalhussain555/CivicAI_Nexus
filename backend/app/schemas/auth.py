@@ -69,6 +69,18 @@ class NotificationPreferences(BaseModel):
     in_app: Optional[bool] = None
 
 
+class VoicePreferences(BaseModel):
+    """What a voice turn is allowed to leave behind.
+
+    `keep_audio` governs the recording itself. `keep_transcript` governs the
+    verbatim machine transcript — the words the model guessed, before the
+    citizen corrected them. What the citizen approved as their own message is
+    always kept, because a complaint nobody can quote back cannot be
+    reviewed or appealed."""
+    keep_audio: Optional[bool] = None
+    keep_transcript: Optional[bool] = None
+
+
 class UpdateProfileRequest(BaseModel):
     name: Optional[str] = None
     phone: Optional[str] = None
@@ -81,6 +93,9 @@ class UpdateProfileRequest(BaseModel):
     profile_image: Optional[str] = None
     notification_preferences: Optional[
         NotificationPreferences
+    ] = None
+    voice_preferences: Optional[
+        VoicePreferences
     ] = None
 
 

@@ -170,6 +170,7 @@ TOOL_DEFINITIONS = [
                     "title": {"type": "string", "description": "A short title for the issue."},
                     "description": {"type": "string", "description": "A detailed description of the issue."},
                     "district": {"type": "string", "description": "Which Tamil Nadu district this is in (must be a real TN district name)."},
+                    "language": {"type": "string", "description": "Language the citizen reported in (Tamil, Hindi, Malayalam, Telugu, Kannada, English). Omit if unknown — the text is read instead."},
                     "confirm": {"type": "boolean", "description": "Set true only after the citizen explicitly confirms they want to file it."},
                 },
                 "required": ["title", "description", "district"],
@@ -332,12 +333,15 @@ def _create_complaint(args, current_user):
         return {"error": f"'{district}' isn't a recognized Tamil Nadu district. Please ask the citizen which district this is in."}
 
     title, description = args["title"].strip(), args["description"].strip()
+    # The language the citizen reported in, when they told us. Left "Auto"
+    # otherwise so the pipeline still reads it from the text.
+    language = args.get("language") or "Auto"
 
     if not args.get("confirm"):
         # Preview only — mirrors the same AI pipeline the report form uses,
         # but does NOT persist anything until the citizen explicitly agrees.
         from app.services.ai_pipeline_service import run_pipeline
-        preview = run_pipeline(f"{title}. {description}", citizen_id=current_user["_id"])
+        preview = run_pipeline(f"{title}. {description}", language=language, citizen_id=current_user["_id"])
         return {
             "preview": True,
             "message": "This is a PREVIEW — nothing has been filed yet. Confirm with the citizen before calling again with confirm=true.",
@@ -358,7 +362,7 @@ def _create_complaint(args, current_user):
     fake_request = SimpleNamespace(
         title=title,
         description=description,
-        language="Auto",
+        language=language,
         location=SimpleNamespace(
             latitude=lat,
             longitude=lng,
@@ -373,6 +377,10 @@ def _create_complaint(args, current_user):
         ),
         attachments=[],
         voice_transcript=None,
+        # The route stamps the verbatim transcript onto the case afterwards,
+        # under the citizen's retention settings; the recording itself only
+        # comes from the report form, which sends its own reference.
+        voice_audio_url=None,
     )
     grievance = create_grievance(current_user, fake_request)
     return {

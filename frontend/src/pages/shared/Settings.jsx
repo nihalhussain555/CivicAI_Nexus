@@ -23,6 +23,8 @@ import {
   Settings as SettingsIcon,
   Activity,
   Sparkles,
+  Mic,
+  MessageSquareText,
 } from "lucide-react";
 
 import { changePassword, updateProfile } from "../../services/authService";
@@ -89,6 +91,24 @@ const Settings = () => {
     profileVisibility: true,
     activityStatus: false,
   });
+
+  /* =========================================================
+     VOICE RETENTION STATE
+  ========================================================= */
+
+  // Seeded from the account, because these two switches decide what the
+  // server writes *while* a recording is being processed — a default here
+  // that disagrees with what's stored would show a citizen a switch that
+  // doesn't reflect what actually happened to their last complaint.
+  const [voicePrefs, setVoicePrefs] = useState(
+    () => ({
+      keep_audio: true,
+      keep_transcript: true,
+      ...(user?.voice_preferences || {}),
+    })
+  );
+
+  const [savingVoice, setSavingVoice] = useState(false);
 
   /* =========================================================
      PASSWORD STRENGTH
@@ -228,6 +248,27 @@ const Settings = () => {
       ...previous,
       [key]: !previous[key],
     }));
+  };
+
+  // The only toggles on this page that reach the server, because the decision
+  // they control is made there: retention is applied before a single byte of a
+  // recording is written, so a switch that only lived in local state would
+  // promise something the backend never checks.
+  const handleVoicePreference = async (key) => {
+    const next = !voicePrefs[key];
+    setVoicePrefs((previous) => ({ ...previous, [key]: next }));
+    setSavingVoice(true);
+
+    try {
+      const response = await updateProfile({ voice_preferences: { [key]: next } });
+      updateUser(response.data);
+      toast.success("Voice retention updated.");
+    } catch (error) {
+      setVoicePrefs((previous) => ({ ...previous, [key]: !next }));
+      toast.error(getErrorMessage(error));
+    } finally {
+      setSavingVoice(false);
+    }
   };
 
   /* =========================================================
@@ -964,6 +1005,46 @@ const Settings = () => {
               )
             }
           />
+
+        </div>
+
+      </section>
+
+
+      {/* =====================================================
+          VOICE ASSISTANT PRIVACY
+      ====================================================== */}
+
+      <section className="settings-section">
+
+        <SectionHeading
+          title="Voice assistant privacy"
+          description="Decide what the assistant may keep from recordings you make on this account."
+        />
+
+        <div className="settings-card settings-options-card">
+
+          <SettingToggle
+            icon={<Mic size={20} />}
+            title="Keep my recordings"
+            description="When off, your audio is transcribed in memory and deleted immediately — only the words you approve are kept. Applies to complaints reported from now on."
+            checked={voicePrefs.keep_audio}
+            onChange={() => handleVoicePreference("keep_audio")}
+          />
+
+          <SettingToggle
+            icon={<MessageSquareText size={20} />}
+            title="Keep the exact words we heard"
+            description="When on, officers handling your complaint can see the raw transcript beside the version you approved, which helps when a recording was unclear. Your typed or corrected words are always kept either way."
+            checked={voicePrefs.keep_transcript}
+            onChange={() => handleVoicePreference("keep_transcript")}
+          />
+
+          {savingVoice && (
+            <p className="form-hint" style={{ padding: "0 4px 4px" }}>
+              <Loader2 size={12} className="spin" style={{ verticalAlign: "-2px" }} /> Saving...
+            </p>
+          )}
 
         </div>
 

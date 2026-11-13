@@ -231,7 +231,14 @@ def grievance_document(
         "title": title,
         "description": description,
         "translated_text": None,
-        "language": language,
+        # Deliberately not named `language`: this collection has a TEXT index,
+        # and MongoDB treats a top-level `language` field as a per-document
+        # override for that index's stemmer. It only knows ~30 European and
+        # East/South-East Asian languages, so it rejects the insert outright
+        # for Tamil, Hindi, Telugu, Kannada and Malayalam — which is every
+        # regional complaint this project exists to serve. mongomock has no
+        # text indexes, so the suite cannot see this; do not rename it back.
+        "reported_language": language,
 
         # --- AI classification output ---
         "category": "GENERAL",
@@ -288,6 +295,9 @@ def grievance_document(
         # --- multimodal input ---
         "attachments": [],
         "voice_transcript": None,
+        # The original recording, when the citizen's retention settings kept
+        # it. Officers can replay what they mis-read in a transcript.
+        "voice_audio_url": None,
         "location": location,  # GeoJSON Point: {"type": "Point", "coordinates": [lng, lat]}, "address": str
 
         # --- resolution / verification ---

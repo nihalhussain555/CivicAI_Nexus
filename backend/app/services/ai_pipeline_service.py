@@ -28,10 +28,7 @@ from app.services.prediction_service import (
     assess_escalation_risk,
 )
 
-from app.services.translation_service import (
-    detect_language,
-    translate_text,
-)
+from app.services.translation_service import understand_text
 
 from app.services.incident_service import (
     preview_matching_incident,
@@ -53,20 +50,22 @@ def run_pipeline(
         )
 
     # ---------------------------------------------------------
-    # 1. Language detection
+    # 1. Language understanding
     # ---------------------------------------------------------
+    # One read does detection + the English rendering the keyword rules need,
+    # so a non-English complaint costs at most one provider call. What the
+    # citizen actually said is kept alongside the translation: the local
+    # keyword classifier and duplicate matching both run on `text`, because
+    # a machine translation that smooths over a place name or a grievance ID
+    # would silently change the routing.
 
-    detected_language = (
-        detect_language(text)
-        if language in ("Auto", None)
-        else language
-    )
-
-    translated_text = translate_text(
+    language_read = understand_text(
         text,
-        detected_language,
-        "English",
+        hint=None if language in ("Auto", None) else language,
     )
+
+    detected_language = language_read["language"]
+    translated_text = language_read["translated_text"]
 
     # ---------------------------------------------------------
     # 2. AI analysis
@@ -217,6 +216,15 @@ def run_pipeline(
         "detected_language": detected_language,
 
         "translated_text": translated_text,
+
+        # What the language layer actually did, shown to the citizen so a
+        # translation is never presented as their own words.
+        "language_code": language_read["language_code"],
+        "language_confidence": language_read["confidence"],
+        "language_evidence": language_read["evidence"],
+        "is_code_mixed": language_read["code_mixed"],
+        "was_translated": language_read["translated"],
+        "translation_provider": language_read["translation_provider"],
 
         "category": analysis.get(
             "category",

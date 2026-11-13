@@ -1,10 +1,14 @@
 import { useState, useRef, useEffect, useCallback } from "react";
+import { Link } from "react-router-dom";
 import { Bot, Send, Sparkles, Plus, MessageSquare, Trash2, History, X } from "lucide-react";
 import { chatWithAssistant, listChatSessions, getChatSession, deleteChatSession, } from "../../services/aiService";
+import { uploadsBaseUrl } from "../../services/api";
 import { useToast } from "../../context/ToastContext";
 import { useAuth } from "../../hooks/useAuth";
 import { getErrorMessage, formatRelative } from "../../utils/helpers";
 import ChatMessage from "../../components/ai/ChatMessage";
+import ListenButton from "../../components/voice/ListenButton";
+import VoiceCapture from "../../components/voice/VoiceCapture";
 const AIThinkingLoader = ({ small = false }) => {
   const [statusIndex, setStatusIndex] = useState(0);
 
@@ -334,6 +338,10 @@ const AIAssistant = () => {
   const [messages, setMessages] = useState([{ role: "assistant", text: content.greeting }]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
+  // True while the assistant has described a complaint and is waiting for the
+  // citizen to say yes. Rendered as explicit buttons so a spoken "yes" is not
+  // the only way to finish filing.
+  const [awaitingConfirm, setAwaitingConfirm] = useState(false);
   const toast = useToast();
   const endRef = useRef();
 
@@ -351,14 +359,23 @@ const AIAssistant = () => {
   const startNewChat = () => {
     setActiveSessionId(null);
     setMessages([{ role: "assistant", text: content.greeting }]);
+    setAwaitingConfirm(false);
     setHistoryOpen(false);
   };
 
   const openSession = async (sessionId) => {
     try {
       const res = await getChatSession(sessionId);
-      const loaded = res.data.messages.map((m) => ({ role: m.role, text: m.text }));
+      const loaded = res.data.messages.map((m) => ({
+        role: m.role,
+        text: m.text,
+        language: m.language || null,
+        code: m.language_code || null,
+        audioUrl: m.audio_url || null,
+        originalText: m.original_text || null,
+      }));
       setMessages(loaded.length ? loaded : [{ role: "assistant", text: content.greeting }]);
+      setAwaitingConfirm(Boolean(res.data.pending_complaint));
       setActiveSessionId(sessionId);
       setHistoryOpen(false);
     } catch (error) {
@@ -377,16 +394,37 @@ const AIAssistant = () => {
     }
   };
 
-  const send = async (text) => {
-    const message = (text ?? input).trim();
+  /** `voice` is the payload from VoiceCapture (approved words plus where they
+   * came from); null for a typed message. */
+  const send = async (text, voice = null) => {
+    const message = (voice ? voice.text : (text ?? input)).trim();
     if (!message) return;
-    setMessages((m) => [...m, { role: "user", text: message }]);
+    setMessages((m) => [...m, {
+      role: "user",
+      text: message,
+      language: voice?.language || null,
+      code: voice?.languageCode || null,
+      audioUrl: voice?.audioUrl || null,
+    }]);
     setInput("");
+    setAwaitingConfirm(false);
     setLoading(true);
     try {
-      const res = await chatWithAssistant(message, "English", activeSessionId);
-      setMessages((m) => [...m, { role: "assistant", text: res.data.response }]);
-      if (!activeSessionId) setActiveSessionId(res.data.session_id);
+      const res = await chatWithAssistant(message, voice?.language || "Auto", activeSessionId, voice);
+      const data = res.data;
+      setMessages((m) => [...m, {
+        role: "assistant",
+        text: data.response,
+        language: data.language,
+        code: data.language_code,
+        grievanceId: data.filed_grievance_id || null,
+        // Someone who reported by voice gets the answer read back to them
+        // without having to find a button; a typed question never starts
+        // talking on its own.
+        autoSpeak: Boolean(voice),
+      }]);
+      setAwaitingConfirm(Boolean(data.awaiting_complaint_confirmation));
+      if (!activeSessionId) setActiveSessionId(data.session_id);
       loadSessions();
     } catch (error) {
       toast.error(getErrorMessage(error));
@@ -489,7 +527,24 @@ const AIAssistant = () => {
         <div className="card" style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", gap: 12, marginBottom: 14 }}>
           {messages.map((m, i) => (
             <div key={i} className={`message ${m.role === "user" ? "user-message" : "ai-message"}`}>
-              <ChatMessage text={m.text} />
+              <ChatMessage
+                text={m.text}
+                language={m.language && (m.role === "user" || m.code !== "en") ? m.language : null}
+                code={m.code}
+              >
+                {m.role === "assistant" ? (
+                  <>
+                    <ListenButton text={m.text} locale={`${m.code || "en"}-IN`} autoPlay={m.autoSpeak} />
+                    {m.grievanceId && (
+                      <Link to={`/citizen/grievances/${m.grievanceId}`} style={{ color: "var(--accent)", fontWeight: 600 }}>
+                        View {m.grievanceId}
+                      </Link>
+                    )}
+                  </>
+                ) : (
+                  m.audioUrl && <audio controls preload="none" src={`${uploadsBaseUrl}${m.audioUrl}`} />
+                )}
+              </ChatMessage>
             </div>
           ))}
           {loading && <div className="message ai-message"><AIThinkingLoader small /></div>}
@@ -497,18 +552,35 @@ const AIAssistant = () => {
         </div>
 
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 10 }}>
-          {content.suggestions.map((s) => (
-            <button key={s} className="badge badge-neutral suggestion-chip" style={{ cursor: "pointer", border: "none" }} onClick={() => send(s)}>
-              <Sparkles size={11} /> {s}
-            </button>
-          ))}
+          {awaitingConfirm ? (
+            <>
+              <button className="badge badge-success suggestion-chip" style={{ cursor: "pointer", border: "none" }}
+                      onClick={() => send("Yes, file it")}>
+                Yes, file it
+              </button>
+              <button className="badge badge-neutral suggestion-chip" style={{ cursor: "pointer", border: "none" }}
+                      onClick={() => send("No, cancel it")}>
+                No, don&apos;t file it
+              </button>
+            </>
+          ) : (
+            content.suggestions.map((s) => (
+              <button key={s} className="badge badge-neutral suggestion-chip" style={{ cursor: "pointer", border: "none" }} onClick={() => send(s)}>
+                <Sparkles size={11} /> {s}
+              </button>
+            ))
+          )}
         </div>
 
-        <form onSubmit={(e) => { e.preventDefault(); send(); }} style={{ display: "flex", gap: 10 }}>
+        <form className="composer-row" onSubmit={(e) => { e.preventDefault(); send(); }}>
           <input className="input" value={input} onChange={(e) => setInput(e.target.value)}
-                 placeholder="Ask the CivicAI assistant..." />
+                 placeholder="Ask the CivicAI assistant — or tap the microphone and speak" />
           <button type="submit" className="btn btn-primary" disabled={loading}><Send size={15} /></button>
         </form>
+
+        <div style={{ marginTop: 10 }}>
+          <VoiceCapture onAccept={(voice) => send(null, voice)} disabled={loading} />
+        </div>
       </div>
     </div>
   );

@@ -26,6 +26,7 @@ from app.services.trust_service import (
     refresh_trust,
 )
 from app.services.reward_service import award_valid_submission, award_community_confirmations
+from app.services.voice_service import is_issued_audio_url, voice_preferences
 from app.utils.geo import make_point
 
 
@@ -125,13 +126,25 @@ def create_grievance(current_user: dict, data) -> dict:
 
     if data.attachments:
         grievance["attachments"] = [a.model_dump() for a in data.attachments]
-    if data.voice_transcript:
-        grievance["voice_transcript"] = data.voice_transcript
+
+    # The speech model's guess and the recording behind it are machine
+    # artifacts, not the citizen's statement — so the account's retention
+    # settings decide whether they exist on the case at all. The approved
+    # title and description above are kept whatever the switches say; a
+    # complaint cannot be reviewed or appealed without them.
+    retention = voice_preferences(current_user)
+    kept_transcript = data.voice_transcript.strip()[:5000] if (
+        retention["keep_transcript"] and data.voice_transcript
+    ) else ""
+    if kept_transcript:
+        grievance["voice_transcript"] = kept_transcript
+    if retention["keep_audio"] and is_issued_audio_url(data.voice_audio_url):
+        grievance["voice_audio_url"] = data.voice_audio_url
 
     # --- run full AI pipeline ---
     combined_text = f"{data.title}. {data.description}"
-    if data.voice_transcript:
-        combined_text += f" {data.voice_transcript}"
+    if kept_transcript:
+        combined_text += f" {kept_transcript}"
 
     ai_result = run_pipeline(
         combined_text, language=data.language, citizen_id=current_user["_id"], location=location
@@ -140,7 +153,7 @@ def create_grievance(current_user: dict, data) -> dict:
     now = datetime.utcnow()
     grievance.update({
         "translated_text": ai_result["translated_text"],
-        "language": ai_result["detected_language"],
+        "reported_language": ai_result["detected_language"],
 
         "category": ai_result["category"],
         "subcategory": ai_result["subcategory"],

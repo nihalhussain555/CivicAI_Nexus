@@ -353,3 +353,43 @@ Complaint to assess:
 {text}
 {context_note}
 """
+
+
+LANGUAGE_UNDERSTANDING_JSON_SCHEMA_HINT = """
+Return ONLY a JSON object (no markdown, no commentary) with exactly these keys:
+{
+  "language": one of "English" | "Hindi" | "Tamil" | "Malayalam" | "Telugu" | "Kannada" (the language the person is actually speaking/writing in; if it is genuinely none of these, pick the closest one you can act on),
+  "code_mixed": boolean (true when the text mixes two languages, e.g. English nouns inside a Tamil sentence, or a regional language typed in Latin letters),
+  "confidence": number 0-1,
+  "translated_text": string (the SAME message rendered in plain English — keep every place name, landmark, number, grievance ID and personal detail exactly as written; do not summarize, soften, add or drop anything)
+}
+"""
+
+
+def build_language_understanding_prompt(text: str, hint: str = "") -> str:
+    """One call that does the three things the voice pipeline needs from a
+    model: name the language, admit when the speaker mixed two, and hand back
+    an English rendering for the keyword rules to work on.
+
+    The "translate, don't summarize" instruction is load-bearing: an edited
+    or condensed version of a citizen's complaint changes what duplicate
+    detection and the fake-report scorer see."""
+    return f"""You are CivicAI's language layer for a citizen grievance platform in India.
+
+Read the message below and report what language it is in, whether the citizen
+mixed languages, and what it says in English.
+
+Rules:
+- Transliterate-or-English mixed text (e.g. "garbage van illa sir") is code
+  mixed: the underlying language is the one carrying the grammar.
+- Transliterated spellings, abbreviations, typos and voice-recognition noise
+  are normal. Work out the intended meaning from context.
+- Translate faithfully. Never resolve an ambiguity you cannot resolve, never
+  add detail that is not there, never drop a location or a reference number.
+- {hint or 'No language hint was given — decide from the text itself.'}
+
+{LANGUAGE_UNDERSTANDING_JSON_SCHEMA_HINT}
+
+Message:
+{text}
+"""

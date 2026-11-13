@@ -18,7 +18,11 @@ import re
 from abc import ABC, abstractmethod
 
 from app.config.settings import settings
-from app.ai.prompts import build_analysis_prompt, build_authenticity_prompt
+from app.ai.prompts import (
+    build_analysis_prompt,
+    build_authenticity_prompt,
+    build_language_understanding_prompt,
+)
 from app.services.classification_service import classify_complaint
 from app.services.priority_service import predict_priority
 from app.services.sentiment_service import analyze_sentiment
@@ -74,6 +78,37 @@ class BaseAIProvider(ABC):
             "score": None,
             "indicators": [],
             "reasoning": f"No AI authenticity read ({why}).",
+            "provider": self.name,
+        }
+
+    def understand_language(self, text: str, hint: str = "") -> dict:
+        """Name the language a citizen wrote/spoke in, flag real code-mixing,
+        and render the message in English for the rest of the pipeline.
+
+        Same contract as `assess_authenticity`: implemented once here on top
+        of a plain one-shot completion, so every provider that can do a bare
+        completion gets it, and one that cannot (`understood: False`) simply
+        contributes nothing — the caller keeps its deterministic local read
+        instead of failing."""
+        if not self.supports_json_completion:
+            return self._no_language_read("provider has no plain completion path")
+
+        try:
+            raw = self._complete(build_language_understanding_prompt(text, hint))
+            data = _extract_json(raw)
+        except Exception as error:  # noqa: BLE001
+            return self._no_language_read(f"language call failed: {error}")
+
+        return _normalize_language_read(data, self.name)
+
+    def _no_language_read(self, why: str) -> dict:
+        return {
+            "understood": False,
+            "language": None,
+            "code_mixed": None,
+            "confidence": None,
+            "translated_text": None,
+            "reason": why,
             "provider": self.name,
         }
 
@@ -330,6 +365,48 @@ def _normalize_authenticity_read(data: dict, provider_name: str) -> dict:
         "score": score,
         "indicators": [str(i).strip() for i in indicators if str(i).strip()][:6],
         "reasoning": str(data.get("reasoning") or data.get("reason") or "").strip(),
+        "provider": provider_name,
+    }
+
+
+_LANGUAGE_ALIASES = {
+    "ENGLISH": "English", "EN": "English",
+    "HINDI": "Hindi", "HI": "Hindi",
+    "TAMIL": "Tamil", "TA": "Tamil",
+    "MALAYALAM": "Malayalam", "ML": "Malayalam",
+    "TELUGU": "Telugu", "TE": "Telugu",
+    "KANNADA": "Kannada", "KN": "Kannada",
+}
+
+
+def _normalize_language_read(data: dict, provider_name: str) -> dict:
+    """Clamp the model's language JSON into the shape translation_service
+    consumes. A language outside the supported set is dropped rather than
+    passed through: the complaint pipeline can only act on the six it has
+    keywords and voices for, and the caller keeps its own local read in that
+    case."""
+    raw_language = str(data.get("language") or "").strip()
+    language = _LANGUAGE_ALIASES.get(raw_language.upper()) \
+        or _LANGUAGE_ALIASES.get(raw_language.lower())
+
+    translated = data.get("translated_text") or data.get("translation") or data.get("english")
+    translated = str(translated).strip() if translated else None
+
+    confidence = data.get("confidence")
+    try:
+        confidence = round(max(0.0, min(1.0, float(confidence))), 2)
+    except (TypeError, ValueError):
+        confidence = None
+
+    code_mixed = data.get("code_mixed")
+    code_mixed = None if code_mixed is None else bool(code_mixed)
+
+    return {
+        "understood": bool(language and translated),
+        "language": language,
+        "code_mixed": code_mixed,
+        "confidence": confidence,
+        "translated_text": translated,
         "provider": provider_name,
     }
 

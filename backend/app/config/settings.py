@@ -43,6 +43,14 @@ class Settings:
         "https://api.groq.com/openai/v1"
     )
 
+    # Speech-to-text model used when AI_PROVIDER=groq. Whisper runs on
+    # Groq's free tier and covers all six assistant languages, with no
+    # separate API account or key.
+    GROQ_STT_MODEL = os.getenv(
+        "GROQ_STT_MODEL",
+        "whisper-large-v3-turbo"
+    )
+
     # Legacy single-key fallback
     LLM_API_KEY = os.getenv("LLM_API_KEY", "")
     LLM_MODEL = os.getenv("LLM_MODEL", "")
@@ -87,6 +95,16 @@ class Settings:
     UPLOAD_DIR = os.getenv(
         "UPLOAD_DIR",
         "uploads"
+    )
+
+    # --- Voice assistant ---
+    # Below this transcription confidence the assistant shows the citizen the
+    # words it heard and asks them to fix it, instead of filing or answering
+    # from a misheard complaint. 0.5 is roughly "the model got less than half
+    # the words right"; noisy or accented audio falls under it often enough
+    # that the correction step matters.
+    VOICE_MIN_CONFIDENCE = float(
+        os.getenv("VOICE_MIN_CONFIDENCE", "0.5")
     )
 
     # --- Rate limiting ---

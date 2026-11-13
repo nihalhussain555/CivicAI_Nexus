@@ -90,6 +90,10 @@ class GrievanceCreateRequest(BaseModel):
     location: LocationInput
     attachments: List[AttachmentInput] = []
     voice_transcript: Optional[str] = None
+    # Reference to the recording the citizen dictated from, as returned by the
+    # voice preview step. Whether it is stored at all is decided by the
+    # account's retention settings, not by this request.
+    voice_audio_url: Optional[str] = None
 
 
 class GrievancePreviewRequest(BaseModel):
@@ -208,5 +212,15 @@ class AIAnalyzeRequest(BaseModel):
 
 class ChatRequest(BaseModel):
     message: str = Field(..., min_length=1, max_length=3000)
-    language: str = "English"
+    # "Auto" asks the language layer to read the message itself — which is
+    # what a voice turn needs, since the speech model already tells us what
+    # language was spoken and the citizen may correct the words afterwards.
+    # A named language is an explicit choice and outranks the detector.
+    language: str = "Auto"
     session_id: Optional[str] = None
+    source: str = Field("text", pattern="^(text|voice)$")
+    # For a voice turn: exactly what the microphone heard before the citizen
+    # corrected it, and the retained recording it came from. Both are
+    # optional and both are subject to the account's retention settings.
+    original_text: Optional[str] = Field(None, max_length=5000)
+    audio_url: Optional[str] = None

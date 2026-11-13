@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Loader2, Sparkles, ArrowLeft, Send, AlertCircle, Mic, Square, Check, Users } from "lucide-react";
+import { Loader2, Sparkles, ArrowLeft, Send, AlertCircle, Check, Users } from "lucide-react";
 import { previewAnalysis, submitGrievance, getNearbyReports } from "../../services/grievanceService";
 import { uploadImage } from "../../services/uploadService";
 import { reverseGeocode } from "../../services/geocodeService";
@@ -11,8 +11,7 @@ import AIAnalysisPanel from "../../components/ai/AIAnalysisPanel";
 import AIProcessingAnimation from "../../components/ai/AIProcessingAnimation";
 import ImageUploader from "../../components/grievances/ImageUploader";
 import LocationPicker from "../../components/grievances/LocationPicker";
-
-const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+import VoiceCapture from "../../components/voice/VoiceCapture";
 
 // Keep the citizen's title in sync with their description until they
 // deliberately edit the title themselves — the conversational flow only
@@ -35,9 +34,13 @@ const ReportIssue = () => {
   const [step, setStep] = useState(0);
   const [manualTitle, setManualTitle] = useState("");
   const [description, setDescription] = useState(prefill.prefillDescription || "");
-  const [language, setLanguage] = useState("English");
+  // Auto is the only value that cannot be wrong: the account's stored language
+  // says "English" for every citizen who never chose one, and sending that as a
+  // hint is what labels a Tamil report English. A citizen who does pick a
+  // language here gets exactly that bias.
+  const [language, setLanguage] = useState("Auto");
   const [voiceTranscript, setVoiceTranscript] = useState("");
-  const [recording, setRecording] = useState(false);
+  const [voiceAudioUrl, setVoiceAudioUrl] = useState(null);
   const [attachments, setAttachments] = useState([]);
   const [prefillUploading, setPrefillUploading] = useState(!!prefill.prefillFile);
   const [location, setLocation] = useState(null); // { latitude, longitude, address, district }
@@ -60,7 +63,6 @@ const ReportIssue = () => {
 
   const toast = useToast();
   const navigate = useNavigate();
-  const recognitionRef = useRef(null);
 
   // Derived, not stored: an untouched title field follows the description, and
   // the citizen's own words take over the moment they type one.
@@ -96,27 +98,16 @@ const ReportIssue = () => {
 
   const nearbyReports = nearby?.key === pinKey ? nearby.reports : [];
 
-  const toggleVoice = () => {
-    if (!SpeechRecognition) return;
-    if (recording) {
-      recognitionRef.current?.stop();
-      setRecording(false);
-      return;
-    }
-    const recognition = new SpeechRecognition();
-    recognition.lang = { English: "en-IN", Hindi: "hi-IN", Tamil: "ta-IN", Malayalam: "ml-IN" }[language] || "en-IN";
-    recognition.interimResults = false;
-    recognition.continuous = false;
-    recognition.onresult = (event) => {
-      const transcript = Array.from(event.results).map((r) => r[0].transcript).join(" ");
-      setDescription((prev) => (prev ? prev + " " : "") + transcript);
-      setVoiceTranscript((prev) => (prev ? prev + " " : "") + transcript);
-    };
-    recognition.onend = () => setRecording(false);
-    recognition.onerror = () => setRecording(false);
-    recognitionRef.current = recognition;
-    recognition.start();
-    setRecording(true);
+  // What the citizen approves in the preview is what goes into the form; the
+  // machine's verbatim words and the recording behind them travel alongside it
+  // as separate fields, so an officer can see how it was reported without ever
+  // replacing the citizen's statement. Whether the server keeps either of them
+  // is the account's retention setting, decided there, not here.
+  const acceptVoiceNote = (voice) => {
+    setDescription((prev) => (prev ? `${prev.trim()} ${voice.text}` : voice.text));
+    setVoiceTranscript(voice.originalText);
+    setVoiceAudioUrl(voice.audioUrl);
+    if (voice.language && voice.language !== language) setLanguage(voice.language);
   };
 
   // Location is mandatory: an officer can only be matched to a report
@@ -262,6 +253,7 @@ const ReportIssue = () => {
       const payload = {
         title, description, language,
         voice_transcript: voiceTranscript || undefined,
+        voice_audio_url: voiceAudioUrl || undefined,
         attachments: attachments.map((a) => ({
           url: a.url, type: a.type, filename: a.filename, ai_description: a.ai_description,
         })),
@@ -311,20 +303,7 @@ const ReportIssue = () => {
                       placeholder="Describe what's wrong, where exactly, and since when." maxLength={5000} />
           </div>
 
-          <div style={{ display: "flex", justifyContent: "center", marginBottom: 6 }}>
-            {SpeechRecognition ? (
-              <button
-                type="button"
-                className={`hero-input-icon-btn ${recording ? "is-recording" : ""}`}
-                onClick={toggleVoice}
-              >
-                {recording ? <Square size={13} /> : <Mic size={13} />}
-                {recording ? "Listening... tap to stop" : "Hold to speak"}
-              </button>
-            ) : (
-              <p className="form-hint">Voice input isn't supported in this browser — you can type instead.</p>
-            )}
-          </div>
+          <VoiceCapture language={language} onAccept={acceptVoiceNote} disabled={prefillUploading} />
 
           {prefillUploading && (
             <p className="form-hint" style={{ textAlign: "center" }}>
@@ -440,7 +419,9 @@ const ReportIssue = () => {
               <div className="ai-understanding-row">
                 <span className="ai-understanding-check"><Check size={12} /></span>
                 <span className="ai-understanding-label">Language</span>
-                <span className="ai-understanding-value">{toDisplayText(language)}</span>
+                <span className="ai-understanding-value">
+                  {toDisplayText(analysis.detected_language || language)}
+                </span>
               </div>
               <div className="ai-understanding-row">
                 <span className="ai-understanding-check"><Check size={12} /></span>
@@ -503,7 +484,8 @@ const ReportIssue = () => {
             </button>
             <button className="btn btn-primary" onClick={() => {
               setStep(0); setManualTitle(""); setDescription(""); setAnalysis(null);
-              setSubmitted(null); setAttachments([]); setVoiceTranscript(""); setLocation(null);
+              setSubmitted(null); setAttachments([]); setVoiceTranscript(""); setVoiceAudioUrl(null);
+              setLocation(null);
               setDistrictWasGuessed(false);
             }}>
               Report another issue

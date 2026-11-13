@@ -314,12 +314,20 @@ const GrievanceDetail = () => {
             <div className="section-title">Description</div>
             <p className="prose">{grievance.description}</p>
 
-            {grievance.voice_transcript && (
+            {(grievance.voice_transcript || grievance.voice_audio_url) && (
               <div className="note-box">
                 <div className="sub-head">
-                  <Mic size={12} /> Voice transcript
+                  <Mic size={12} /> Reported by voice
                 </div>
-                <p className="prose-sm">{grievance.voice_transcript}</p>
+                {grievance.voice_transcript && <p className="prose-sm">{grievance.voice_transcript}</p>}
+                {grievance.voice_audio_url && (
+                  <audio
+                    controls
+                    preload="none"
+                    src={`${uploadsBaseUrl}${grievance.voice_audio_url}`}
+                    style={{ display: "block", marginTop: 8, height: 34, maxWidth: "100%" }}
+                  />
+                )}
               </div>
             )}
 

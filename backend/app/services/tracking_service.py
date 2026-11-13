@@ -421,7 +421,7 @@ def build_tracking_view(grievance, viewer=None):
         "category": grievance.get("category"),
         "severity": grievance.get("severity"),
         "priority": grievance.get("priority"),
-        "language": grievance.get("language"),
+        "language": grievance.get("reported_language"),
         "district": grievance.get("district"),
 
         # --- where, as the reporter gave it ---

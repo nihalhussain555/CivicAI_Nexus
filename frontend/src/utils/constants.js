@@ -83,10 +83,16 @@ export const PRIORITIES = [
   "CRITICAL",
 ];
 
+// The languages a citizen can report in. Mirrors SUPPORTED_LANGUAGES on the
+// backend (app/services/translation_service.py); this is the complaint language,
+// not the app chrome — the interface menus only translate into the four
+// languages in context/translations.js.
 export const LANGUAGES = [
   "English",
   "Hindi",
   "Tamil",
+  "Telugu",
+  "Kannada",
   "Malayalam",
 ];
 

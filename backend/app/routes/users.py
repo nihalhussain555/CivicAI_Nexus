@@ -22,17 +22,24 @@ def get_profile(current_user=Depends(get_current_user)):
 def update_profile(data: UpdateProfileRequest, current_user=Depends(get_current_user)):
     payload = data.model_dump()
     notification_prefs_update = payload.pop("notification_preferences", None)
+    voice_prefs_update = payload.pop("voice_preferences", None)
 
     updates = {k: v for k, v in payload.items() if v is not None}
 
-    if notification_prefs_update is not None:
-        # Merge instead of overwrite, so updating one preference doesn't
-        # blank out the other (both fields are optional in the request).
-        merged = dict(current_user.get("notification_preferences") or {})
-        for key, value in notification_prefs_update.items():
+    # Merge nested preference objects instead of overwriting them, so
+    # updating one switch doesn't blank out the other (every field is
+    # optional in the request).
+    for field_name, update in (
+        ("notification_preferences", notification_prefs_update),
+        ("voice_preferences", voice_prefs_update),
+    ):
+        if update is None:
+            continue
+        merged = dict(current_user.get(field_name) or {})
+        for key, value in update.items():
             if value is not None:
                 merged[key] = value
-        updates["notification_preferences"] = merged
+        updates[field_name] = merged
 
     if not updates:
         raise HTTPException(status_code=400, detail="No fields to update")

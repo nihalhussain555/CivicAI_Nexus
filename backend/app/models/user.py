@@ -48,6 +48,14 @@ def user_document(
             "in_app": True,
         },
 
+        # What the voice assistant may keep. Defaults documented in
+        # voice_service.DEFAULT_VOICE_PREFERENCES; applied before anything is
+        # written, not as a later cleanup.
+        "voice_preferences": {
+            "keep_audio": True,
+            "keep_transcript": True,
+        },
+
         # Citizen integrity standing (staff-only; see trust_service). Derived
         # from adjudicated events — flags, verified closures, withdrawals —
         # and refreshed whenever one of those happens. None until the account

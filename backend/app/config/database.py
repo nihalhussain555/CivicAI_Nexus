@@ -66,6 +66,12 @@ def create_indexes():
         grievances_collection.create_index(
             [("title", TEXT), ("description", TEXT), ("translated_text", TEXT)]
         )
+        # A TEXT index makes a top-level document field named `language` mean
+        # something else: MongoDB reads it as a per-document stemmer override
+        # and refuses the insert for any language it cannot stem, which
+        # includes Tamil, Hindi, Telugu, Kannada and Malayalam. Grievance
+        # documents therefore store the report's language as
+        # `reported_language` — see models/grievance.py.
 
         users_collection.create_index([("trust.score", ASCENDING)])
 

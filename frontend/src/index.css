@@ -4875,3 +4875,58 @@ textarea:focus-visible,
   .track-sla-count strong { font-size: 15px; }
   .track-topbar .btn { padding-inline: 8px; }
 }
+/* ---------- Multilingual voice assistant ---------- */
+
+.listen-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-width: 28px;
+  height: 24px;
+  padding: 0 8px;
+  border-radius: 999px;
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  color: var(--text-muted);
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.listen-button:hover { background: var(--surface-hover); color: var(--text); }
+
+/* The strip under a bubble: which language this was in, and the recording it
+   came from. Kept outside the bubble so the transcript stays the focus. */
+.message-meta {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--text-faint);
+}
+
+.message-meta .message-lang {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: var(--violet-soft);
+  color: var(--violet-soft-text);
+  font-weight: 700;
+}
+
+.message-meta audio { height: 26px; max-width: 210px; }
+
+/* Composer row: the microphone sits beside the text input, never replacing
+   it — typing is always available. */
+.composer-row { display: flex; gap: 10px; align-items: flex-start; }
+.composer-row .input { flex: 1; }
+
+/* The citizen's own bubble is accent-filled, so its language badge and the
+   replay control invert rather than fading into the blue. */
+.user-message .message-meta { color: rgba(255, 255, 255, 0.78); }
+.user-message .message-meta .message-lang { background: rgba(255, 255, 255, 0.18); color: #fff; }
