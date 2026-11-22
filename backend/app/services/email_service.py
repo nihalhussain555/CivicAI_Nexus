@@ -163,6 +163,18 @@ def send_password_reset_email(
 # Dispatch — routes to mock / smtp / resend based on EMAIL_PROVIDER
 # ============================================================
 
+def send_notification_email(to_email: str, subject: str, body: str) -> dict:
+    """Public entry point for non-OTP transactional mail (SLA escalations).
+    Delivery failures are reported in the result dict, never raised — the
+    in-app notification already exists and a dead SMTP/Resend endpoint must
+    not abort the escalation sweep."""
+    try:
+        return _dispatch(to_email, subject, body)
+    except Exception as error:  # noqa: BLE001
+        print(f"WARNING: notification email failed: {type(error).__name__}: {error}")
+        return {"sent": False, "error": str(error)}
+
+
 def _with_dev_otp(result: dict, dev_otp: str = None) -> dict:
     """When an OTP email could not be delivered, hand the code back to the
     caller so registration doesn't dead-end at the verification step

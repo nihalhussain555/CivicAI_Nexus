@@ -18,6 +18,9 @@ import {
   ShieldQuestion,
   UserPlus,
   Trophy,
+  Timer,
+  Gauge,
+  SlidersHorizontal,
 } from "lucide-react";
 
 /*
@@ -75,7 +78,10 @@ const SUPER_ADMIN_NAV = [
   { to: "/admin/departments", label: "Departments", icon: Building2, group: "nav.groupAdministration" },
   { to: "/admin/officers", label: "All Officers", icon: Users, group: "nav.groupAdministration" },
   { to: "/admin/admins", label: "District Admins", icon: ShieldCheck, group: "nav.groupAdministration" },
+  { to: "/admin/sla/config", label: "SLA Settings", icon: SlidersHorizontal, group: "nav.groupAdministration" },
   { to: "/admin/analytics", label: "Platform Analytics", icon: BarChart3, group: "nav.groupIntelligence" },
+  { to: "/admin/sla", label: "SLA Management", icon: Timer, group: "nav.groupIntelligence" },
+  { to: "/admin/sla/performance", label: "SLA Performance", icon: Gauge, group: "nav.groupIntelligence" },
   { to: "/admin/map", label: "City Map", icon: Map, group: "nav.groupIntelligence" },
   { to: "/admin/ai-insights", label: "AI Insights", icon: Sparkles, group: "nav.groupIntelligence" },
   { to: "/admin/assistant", label: "AI Assistant", icon: Bot, group: "nav.groupIntelligence" },
@@ -92,6 +98,8 @@ const DISTRICT_ADMIN_NAV = [
   { to: "/admin/fraud", label: "Fraud & Integrity", icon: ShieldAlert, group: "nav.groupOversight" },
   { to: "/admin/officers", label: "District Officers", icon: Users, group: "nav.groupAdministration" },
   { to: "/admin/analytics", label: "District Analytics", icon: BarChart3, group: "nav.groupIntelligence" },
+  { to: "/admin/sla", label: "District SLA", icon: Timer, group: "nav.groupIntelligence" },
+  { to: "/admin/sla/performance", label: "District SLA Performance", icon: Gauge, group: "nav.groupIntelligence" },
   { to: "/admin/map", label: "District Map", icon: Map, group: "nav.groupIntelligence" },
   { to: "/admin/ai-insights", label: "District AI Insights", icon: Sparkles, group: "nav.groupIntelligence" },
   { to: "/admin/assistant", label: "AI Assistant", icon: Bot, group: "nav.groupIntelligence" },

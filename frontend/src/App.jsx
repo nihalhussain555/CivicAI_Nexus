@@ -52,6 +52,11 @@ const AdminAdmins = lazy(() => import("./pages/admin/Admins"));
 const AdminAnalytics = lazy(() => import("./pages/admin/Analytics"));
 const AdminMap = lazy(() => import("./pages/admin/Map"));
 const AdminAIInsights = lazy(() => import("./pages/admin/AIInsights"));
+const SlaDashboard = lazy(() => import("./pages/admin/SlaDashboard"));
+const SlaDepartmentPerformance = lazy(
+  () => import("./pages/admin/SlaDepartmentPerformance"),
+);
+const SlaConfig = lazy(() => import("./pages/admin/SlaConfig"));
 const DistrictAdmin = lazy(() => import("./pages/admin/DistrictAdmin"));
 const UnassignedGrievances = lazy(
   () => import("./pages/admin/UnassignedGrievances"),
@@ -288,6 +293,22 @@ function App() {
                     />
 
                     <Route path="analytics" element={<AdminAnalytics />} />
+
+                    <Route path="sla" element={<SlaDashboard />} />
+
+                    <Route path="sla/performance" element={<SlaDepartmentPerformance />} />
+
+                    <Route
+                      path="sla/config"
+                      element={
+                        <ProtectedRoute
+                          allowedRoles={["admin"]}
+                          adminScope="super"
+                        >
+                          <SlaConfig />
+                        </ProtectedRoute>
+                      }
+                    />
 
                     <Route path="map" element={<AdminMap />} />
 

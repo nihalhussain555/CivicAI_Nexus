@@ -15,6 +15,7 @@ from app.services.classification_service import (
     canonical_department_or_raw,
     departments_equal,
 )
+from app.services import sla_service
 from app.services.incident_service import cluster_grievance
 from app.services.notification_service import notify
 from app.services.audit_service import log_action
@@ -179,7 +180,6 @@ def create_grievance(current_user: dict, data) -> dict:
         "predicted_resolution_hours": ai_result["predicted_resolution_hours"],
         "escalation_risk": ai_result["escalation_risk"],
         "sla_due_at": ai_result["sla_due_at"],
-
         # System auto-progresses SUBMITTED -> AI_ANALYZED -> DEPARTMENT_ASSIGNED
         # immediately after analysis; an officer must still explicitly accept.
         "status": "DEPARTMENT_ASSIGNED",
@@ -201,6 +201,11 @@ def create_grievance(current_user: dict, data) -> dict:
             "timestamp": now,
         },
     ])
+
+    # SLA clock: the stored policy (which an admin may have changed from the
+    # env defaults the pipeline used) is authoritative for the deadline, and
+    # the monitoring fields are stamped here once, at registration.
+    sla_service.initialize_grievance_sla(grievance)
 
     # Authenticity triage — a score + explanation for staff, never a
     # rejection. Runs after AI analysis so it can use category/priority, and it

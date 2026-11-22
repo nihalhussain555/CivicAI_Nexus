@@ -69,6 +69,22 @@ class Settings:
         os.getenv("SLA_HOURS_CRITICAL", "6")
     )
 
+    # --- SLA background monitoring ---
+    # The scheduler runs inside the API process. Only ONE instance should hold
+    # it (Render free tier is single-instance; the Mongo lease lock in
+    # jobs/sla_scheduler.py makes an accidental second runner inert anyway).
+    SLA_SCHEDULER_ENABLED = (
+        os.getenv("SLA_SCHEDULER_ENABLED", "true").lower() == "true"
+    )
+    SLA_CHECK_INTERVAL_MINUTES = int(
+        os.getenv("SLA_CHECK_INTERVAL_MINUTES", "5")
+    )
+    # A lease longer than the worst-case sweep keeps two instances from
+    # overlapping; shorter means faster takeover after a crash.
+    SLA_LOCK_LEASE_SECONDS = int(
+        os.getenv("SLA_LOCK_LEASE_SECONDS", "300")
+    )
+
     # --- Incident clustering ---
     INCIDENT_CLUSTER_RADIUS_KM = float(
         os.getenv("INCIDENT_CLUSTER_RADIUS_KM", "1.0")

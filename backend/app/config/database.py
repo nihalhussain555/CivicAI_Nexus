@@ -22,6 +22,9 @@ audit_logs_collection = db["audit_logs"]
 chat_sessions_collection = db["chat_sessions"]
 reward_ledger_collection = db["reward_ledger"]
 push_subscriptions_collection = db["push_subscriptions"]
+sla_config_collection = db["sla_config"]
+sla_logs_collection = db["sla_logs"]
+sla_state_collection = db["sla_state"]
 
 # Backward-compatible alias (older modules referred to "complaints")
 complaints_collection = grievances_collection
@@ -100,6 +103,23 @@ def create_indexes():
 
         push_subscriptions_collection.create_index("user_id")
         push_subscriptions_collection.create_index("endpoint", unique=True)
+
+        # --- SLA management ---
+        # Scheduler scan: "active cases whose clock is running, ordered by
+        # deadline" must not become a collection walk every interval.
+        grievances_collection.create_index([("status", ASCENDING), ("sla_due_at", ASCENDING)])
+        grievances_collection.create_index("sla_due_at")
+        grievances_collection.create_index("sla_status")
+        # Idempotency guard: one automatic event per case per cycle per level.
+        sla_logs_collection.create_index(
+            [("grievance_id", ASCENDING), ("cycle", ASCENDING),
+             ("level", ASCENDING), ("event_key", ASCENDING)],
+            unique=True,
+        )
+        sla_logs_collection.create_index("grievance_id")
+        sla_logs_collection.create_index([("department", ASCENDING), ("created_at", DESCENDING)])
+        sla_logs_collection.create_index([("level", ASCENDING), ("created_at", DESCENDING)])
+        sla_logs_collection.create_index("created_at")
 
     except PyMongoError as error:
         print(f"WARNING: index creation failed: {error}")

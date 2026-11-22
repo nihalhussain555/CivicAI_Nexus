@@ -31,6 +31,7 @@ from app.routes.analytics import router as analytics_router
 from app.routes.uploads import router as uploads_router
 from app.routes.rewards import router as rewards_router
 from app.routes.push import router as push_router
+from app.routes.sla import router as sla_router
 
 
 @asynccontextmanager
@@ -81,7 +82,26 @@ async def lifespan(app: FastAPI):
     else:
         print("WARNING: MongoDB is not connected. Set MONGO_URI in .env.")
 
+    # --- SLA background monitoring ---
+    # In-process asyncio worker (see jobs/sla_scheduler.py): the Mongo lease
+    # lock makes an accidental second runner inert, and every action is
+    # idempotent via the sla_logs unique index, so restarts are safe.
+    sla_task = None
+    if connected and settings.SLA_SCHEDULER_ENABLED:
+        from app.jobs.sla_scheduler import scheduler_loop
+        sla_stop = asyncio.Event()
+        app.state.sla_stop = sla_stop
+        sla_task = asyncio.create_task(scheduler_loop(sla_stop))
+
     yield
+
+    if sla_task:
+        app.state.sla_stop.set()
+        sla_task.cancel()
+        try:
+            await sla_task
+        except (asyncio.CancelledError, Exception):  # noqa: BLE001
+            pass
 
     print("CivicAI Nexus backend shutting down.")
 
@@ -278,6 +298,7 @@ app.include_router(analytics_router)
 app.include_router(uploads_router)
 app.include_router(rewards_router)
 app.include_router(push_router)
+app.include_router(sla_router)
 
 os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
 app.mount("/uploads", StaticFiles(directory=settings.UPLOAD_DIR), name="uploads")

@@ -11,6 +11,7 @@ import { CATEGORY_LABELS } from "../../utils/constants";
 import PriorityBadge from "../../components/grievances/PriorityBadge";
 import StatusBadge from "../../components/grievances/StatusBadge";
 import ComplaintTimeline from "../../components/grievances/ComplaintTimeline";
+import CaseSlaPanel from "../../components/tracking/CaseSlaPanel";
 import AuthenticityCard from "../../components/grievances/AuthenticityCard";
 import CopilotPanel from "../../components/ai/CopilotPanel";
 import LoadingSpinner from "../../components/common/LoadingSpinner";
@@ -650,6 +651,8 @@ const GrievanceDetail = () => {
               )}
             </div>
           </div>
+
+          <CaseSlaPanel grievanceId={grievanceId} isStaff={isStaff} />
 
           <div className="card">
             <div className="section-title">Progress</div>
