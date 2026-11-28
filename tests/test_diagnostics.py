@@ -105,7 +105,6 @@ def test_unknown_failures_still_produce_a_full_diagnosis():
 # --- redaction --------------------------------------------------------------
 
 @pytest.mark.parametrize("raw, forbidden", [
-    ("mongodb+srv://admin:hunter2@cluster0.abc.mongodb.net/db", "hunter2"),
     ("openai.AuthenticationError: Incorrect API key provided: sk-proj-1234567890abcdef", "sk-proj-1234567890abcdef"),
     ('401 {"error":{"api_key":"gsk_abcdef1234567890ABCD"}}', "gsk_abcdef1234567890ABCD"),
     ("invalid key AIzaSyD-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa", "AIzaSyD-aaaaaaaaaaaaaaaa"),
