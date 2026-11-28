@@ -1,14 +1,20 @@
 import { Component } from "react";
-import { AlertTriangle, RotateCcw } from "lucide-react";
+import { RotateCcw } from "lucide-react";
+import DiagnosticCard from "./DiagnosticCard";
+import { diagnose } from "../../utils/errorDiagnosis";
+import { reportClientError } from "../../services/diagnosticService";
 
-// Without this, any uncaught error while rendering a page (a malformed
-// field, a null we forgot to guard, anything) causes React to unmount the
-// entire tree — the browser just shows a blank white screen with no clue
-// why. This catches that instead and shows something actionable.
+/*
+ * Without this, any uncaught error while rendering a page (a malformed field,
+ * a null we forgot to guard, anything) causes React to unmount the entire tree:
+ * the browser shows a blank white screen with no clue why. This catches that,
+ * names the component that broke, and offers a way out that is not "reload and
+ * hope".
+ */
 class ErrorBoundary extends Component {
   constructor(props) {
     super(props);
-    this.state = { error: null };
+    this.state = { error: null, diagnosis: null };
   }
 
   static getDerivedStateFromError(error) {
@@ -16,36 +22,61 @@ class ErrorBoundary extends Component {
   }
 
   componentDidCatch(error, info) {
-    // Surfaced in the browser console so it's actually diagnosable,
-    // instead of just silently going blank.
+    // Surfaced in the console so it is diagnosable there too, then classified
+    // and reported — a crash nobody has ever seen is a crash nobody fixes.
     console.error("Caught by ErrorBoundary:", error, info?.componentStack);
+
+    const diagnosis = diagnose(error, {
+      feature: this.props.feature || "page_render",
+      technical: {
+        component: info?.componentStack
+          ? info.componentStack.split("\n")[1]?.trim().replace(/^at\s+/, "") || ""
+          : "",
+      },
+    });
+    // Only the component name is added; the stack itself is not stored — it is
+    // long, machine-specific, and carries no actionable information.
+    reportClientError(diagnosis);
+    this.setState({ diagnosis });
   }
 
   render() {
-    if (this.state.error) {
-      return (
-        <div className="state-block" style={{ minHeight: "50vh" }}>
-          <AlertTriangle size={40} strokeWidth={1.5} color="var(--danger)" />
-          <h3>Something went wrong loading this page</h3>
-          <p style={{ maxWidth: 420 }}>
-            {this.state.error?.message || "An unexpected error occurred."}
-          </p>
-          <div style={{ marginTop: 16 }}>
-            <button
-              className="btn btn-primary btn-sm"
-              onClick={() => {
-                this.setState({ error: null });
-                window.location.reload();
-              }}
-            >
-              <RotateCcw size={14} /> Reload page
-            </button>
-          </div>
-        </div>
-      );
+    if (!this.state.error) return this.props.children;
+
+    const { error, diagnosis } = this.state;
+
+    if (this.props.fallback) {
+      return this.props.fallback({ error, diagnosis, reset: () => this.setState({ error: null, diagnosis: null }) });
     }
 
-    return this.props.children;
+    return (
+      <div className="error-boundary-screen">
+        <DiagnosticCard
+          variant="full"
+          diagnosis={diagnosis || {
+            category: "internal",
+            categoryLabel: "Platform",
+            severity: "blocking",
+            feature: "page_render",
+            featureLabel: "Loading this page",
+            what: "This page could not be displayed.",
+            reason: error?.message || "An unexpected error occurred while rendering.",
+            solution: "Reload the page. If it keeps happening, please report the issue.",
+            retryable: true,
+            technical: { message: String(error?.message || error) },
+          }}
+          onRetry={() => window.location.reload()}
+          retryLabel="Reload page"
+        />
+        <button
+          className="btn btn-ghost btn-sm"
+          style={{ marginTop: 14 }}
+          onClick={() => this.setState({ error: null, diagnosis: null })}
+        >
+          <RotateCcw size={13} /> Dismiss and continue
+        </button>
+      </div>
+    );
   }
 }
 

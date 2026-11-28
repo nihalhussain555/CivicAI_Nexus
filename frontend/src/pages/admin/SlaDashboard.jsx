@@ -17,11 +17,11 @@ import LineChartCard from "../../components/charts/LineChartCard";
 import BarChartCard from "../../components/charts/BarChartCard";
 import PieChartCard from "../../components/charts/PieChartCard";
 import PriorityBadge from "../../components/grievances/PriorityBadge";
-import StatusBadge from "../../components/grievances/StatusBadge";
 import EmptyState from "../../components/common/EmptyState";
 import ErrorState from "../../components/common/ErrorState";
 import { SkeletonList } from "../../components/common/Skeleton";
-import { formatDateTime, formatRelative, getErrorMessage, titleCase } from "../../utils/helpers";
+import { useDiagnostics } from "../../hooks/useDiagnostics";
+import { formatDateTime, formatRelative, titleCase } from "../../utils/helpers";
 
 const SLA_STATE_CLASS = {
   ON_TRACK: "badge-success",
@@ -48,6 +48,7 @@ const LEVEL_LABEL = {
 const fmt = (value, suffix = "") => (value === null || value === undefined ? "—" : `${value}${suffix}`);
 
 const SlaDashboard = () => {
+  const { capture } = useDiagnostics();
   const [data, setData] = useState(null);
   const [health, setHealth] = useState(null);
   const [error, setError] = useState(null);
@@ -64,21 +65,23 @@ const SlaDashboard = () => {
       const res = await getSlaDashboard(params);
       setData(res.data);
     } catch (err) {
-      setError(getErrorMessage(err));
+      setError(capture(err, { feature: "analytics" }));
     } finally {
       setLoading(false);
     }
-  }, [range]);
+  }, [range, capture]);
 
   useEffect(() => {
     load();
   }, [load]);
 
   useEffect(() => {
+    // The badge is decoration; the scheduler may legitimately not answer, but
+    // the diagnostics dashboard still wants to know it didn't.
     getSchedulerHealth()
       .then((res) => setHealth(res.data))
-      .catch(() => setHealth(null));
-  }, []);
+      .catch((err) => { capture(err, { feature: "analytics" }); setHealth(null); });
+  }, [capture]);
 
   const overview = data?.overview;
   const escalated = (overview?.breached ?? 0) > 0;
@@ -121,7 +124,7 @@ const SlaDashboard = () => {
       {data === null && !error ? (
         <SkeletonList rows={6} />
       ) : error ? (
-        <div className="card"><ErrorState description={error} onRetry={load} /></div>
+        <div className="card"><ErrorState diagnosis={error} title="Couldn't load the SLA dashboard" onRetry={load} /></div>
       ) : (
         <>
           <div className="grid grid-3 stat-grid">

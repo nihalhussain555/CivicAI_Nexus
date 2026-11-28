@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import { getIntegrityStats } from "../../services/analyticsService";
 import { useAuth } from "../../hooks/useAuth";
-import { getErrorMessage } from "../../utils/helpers";
+import { useDiagnostics } from "../../hooks/useDiagnostics";
 import { SIGNAL_LABELS, CATEGORY_LABELS } from "../../utils/constants";
 import LoadingSpinner from "../../components/common/LoadingSpinner";
 import ErrorState from "../../components/common/ErrorState";
@@ -49,6 +49,7 @@ const StatCard = ({ icon: Icon, label, value, sub, tone }) => (
 
 const Integrity = () => {
   const { user } = useAuth();
+  const { capture } = useDiagnostics();
   const [days, setDays] = useState("30");
   const [refreshKey, setRefreshKey] = useState(0);
 
@@ -69,10 +70,10 @@ const Integrity = () => {
         setOutcome({ key: requestKey, error: null });
       })
       .catch((err) => {
-        if (!cancelled) setOutcome({ key: requestKey, error: getErrorMessage(err) });
+        if (!cancelled) setOutcome({ key: requestKey, error: capture(err, { feature: "analytics" }) });
       });
     return () => { cancelled = true; };
-  }, [days, requestKey]);
+  }, [days, requestKey, capture]);
 
   const loading = outcome?.key !== requestKey;
   const error = outcome?.key === requestKey ? outcome.error : null;
@@ -88,8 +89,8 @@ const Integrity = () => {
     return (
       <div className="card">
         <ErrorState
+          diagnosis={error}
           title="Couldn't load the integrity dashboard"
-          description={`${error} The API may be asleep — retrying usually works.`}
           onRetry={reload}
         />
       </div>
@@ -129,7 +130,7 @@ const Integrity = () => {
 
       {error && (
         <div className="card" style={{ marginBottom: 16, borderColor: "var(--danger)" }}>
-          <ErrorState title="The numbers below are from the last successful read" description={error} onRetry={reload} />
+          <ErrorState diagnosis={error} title="The numbers below are from the last successful read" onRetry={reload} />
         </div>
       )}
 

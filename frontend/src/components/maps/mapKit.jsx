@@ -2,13 +2,72 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { CircleMarker, MapContainer, Marker, Popup, TileLayer, useMap, useMapEvents } from "react-leaflet";
 import { Link } from "react-router-dom";
 import L from "leaflet";
+import { CloudOff } from "lucide-react";
 import "leaflet/dist/leaflet.css";
 import { CATEGORY_LABELS, STATUS_LABELS, STATE_CENTER } from "../../utils/constants";
 import { formatRelative } from "../../utils/helpers";
+import { useDiagnostics } from "../../hooks/useDiagnostics";
 
 /* ------------------------------------------------------------------ *
  * Shared plumbing for every Leaflet map in the app.
  * ------------------------------------------------------------------ */
+
+const TILE_BURST_WINDOW_MS = 5000;
+const TILE_BURST_LIMIT = 4;
+
+/**
+ * OSM tiles plus the one signal the map cannot show on its own.
+ *
+ * An unreachable tile server raises `tileerror` once per tile — dozens while a
+ * view is dragged around. Only a burst inside a short window counts as a
+ * failure, and it is announced once per mounted map, so the diagnostics
+ * dashboard sees one outage rather than one row per image.
+ */
+export const MapTiles = ({ onBurstFailure }) => {
+  const strikes = useRef(0);
+  const announced = useRef(false);
+  const resetTimer = useRef(null);
+
+  useEffect(() => () => clearTimeout(resetTimer.current), []);
+
+  const handleTileError = () => {
+    strikes.current += 1;
+    clearTimeout(resetTimer.current);
+    resetTimer.current = setTimeout(() => { strikes.current = 0; }, TILE_BURST_WINDOW_MS);
+    if (announced.current || strikes.current < TILE_BURST_LIMIT) return;
+    announced.current = true;
+    onBurstFailure?.();
+  };
+
+  return (
+    <TileLayer
+      attribution='&copy; OpenStreetMap contributors'
+      url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+      eventHandlers={{ tileerror: handleTileError }}
+    />
+  );
+};
+
+/** Sits over the map frame, which every caller positions relatively. */
+export const TileFailureNote = ({ style }) => (
+  <div
+    style={{
+      position: "absolute", left: 10, bottom: 10, zIndex: 500,
+      display: "flex", gap: 6, alignItems: "flex-start",
+      maxWidth: 290, padding: "6px 10px",
+      background: "var(--surface)", border: "1px solid var(--border)",
+      borderRadius: 8, boxShadow: "var(--shadow-md)",
+      fontSize: 11.5, lineHeight: 1.5, color: "var(--text-muted)",
+      ...style,
+    }}
+  >
+    <CloudOff size={13} style={{ marginTop: 1, flexShrink: 0, color: "var(--warning)" }} />
+    <span>
+      The map background did not load. Pan or zoom to retry — pins, markers and
+      counts are plotted from your data, not from the tiles.
+    </span>
+  </div>
+);
 
 /**
  * Keeps Leaflet's size in sync with the DOM.
@@ -249,7 +308,7 @@ const MarkerPopup = ({ grievance, basePath, now }) => (
   </div>
 );
 
-const MapShell = ({ mapRef, defaultCenter, height, onZoom, children }) => (
+const MapShell = ({ mapRef, defaultCenter, height, onZoom, onTileFailure, children }) => (
   <MapContainer
     ref={mapRef}
     center={defaultCenter}
@@ -257,7 +316,7 @@ const MapShell = ({ mapRef, defaultCenter, height, onZoom, children }) => (
     style={{ height, width: "100%" }}
     scrollWheelZoom
   >
-    <TileLayer attribution='&copy; OpenStreetMap contributors' url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+    <MapTiles onBurstFailure={onTileFailure} />
     <ZoomBridge onZoom={onZoom} />
     {children}
   </MapContainer>
@@ -289,7 +348,18 @@ const GrievanceMap = ({
 }) => {
   const mapRef = useRef(null);
   const [zoom, setZoom] = useState(11);
+  const [tilesDown, setTilesDown] = useState(false);
+  const { capture } = useDiagnostics();
   const clock = resolveClock(now);
+
+  const handleTileBurst = () => {
+    setTilesDown(true);
+    capture(null, {
+      feature: "map",
+      category: "network",
+      message: "OpenStreetMap tile requests failed repeatedly for this view",
+    });
+  };
 
   const points = useMemo(
     () => grievances
@@ -315,6 +385,7 @@ const GrievanceMap = ({
         defaultCenter={defaultCenter}
         height={height}
         onZoom={setZoom}
+        onTileFailure={handleTileBurst}
       >
         <FitBounds points={allPositions} fitKey={fitKey} />
         <SizeSync />
@@ -391,6 +462,7 @@ const GrievanceMap = ({
             );
           })}
       </MapShell>
+      {tilesDown && <TileFailureNote />}
     </div>
   );
 };

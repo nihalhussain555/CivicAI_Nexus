@@ -21,6 +21,7 @@ import {
   Timer,
   Gauge,
   SlidersHorizontal,
+  Stethoscope,
 } from "lucide-react";
 
 /*
@@ -57,6 +58,7 @@ export const NAV_BY_ROLE = {
     { to: "/admin/dashboard", label: "Dashboard", icon: LayoutDashboard, group: "nav.groupOversight" },
     { to: "/admin/grievances", label: "All Grievances", icon: FileText, group: "nav.groupOversight" },
     { to: "/admin/incidents", label: "Incidents", icon: AlertTriangle, group: "nav.groupOversight" },
+    { to: "/admin/errors", label: "Error Diagnostics", icon: Stethoscope, group: "nav.groupOversight", superOnly: true },
     { to: "/admin/departments", label: "Departments", icon: Building2, group: "nav.groupAdministration" },
     { to: "/admin/officers", label: "Officers", icon: Users, group: "nav.groupAdministration" },
     { to: "/admin/admins", label: "District Admins", icon: ShieldCheck, group: "nav.groupAdministration", superOnly: true },
@@ -75,6 +77,7 @@ const SUPER_ADMIN_NAV = [
   { to: "/admin/integrity", label: "Integrity Review", icon: ShieldQuestion, group: "nav.groupOversight" },
   { to: "/admin/incidents", label: "Incidents", icon: AlertTriangle, group: "nav.groupOversight" },
   { to: "/admin/fraud", label: "Fraud & Integrity", icon: ShieldAlert, group: "nav.groupOversight" },
+  { to: "/admin/errors", label: "Error Diagnostics", icon: Stethoscope, group: "nav.groupOversight" },
   { to: "/admin/departments", label: "Departments", icon: Building2, group: "nav.groupAdministration" },
   { to: "/admin/officers", label: "All Officers", icon: Users, group: "nav.groupAdministration" },
   { to: "/admin/admins", label: "District Admins", icon: ShieldCheck, group: "nav.groupAdministration" },
@@ -142,6 +145,7 @@ export const NAV_LABEL_KEY = {
   "/admin/ai-insights": "nav.aiInsights",
   "/officer/integrity": "nav.integrity", "/admin/integrity": "nav.integrity",
   "/admin/fraud": "nav.fraud",
+  "/admin/errors": "nav.errorDiagnostics",
   "/admin/district": "nav.district",
   "/admin/district/unassigned": "nav.unassigned",
 };

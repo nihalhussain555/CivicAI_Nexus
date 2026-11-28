@@ -1,12 +1,13 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
-import { Bot, Send, Sparkles, Plus, MessageSquare, Trash2, History, X } from "lucide-react";
+import { Bot, Send, Sparkles, Plus, MessageSquare, Trash2, History, X, AlertCircle, RefreshCw } from "lucide-react";
 import { chatWithAssistant, listChatSessions, getChatSession, deleteChatSession, } from "../../services/aiService";
 import { uploadsBaseUrl } from "../../services/api";
-import { useToast } from "../../context/ToastContext";
 import { useAuth } from "../../hooks/useAuth";
-import { getErrorMessage, formatRelative } from "../../utils/helpers";
+import { formatRelative } from "../../utils/helpers";
+import { useDiagnostics, useErrorToast } from "../../hooks/useDiagnostics";
 import ChatMessage from "../../components/ai/ChatMessage";
+import DiagnosticCard from "../../components/common/DiagnosticCard";
 import ListenButton from "../../components/voice/ListenButton";
 import VoiceCapture from "../../components/voice/VoiceCapture";
 const AIThinkingLoader = ({ small = false }) => {
@@ -342,16 +343,20 @@ const AIAssistant = () => {
   // citizen to say yes. Rendered as explicit buttons so a spoken "yes" is not
   // the only way to finish filing.
   const [awaitingConfirm, setAwaitingConfirm] = useState(false);
-  const toast = useToast();
+  // A history panel that failed to load says so inside itself: the chat is
+  // still usable, so this is not worth a toast over the conversation.
+  const [sessionsError, setSessionsError] = useState(null);
   const endRef = useRef();
+  const { capture } = useDiagnostics();
+  const fail = useErrorToast();
 
   const loadSessions = useCallback(() => {
     setSessionsLoading(true);
     listChatSessions()
-      .then((res) => setSessions(res.data))
-      .catch(() => {})
+      .then((res) => { setSessions(res.data); setSessionsError(null); })
+      .catch((err) => setSessionsError(capture(err, { feature: "ai_chat" })))
       .finally(() => setSessionsLoading(false));
-  }, []);
+  }, [capture]);
 
   useEffect(() => { loadSessions(); }, [loadSessions]);
   useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
@@ -379,7 +384,11 @@ const AIAssistant = () => {
       setActiveSessionId(sessionId);
       setHistoryOpen(false);
     } catch (error) {
-      toast.error(getErrorMessage(error));
+      fail(error, {
+        feature: "ai_chat",
+        message: "That conversation could not be opened. Start a new chat, or try again.",
+        onRetry: () => openSession(sessionId),
+      });
     }
   };
 
@@ -390,23 +399,32 @@ const AIAssistant = () => {
       setSessions((s) => s.filter((sess) => sess._id !== sessionId));
       if (activeSessionId === sessionId) startNewChat();
     } catch (error) {
-      toast.error(getErrorMessage(error));
+      // The list still shows the conversation, which is the truth: it was not
+      // deleted, and saying so beats quietly leaving a stale row.
+      fail(error, {
+        feature: "ai_chat",
+        message: "The conversation is still here — it could not be deleted.",
+        onRetry: () => removeSession({ stopPropagation: () => {} }, sessionId),
+      });
     }
   };
 
-  /** `voice` is the payload from VoiceCapture (approved words plus where they
-   * came from); null for a typed message. */
-  const send = async (text, voice = null) => {
-    const message = (voice ? voice.text : (text ?? input)).trim();
-    if (!message) return;
-    setMessages((m) => [...m, {
-      role: "user",
-      text: message,
-      language: voice?.language || null,
-      code: voice?.languageCode || null,
-      audioUrl: voice?.audioUrl || null,
-    }]);
-    setInput("");
+  /** Posts one turn. `appendUser` is false on a retry: the citizen's message is
+   * already in the thread, and their failed answer should be replaced rather
+   * than left underneath a second one. */
+  const postTurn = async (message, voice, appendUser) => {
+    if (appendUser) {
+      setMessages((m) => [...m, {
+        role: "user",
+        text: message,
+        language: voice?.language || null,
+        code: voice?.languageCode || null,
+        audioUrl: voice?.audioUrl || null,
+      }]);
+      setInput("");
+    } else {
+      setMessages((m) => m.filter((entry) => entry.kind !== "error"));
+    }
     setAwaitingConfirm(false);
     setLoading(true);
     try {
@@ -427,10 +445,27 @@ const AIAssistant = () => {
       if (!activeSessionId) setActiveSessionId(data.session_id);
       loadSessions();
     } catch (error) {
-      toast.error(getErrorMessage(error));
+      // The failure answers in place of the assistant. A toast would sit at the
+      // top of the screen while the citizen is looking at the bottom of the
+      // thread, and be gone before they read it.
+      const diagnosis = capture(error, { feature: "ai_chat" });
+      setMessages((m) => [...m, {
+        role: "assistant",
+        kind: "error",
+        diagnosis,
+        retry: () => postTurn(message, voice, false),
+      }]);
     } finally {
       setLoading(false);
     }
+  };
+
+  /** `voice` is the payload from VoiceCapture (approved words plus where they
+   * came from); null for a typed message. */
+  const send = (text, voice = null) => {
+    const message = (voice ? voice.text : (text ?? input)).trim();
+    if (!message) return undefined;
+    return postTurn(message, voice, true);
   };
 
   return (
@@ -461,6 +496,15 @@ const AIAssistant = () => {
           </button>
         </div>
         <div style={{ flex: 1, overflowY: "auto", padding: 8 }}>
+          {sessionsError && (
+            <div className="ai-history-error">
+              <AlertCircle size={13} style={{ flexShrink: 0, marginTop: 1, color: "var(--warning)" }} />
+              <span>{sessionsError.what}</span>
+              <button type="button" className="btn btn-ghost btn-xs" onClick={loadSessions}>
+                <RefreshCw size={11} /> Retry
+              </button>
+            </div>
+          )}
           {sessionsLoading ? (
             <div style={{ padding: 16, textAlign: "center" }}>
               <AIThinkingLoader small />
@@ -527,6 +571,14 @@ const AIAssistant = () => {
         <div className="card" style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", gap: 12, marginBottom: 14 }}>
           {messages.map((m, i) => (
             <div key={i} className={`message ${m.role === "user" ? "user-message" : "ai-message"}`}>
+              {m.kind === "error" ? (
+                <DiagnosticCard
+                  variant="inline"
+                  diagnosis={m.diagnosis}
+                  onRetry={m.retry}
+                  retryLabel="Ask again"
+                />
+              ) : (
               <ChatMessage
                 text={m.text}
                 language={m.language && (m.role === "user" || m.code !== "en") ? m.language : null}
@@ -545,6 +597,7 @@ const AIAssistant = () => {
                   m.audioUrl && <audio controls preload="none" src={`${uploadsBaseUrl}${m.audioUrl}`} />
                 )}
               </ChatMessage>
+              )}
             </div>
           ))}
           {loading && <div className="message ai-message"><AIThinkingLoader small /></div>}

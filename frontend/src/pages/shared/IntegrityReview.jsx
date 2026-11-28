@@ -13,7 +13,8 @@ import {
 import { getIntegrityQueue, triageIntegrity, reviewFlagAppeal } from "../../services/grievanceService";
 import { useAuth } from "../../hooks/useAuth";
 import { useToast } from "../../context/ToastContext";
-import { getErrorMessage, formatRelative } from "../../utils/helpers";
+import { formatRelative } from "../../utils/helpers";
+import { useDiagnostics, useErrorToast } from "../../hooks/useDiagnostics";
 import { CATEGORY_LABELS, SIGNAL_LABELS } from "../../utils/constants";
 import Pagination from "../../components/common/Pagination";
 import EmptyState from "../../components/common/EmptyState";
@@ -41,6 +42,8 @@ const decided = (grievance) =>
 const IntegrityReview = () => {
   const { user } = useAuth();
   const toast = useToast();
+  const { capture } = useDiagnostics();
+  const fail = useErrorToast();
 
   const [tab, setTab] = useState("queue"); // queue | appeals
   const [verdict, setVerdict] = useState("");
@@ -49,7 +52,7 @@ const IntegrityReview = () => {
   const [page, setPage] = useState(1);
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [error, setError] = useState(null);
 
   const [action, setAction] = useState(null); // { grievance, decision } | { grievance, approve }
   const [note, setNote] = useState("");
@@ -67,7 +70,7 @@ const IntegrityReview = () => {
 
   const load = useCallback(() => {
     setLoading(true);
-    setError("");
+    setError(null);
     getIntegrityQueue({
       page,
       limit: 10,
@@ -76,9 +79,9 @@ const IntegrityReview = () => {
       search: search || undefined,
     })
       .then((res) => setData(res.data))
-      .catch((err) => setError(getErrorMessage(err)))
+      .catch((err) => setError(capture(err, { feature: "grievance_list" })))
       .finally(() => setLoading(false));
-  }, [tab, verdict, search, page]);
+  }, [tab, verdict, search, page, capture]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -115,7 +118,11 @@ const IntegrityReview = () => {
       setAction(null);
       load();
     } catch (err) {
-      toast.error(getErrorMessage(err));
+      fail(err, {
+        feature: "grievance_detail",
+        message: "Your decision was not recorded — the case is still waiting.",
+        onRetry: submit,
+      });
     } finally {
       setBusy(false);
     }
@@ -197,7 +204,7 @@ const IntegrityReview = () => {
       {loading ? (
         <SkeletonList rows={5} />
       ) : error ? (
-        <ErrorState title="Couldn’t load the queue" description={error} onRetry={load} />
+        <ErrorState diagnosis={error} title="Couldn’t load the queue" onRetry={load} />
       ) : items.length === 0 ? (
         <EmptyState
           icon={tab === "appeals" ? Gavel : Inbox}

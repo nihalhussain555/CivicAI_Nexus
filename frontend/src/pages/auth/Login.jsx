@@ -18,7 +18,8 @@ import { useAuth } from "../../hooks/useAuth";
 import { useToast } from "../../context/ToastContext";
 import CivicLoader from "../../components/common/CivicLoader";
 import { useTranslation } from "../../context/LanguageContext";
-import { getErrorMessage } from "../../utils/helpers";
+import ErrorState from "../../components/common/ErrorState";
+import { useDiagnostics } from "../../hooks/useDiagnostics";
 import SocialLoginButtons from "../../pages/auth/SocialLoginButtons";
 
 const ROLES = [
@@ -91,6 +92,11 @@ const Login = () => {
   const { login, isAuthenticated, user } = useAuth();
   const toast = useToast();
   const navigate = useNavigate();
+  const { capture, diagnose } = useDiagnostics();
+
+  // Form-level sign-in failure, held as a diagnosis so the page can render the
+  // what / why / what-to-do lines instead of a generic toast.
+  const [formError, setFormError] = useState(null);
 
   // Already signed in? Don't show the login form again.
   useEffect(() => {
@@ -143,6 +149,7 @@ const doLogin = async (
   }
 
   setLoading(true);
+  setFormError(null);
 
   try {
     const user = await login(
@@ -187,8 +194,13 @@ const doLogin = async (
     navigate(target, { replace: true });
 
   } catch (error) {
-    toast.error(
-      getErrorMessage(error)
+    // A rejected credential is the user's correction, not a platform fault:
+    // render its diagnosis inline and do NOT file it. A 5xx or no response at
+    // all is ours — capture() classifies it AND reports it before we render.
+    const status = error?.response?.status;
+    const ours = !error?.response || status >= 500;
+    setFormError(
+      ours ? capture(error, { feature: "auth" }) : diagnose(error, { feature: "auth" })
     );
   } finally {
     setLoading(false);
@@ -490,6 +502,13 @@ const doLogin = async (
                 {t("auth.forgotPassword")}
               </Link>
             </div>
+
+            {formError && (
+              <ErrorState
+                diagnosis={formError}
+                onRetry={() => doLogin(email.trim(), password)}
+              />
+            )}
 
             <button
               type="submit"

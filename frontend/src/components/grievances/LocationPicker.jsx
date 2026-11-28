@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { CircleMarker, MapContainer, TileLayer, Marker, useMap, useMapEvents } from "react-leaflet";
+import { CircleMarker, MapContainer, Marker, useMap, useMapEvents } from "react-leaflet";
 import L from "leaflet";
-import { Crosshair, Loader2, MapPin, Search, Navigation } from "lucide-react";
+import { CloudOff, Crosshair, Loader2, MapPin, Search, Navigation } from "lucide-react";
 import "leaflet/dist/leaflet.css";
-import { searchPlaces } from "../../services/geocodeService";
-import { SizeSync } from "../maps/mapKit";
+import { isGeocodePlatformFailure, searchPlaces } from "../../services/geocodeService";
+import { useDiagnostics } from "../../hooks/useDiagnostics";
+import { MapTiles, SizeSync, TileFailureNote } from "../maps/mapKit";
 
 // Custom pin built from inline SVG so we never depend on Leaflet's default
 // marker image assets (which routinely break under bundlers like Vite).
@@ -57,12 +58,28 @@ const ClickToPlace = ({ onPick }) => {
   return null;
 };
 
+/**
+ * Why a place search came back empty, in the citizen's terms. Each cause needs
+ * a different next move: an offline device or a dead provider means retry or
+ * place the pin by hand, while "nothing matched" is fixed by different words.
+ */
+const SEARCH_FAILURE = {
+  offline: "You appear to be offline, so place names could not be fetched from OpenStreetMap.",
+  timeout: "OpenStreetMap did not answer the search in time.",
+  unreachable: "OpenStreetMap could not be reached from this device.",
+  provider: "OpenStreetMap rejected the search — its free service is rate-limited or down.",
+  no_address: "No place matched those words.",
+};
+
+const MANUAL_FALLBACK = "You can still drag or tap the pin, search your area, or type the district below.";
+
 const PlaceSearch = ({ near, onPick }) => {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState([]);
-  const [failed, setFailed] = useState(false);
+  const [failure, setFailure] = useState(null); // { reason, retryable }
   const [answered, setAnswered] = useState(""); // the term `results` belong to
   const searching = query.trim().length >= 3 && answered !== query.trim();
+  const { capture, diagnose } = useDiagnostics();
 
   // The bias point is read when a lookup fires, not treated as a trigger:
   // placing a pin moves the view, and re-running the search for the same words
@@ -72,25 +89,46 @@ const PlaceSearch = ({ near, onPick }) => {
     nearRef.current = near;
   }, [near]);
 
+  const runSearch = (term, stale = () => false) => {
+    searchPlaces(term, nearRef.current)
+      .then((found) => {
+        if (stale()) return;
+        setResults(found);
+        setFailure(null);
+        setAnswered(term);
+      })
+      .catch((err) => {
+        if (stale()) return;
+        const code = err?.code || "provider";
+        const isOutage = isGeocodePlatformFailure(err);
+        // A provider outage belongs on the diagnostics dashboard. A device with
+        // no connection, and a pin nothing is mapped to, are the citizen's
+        // situation rather than the platform's, so they are worded but not filed.
+        const build = isOutage ? capture : diagnose;
+        build(err, { feature: "geocode", category: "network", technical: { cause: code, query: term } });
+        setResults([]);
+        setFailure({ reason: SEARCH_FAILURE[code] || SEARCH_FAILURE.provider, retryable: isOutage });
+        setAnswered(term);
+      });
+  };
+
   // Debounced so typing "Velachery" doesn't fire six Nominatim lookups.
   useEffect(() => {
     const term = query.trim();
     if (term.length < 3) return undefined;
 
     let cancelled = false;
-    const timer = setTimeout(() => {
-      searchPlaces(term, nearRef.current)
-        .then((found) => { if (!cancelled) { setResults(found); setFailed(false); setAnswered(term); } })
-        .catch(() => { if (!cancelled) { setResults([]); setFailed(true); setAnswered(term); } });
-    }, 550);
+    const timer = setTimeout(() => runSearch(term, () => cancelled), 550);
     return () => { cancelled = true; clearTimeout(timer); };
-  }, [query]);
+  }, [query, capture, diagnose]);
 
   const handleChange = (value) => {
     setQuery(value);
+    // A new term means a new lookup: leaving the old failure line up reads as
+    // though it still applies to what is being typed.
+    setFailure(null);
     if (value.trim().length < 3) {
       setResults([]);
-      setFailed(false);
       setAnswered("");
     }
   };
@@ -110,12 +148,26 @@ const PlaceSearch = ({ near, onPick }) => {
         {searching && <Loader2 size={13} className="spin" style={{ color: "var(--text-faint)" }} />}
       </div>
 
-      {(results.length > 0 || failed) && (
+      {(results.length > 0 || failure) && (
         <div style={{ position: "absolute", top: "100%", left: 8, right: 8, marginTop: 4, background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, boxShadow: "var(--shadow-md)", overflow: "hidden", maxHeight: 210, overflowY: "auto" }}>
-          {failed && (
-            <p style={{ padding: "10px 12px", fontSize: 12.5, color: "var(--text-muted)", margin: 0 }}>
-              Search is unavailable right now — drag the pin instead.
-            </p>
+          {failure && (
+            <div style={{ padding: "10px 12px", display: "flex", flexDirection: "column", gap: 6 }}>
+              <p style={{ margin: 0, fontSize: 12.5, color: "var(--text)", display: "flex", gap: 6, alignItems: "flex-start" }}>
+                <CloudOff size={13} style={{ marginTop: 2, flexShrink: 0, color: "var(--warning)" }} />
+                <span>{failure.reason}</span>
+              </p>
+              <p style={{ margin: 0, fontSize: 12, color: "var(--text-muted)" }}>{MANUAL_FALLBACK}</p>
+              {failure.retryable && (
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-sm"
+                  style={{ alignSelf: "flex-start" }}
+                  onClick={() => { setAnswered(""); runSearch(query.trim()); }}
+                >
+                  <Search size={12} /> Search again
+                </button>
+              )}
+            </div>
           )}
           {results.map((r) => (
             <button
@@ -170,6 +222,17 @@ const LocationPicker = ({
 }) => {
   const markerRef = useRef(null);
   const lastInternal = useRef(center || null);
+  const [tilesDown, setTilesDown] = useState(false);
+  const { capture } = useDiagnostics();
+
+  const handleTileBurst = () => {
+    setTilesDown(true);
+    capture(null, {
+      feature: "map",
+      category: "network",
+      message: "OpenStreetMap tile requests failed repeatedly in the location picker",
+    });
+  };
 
   const eventHandlers = useMemo(() => ({
     dragend() {
@@ -193,10 +256,7 @@ const LocationPicker = ({
       <PlaceSearch near={center} onPick={handlePick} />
 
       <MapContainer center={center} zoom={hasPin ? 16 : 11} style={{ height, width: "100%" }} scrollWheelZoom>
-        <TileLayer
-          attribution='&copy; OpenStreetMap contributors'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        />
+        <MapTiles onBurstFailure={handleTileBurst} />
         {nearby.map((report) => (
           <CircleMarker
             key={report.grievance_id}
@@ -233,6 +293,10 @@ const LocationPicker = ({
           <MapPin size={12} /> {hasPin ? "Tap or drag the pin to fine-tune" : "Tap the map where the problem is"}
         </span>
       </div>
+
+      {tilesDown && (
+        <TileFailureNote style={{ top: 64, right: 10, left: "auto", bottom: "auto" }} />
+      )}
 
       {locateError && (
         <p style={{ margin: 0, padding: "0 10px 10px", fontSize: 12, color: "var(--warning)", display: "flex", gap: 6, alignItems: "flex-start" }}>

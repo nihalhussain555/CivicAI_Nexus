@@ -1,3 +1,6 @@
+import { diagnose } from "./errorDiagnosis";
+import { reportClientError } from "../services/diagnosticService";
+
 // Any timestamp string with no timezone marker (no "Z", no "+HH:MM") is
 // ambiguous — `new Date(...)` silently treats it as the browser's local
 // time instead of UTC, which is exactly what made timestamps across the
@@ -61,8 +64,31 @@ export const reopenTimes = (count) => {
   return `${count} times`;
 };
 
-export const getErrorMessage = (error) => {
+/*
+ * The single entry point for "show this failure to the user".
+ *
+ * A message the server wrote for this endpoint still wins: "Reference ID not
+ * found" beats any category-level sentence. What this function no longer does
+ * is hand back a raw exception message or "Something went wrong" — an
+ * unclassified failure now goes through the diagnosis engine, which always
+ * names a cause, the affected feature and a next step.
+ *
+ * Failures that look like platform faults (rather than a mistyped password or a
+ * field the user has to correct) are filed for the diagnostics dashboard on the
+ * way out, so a page that only ever toasts still contributes a row.
+ */
+const PLATFORM_CATEGORIES = new Set([
+  "database", "ai_provider", "network", "upload", "voice", "location",
+  "notification", "config", "internal", "client", "unknown",
+]);
+
+export const getErrorMessage = (error, options = {}) => {
   const data = error?.response?.data;
+  const diagnosis = diagnose(error, options);
+
+  // Deliberately not awaiting this: a message formatter must not become a
+  // request the UI waits on, and reportClientError never rejects.
+  if (PLATFORM_CATEGORIES.has(diagnosis.category)) reportClientError(diagnosis);
 
   // Our API's normal error envelope: { error: { code, message, details? } }.
   if (data?.error?.message) {
@@ -78,22 +104,13 @@ export const getErrorMessage = (error) => {
     const field = Array.isArray(first?.loc) ? first.loc.slice(1).join(".") : "";
     const msg = typeof first?.msg === "string" ? first.msg : "";
     const human = msg.replace(/^Value error,\s*/i, "");
-    return field && human ? `${field}: ${human}` : human || "Validation failed.";
+    return (field && human ? `${field}: ${human}` : human) || diagnosis.what;
   }
   if (typeof detail === "string" && detail) {
     return detail;
   }
 
-  // Network errors (timeout / connection refused) have no response — say so
-  // explicitly so the user knows the backend was unreachable, not "wrong password".
-  if (error?.code === "ECONNABORTED" || /timeout/i.test(error?.message || "")) {
-    return "The server took too long to respond. It may be waking up — please try again.";
-  }
-  if (error?.message === "Network Error") {
-    return "Cannot reach the server. Check your connection or that the backend is running.";
-  }
-
-  return error?.message || "Something went wrong. Please try again.";
+  return diagnosis.what;
 };
 
 // API and AI providers can return a value in a different shape while a request

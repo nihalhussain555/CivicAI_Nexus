@@ -22,10 +22,11 @@ import {
 
 import { useToast } from "../../context/ToastContext";
 import { useAuth } from "../../hooks/useAuth";
-import { getErrorMessage } from "../../utils/helpers";
+import { useDiagnostics, useErrorToast } from "../../hooks/useDiagnostics";
 
 import Modal from "../../components/common/Modal";
 import EmptyState from "../../components/common/EmptyState";
+import ErrorState from "../../components/common/ErrorState";
 import { SkeletonList } from "../../components/common/Skeleton";
 import Avatar from "../../components/common/Avatar";
 
@@ -42,9 +43,11 @@ const EMPTY_FORM = {
 const Officers = () => {
   const { user } = useAuth();
   const toast = useToast();
+  const { capture } = useDiagnostics();
+  const fail = useErrorToast();
 
   const [officers, setOfficers] = useState(null);
-  const [loadError, setLoadError] = useState("");
+  const [loadError, setLoadError] = useState(null);
   const [districtFilter, setDistrictFilter] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
@@ -58,7 +61,7 @@ const Officers = () => {
     : districtFilter;
 
   const loadOfficers = async () => {
-    setLoadError("");
+    setLoadError(null);
     setOfficers(null);
 
     try {
@@ -76,8 +79,7 @@ const Officers = () => {
 
       setOfficers(data);
     } catch (error) {
-      console.error("Failed to load officers:", error);
-      setLoadError(getErrorMessage(error));
+      setLoadError(capture(error, { feature: "admin_list" }));
       setOfficers([]);
     }
   };
@@ -161,8 +163,7 @@ const Officers = () => {
       closeModal();
       await loadOfficers();
     } catch (error) {
-      console.error("Officer creation failed:", error);
-      toast.error(getErrorMessage(error));
+      fail(error, { feature: "admin_list", onRetry: handleCreate });
     } finally {
       setSaving(false);
     }
@@ -316,40 +317,11 @@ const Officers = () => {
         <SkeletonList rows={5} />
       ) : loadError ? (
         <div className="card">
-          <div
-            style={{
-              textAlign: "center",
-              padding: 30,
-            }}
-          >
-            <Users
-              size={30}
-              color="var(--danger)"
-              style={{ marginBottom: 10 }}
-            />
-
-            <h3 style={{ marginBottom: 6 }}>
-              Unable to load officers
-            </h3>
-
-            <p
-              style={{
-                color: "var(--text-muted)",
-                marginBottom: 16,
-              }}
-            >
-              {loadError}
-            </p>
-
-            <button
-              type="button"
-              className="btn btn-primary"
-              onClick={loadOfficers}
-            >
-              <RefreshCw size={14} />
-              Try again
-            </button>
-          </div>
+          <ErrorState
+            diagnosis={loadError}
+            title="Unable to load officers"
+            onRetry={loadOfficers}
+          />
         </div>
       ) : officers.length === 0 ? (
         <EmptyState

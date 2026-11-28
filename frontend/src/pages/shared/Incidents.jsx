@@ -15,7 +15,8 @@ import EmptyState from "../../components/common/EmptyState";
 import { SkeletonList } from "../../components/common/Skeleton";
 import Pagination from "../../components/common/Pagination";
 import ErrorState from "../../components/common/ErrorState";
-import { getErrorMessage, titleCase } from "../../utils/helpers";
+import { useDiagnostics } from "../../hooks/useDiagnostics";
+import { titleCase } from "../../utils/helpers";
 
 const LIMIT = 10;
 const RISKS = ["LOW", "MEDIUM", "HIGH"];
@@ -35,8 +36,9 @@ const Incidents = () => {
 
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [error, setError] = useState(null);
   const [refreshKey, setRefreshKey] = useState(0);
+  const { capture } = useDiagnostics();
 
   // Same deal as the grievance list: the filters live in the URL, so a link
   // or the back button returns to the crowd you were looking at.
@@ -55,7 +57,7 @@ const Incidents = () => {
 
   useEffect(() => {
     setLoading(true);
-    setError("");
+    setError(null);
     getIncidents({
       risk_level: risk || undefined,
       category: category || undefined,
@@ -66,9 +68,9 @@ const Incidents = () => {
       .then((res) =>
         setData(res.data && Array.isArray(res.data.items) ? res.data : { items: [], page: 1, total_pages: 1 })
       )
-      .catch((err) => setError(getErrorMessage(err)))
+      .catch((err) => setError(capture(err, { feature: "incident_list" })))
       .finally(() => setLoading(false));
-  }, [risk, category, status, page, refreshKey]);
+  }, [risk, category, status, page, refreshKey, capture]);
 
   const basePath = `/${user.role}/incidents`;
   const filtered = Boolean(risk || category || status);
@@ -137,8 +139,8 @@ const Incidents = () => {
         <SkeletonList rows={4} />
       ) : error ? (
         <ErrorState
+          diagnosis={error}
           title="Couldn’t load community incidents"
-          description={error}
           onRetry={() => setRefreshKey((key) => key + 1)}
         />
       ) : data.items.length === 0 ? (

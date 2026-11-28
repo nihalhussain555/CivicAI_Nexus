@@ -16,7 +16,7 @@ import ErrorState from "../../components/common/ErrorState";
 import Skeleton from "../../components/common/Skeleton";
 import { useAuth } from "../../hooks/useAuth";
 import { useToast } from "../../context/ToastContext";
-import { getErrorMessage } from "../../utils/helpers";
+import { useDiagnostics, useErrorToast } from "../../hooks/useDiagnostics";
 import { DEPARTMENTS, PRIORITIES } from "../../utils/constants";
 
 const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -24,6 +24,8 @@ const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const SlaConfig = () => {
   const { user } = useAuth();
   const toast = useToast();
+  const { capture } = useDiagnostics();
+  const fail = useErrorToast();
   const isSuperAdmin = user?.role === "admin" && !user?.district;
 
   const [config, setConfig] = useState(null);
@@ -38,14 +40,18 @@ const SlaConfig = () => {
       const res = await getSlaConfig();
       setConfig(res.data);
     } catch (err) {
-      setError(getErrorMessage(err));
+      setError(capture(err, { feature: "admin_list" }));
     }
-  }, []);
+  }, [capture]);
 
   useEffect(() => {
     load();
-    getSchedulerHealth().then((res) => setHealth(res.data)).catch(() => setHealth(null));
-  }, [load]);
+    // Health only decorates a badge; a miss falls back to "no badge" but still
+    // has to reach the diagnostics dashboard.
+    getSchedulerHealth()
+      .then((res) => setHealth(res.data))
+      .catch((err) => { capture(err, { feature: "analytics" }); setHealth(null); });
+  }, [load, capture]);
 
   const set = (patch) => setConfig((c) => ({ ...c, ...patch }));
   const setNested = (key, patch) => setConfig((c) => ({ ...c, [key]: { ...c[key], ...patch } }));
@@ -66,7 +72,7 @@ const SlaConfig = () => {
       setConfig(res.data);
       toast.success("SLA policy saved. New deadlines apply from the next sweep.");
     } catch (err) {
-      toast.error(getErrorMessage(err));
+      fail(err, { feature: "admin_list", onRetry: save });
     } finally {
       setSaving(false);
     }
@@ -90,7 +96,7 @@ const SlaConfig = () => {
     return (
       <div>
         <div className="page-header"><div><h1>SLA Settings</h1></div></div>
-        <div className="card"><ErrorState description={error} onRetry={load} /></div>
+        <div className="card"><ErrorState diagnosis={error} title="Couldn't load SLA settings" onRetry={load} /></div>
       </div>
     );
   }

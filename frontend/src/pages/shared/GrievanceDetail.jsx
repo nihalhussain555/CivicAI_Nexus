@@ -6,7 +6,8 @@ import { addRemark, rejectGrievance } from "../../services/trackingService";
 import { uploadsBaseUrl } from "../../services/api";
 import { useAuth } from "../../hooks/useAuth";
 import { useToast } from "../../context/ToastContext";
-import { getErrorMessage, formatDateTime, reopenTimes } from "../../utils/helpers";
+import { formatDateTime, reopenTimes } from "../../utils/helpers";
+import { useDiagnostics, useErrorToast } from "../../hooks/useDiagnostics";
 import { CATEGORY_LABELS } from "../../utils/constants";
 import PriorityBadge from "../../components/grievances/PriorityBadge";
 import StatusBadge from "../../components/grievances/StatusBadge";
@@ -54,6 +55,8 @@ const GrievanceDetail = () => {
   const { user } = useAuth();
   const toast = useToast();
   const navigate = useNavigate();
+  const { capture } = useDiagnostics();
+  const fail = useErrorToast();
 
   const [grievance, setGrievance] = useState(null);
   const [error, setError] = useState(null);
@@ -92,9 +95,12 @@ const GrievanceDetail = () => {
 
   const load = useCallback(() => {
     getGrievance(grievanceId)
-      .then((res) => setGrievance(res.data))
-      .catch((err) => setError(getErrorMessage(err)));
-  }, [grievanceId]);
+      .then((res) => {
+        setGrievance(res.data);
+        setError(null);
+      })
+      .catch((err) => setError(capture(err, { feature: "grievance_detail" })));
+  }, [grievanceId, capture]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -103,9 +109,12 @@ const GrievanceDetail = () => {
     setCopilotLoading(true);
     getCopilotBrief(grievanceId)
       .then((res) => setCopilotBrief(res.data))
-      .catch(() => {})
+      // The copilot panel degrades on its own, so a failure here must not block
+      // the case file — but it is still our failure and gets recorded, never
+      // swallowed silently.
+      .catch((err) => capture(err, { feature: "grievance_detail" }))
       .finally(() => setCopilotLoading(false));
-  }, [grievanceId, user?.role]);
+  }, [grievanceId, user?.role, capture]);
 
   useEffect(() => { loadCopilot(); }, [loadCopilot]);
 
@@ -118,7 +127,7 @@ const GrievanceDetail = () => {
       loadCopilot();
       return true;
     } catch (err) {
-      toast.error(getErrorMessage(err));
+      fail(err, { feature: "grievance_detail" });
       return false;
     } finally {
       setActionLoading(false);
@@ -200,7 +209,7 @@ const GrievanceDetail = () => {
     }
   };
 
-  if (error) return <ErrorState description={error} onRetry={load} />;
+  if (error) return <ErrorState diagnosis={error} onRetry={load} />;
   if (!grievance) return <div className="page-loading"><LoadingSpinner label="Loading grievance..." /></div>;
 
   const isOwnerCitizen = user.role === "citizen" && grievance.citizen_id === user.id;
@@ -757,7 +766,7 @@ const GrievanceDetail = () => {
                         toast.success("Grievance deleted");
                         navigate(roleBasePath[user.role] || "/");
                       } catch (err) {
-                        toast.error(getErrorMessage(err));
+                        fail(err, { feature: "grievance_detail" });
                       } finally {
                         setActionLoading(false);
                         setDeleteConfirmOpen(false);

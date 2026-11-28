@@ -14,7 +14,13 @@ import os
 
 from app.config.database import check_database_connection, create_indexes
 from app.config.settings import settings
+from app.services.diagnostics_service import record_exception
 from app.services.email_service import email_config_status
+from app.utils.error_catalog import (
+    SESSION_MESSAGE_MARKERS,
+    SUBSYSTEM_CATEGORIES,
+    build_diagnosis,
+)
 from app.utils.security import decode_token
 
 from app.routes.auth import router as auth_router
@@ -32,6 +38,7 @@ from app.routes.uploads import router as uploads_router
 from app.routes.rewards import router as rewards_router
 from app.routes.push import router as push_router
 from app.routes.sla import router as sla_router
+from app.routes.diagnostics import router as diagnostics_router
 
 
 @asynccontextmanager
@@ -181,6 +188,15 @@ DEMO_MODE_ALLOWED_REQUESTS = {
     ("POST", "/api/auth/login"),
     ("POST", "/api/push/subscribe"),
     ("POST", "/api/push/unsubscribe"),
+    # Diagnostics ingest records telemetry, not civic data: a demo account that
+    # cannot report a failure hides the very bugs demo mode exists to be
+    # harmless around. Without these, demo deployments never store an event.
+    ("POST", "/api/diagnostics/client-error"),
+    ("POST", "/api/diagnostics/report"),
+    # Triaging an error event only re-labels diagnostics the admin already
+    # owns. Blocking it would leave the dashboard's status column dead weight
+    # in exactly the deployment where it gets reviewed.
+    ("PATCH", "/api/diagnostics/events/status"),
 }
 
 DEMO_MODE_MESSAGE = (
@@ -232,6 +248,38 @@ app.add_middleware(
 )
 
 
+def _request_user(request):
+    """Best-effort identity for an error event, from the bearer token alone.
+
+    No database read: the request that just failed may have failed *because*
+    the database is down, and the event document only needs an id to hash and a
+    role to group by.
+    """
+    header = request.headers.get("authorization") or ""
+    if not header.lower().startswith("bearer "):
+        return None
+    payload = decode_token(header.split(" ", 1)[1].strip())
+    if not payload or not payload.get("sub"):
+        return None
+    return {"_id": payload["sub"], "role": payload.get("role")}
+
+
+def should_record(status_code, message):
+    """Which HTTP failures are platform faults worth counting.
+
+    A mistyped password or a stale link is not an outage; storing them would bury
+    the real signal. A broken session *is* blocking for that user, so token
+    expiry is kept.
+    """
+    if status_code and status_code >= 500:
+        return True
+    lowered = (message or "").lower()
+    if status_code in (401, 403) and any(marker in lowered for marker in SESSION_MESSAGE_MARKERS):
+        return True
+    diagnosis = build_diagnosis(status_code=status_code, message=message)
+    return diagnosis["category"] in SUBSYSTEM_CATEGORIES
+
+
 @app.exception_handler(Exception)
 async def unhandled_exception_handler(request, exc):
     # Without this, any unexpected exception (e.g. Mongo server-selection
@@ -239,13 +287,21 @@ async def unhandled_exception_handler(request, exc):
     # which the frontend's response.json() chokes on — presenting as a
     # frozen page instead of a retryable error.
     logging.exception("Unhandled error on %s %s", request.method, request.url.path)
+    diagnosis, _ = record_exception(
+        exc=exc,
+        request=request,
+        status_code=500,
+        message=str(exc),
+        user=_request_user(request),
+    )
     return JSONResponse(
         status_code=500,
         content={
             "success": False,
             "error": {
                 "code": 500,
-                "message": "Internal server error. The backend may be unreachable or misconfigured — please try again.",
+                "message": diagnosis["what"],
+                "diagnosis": diagnosis,
             },
         },
     )
@@ -253,9 +309,26 @@ async def unhandled_exception_handler(request, exc):
 
 @app.exception_handler(StarletteHTTPException)
 async def http_exception_handler(request, exc):
+    # Known failures (401, 404, validation) are not platform faults, so only
+    # subsystem breakdowns and 5xx responses are stored — otherwise a user
+    # mistyping their password would push noise into the error dashboard.
+    diagnosis, _ = record_exception(
+        request=request,
+        status_code=exc.status_code,
+        message=str(exc.detail),
+        user=_request_user(request),
+        store=should_record(exc.status_code, str(exc.detail)),
+    )
     return JSONResponse(
         status_code=exc.status_code,
-        content={"success": False, "error": {"code": exc.status_code, "message": exc.detail}},
+        content={
+            "success": False,
+            "error": {
+                "code": exc.status_code,
+                "message": exc.detail,
+                "diagnosis": diagnosis,
+            },
+        },
     )
 
 
@@ -275,11 +348,25 @@ async def validation_exception_handler(request, exc):
         details.append({"field": ".".join(loc) or "request", "message": msg})
 
     first = details[0]["message"] if details else "Validation failed"
+    # A rejected field is guidance, not an outage: shown inline, never stored.
+    diagnosis, _ = record_exception(
+        request=request,
+        status_code=422,
+        message=first,
+        category="validation",
+        user=_request_user(request),
+        store=False,
+    )
     return JSONResponse(
         status_code=422,
         content={
             "success": False,
-            "error": {"code": 422, "message": first, "details": details},
+            "error": {
+                "code": 422,
+                "message": first,
+                "details": details,
+                "diagnosis": diagnosis,
+            },
         },
     )
 
@@ -299,6 +386,7 @@ app.include_router(uploads_router)
 app.include_router(rewards_router)
 app.include_router(push_router)
 app.include_router(sla_router)
+app.include_router(diagnostics_router)
 
 os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
 app.mount("/uploads", StaticFiles(directory=settings.UPLOAD_DIR), name="uploads")

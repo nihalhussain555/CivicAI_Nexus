@@ -8,7 +8,8 @@ import {
 } from "lucide-react";
 
 import api from "../../services/api";
-import { getErrorMessage } from "../../utils/helpers";
+import ErrorState from "../../components/common/ErrorState";
+import { useDiagnostics } from "../../hooks/useDiagnostics";
 import CivicLoader from "../../components/common/CivicLoader";
 
 
@@ -16,12 +17,14 @@ const ForgotPassword = () => {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
-  const [error, setError] = useState("");
+  // Held as a diagnosis so the banner can render the what / why / what-to-do.
+  const [error, setError] = useState(null);
+  const { capture, diagnose } = useDiagnostics();
 
   const handleSubmit = async (event) => {
     event.preventDefault();
 
-    setError("");
+    setError(null);
     setLoading(true);
 
     try {
@@ -35,12 +38,14 @@ const ForgotPassword = () => {
       setSubmitted(true);
 
     } catch (err) {
-
+      // A rate limit is a "wait a minute", the user's correction; only a 5xx or
+      // no response at all is our fault, so only those get filed via capture.
+      const status = err?.response?.status;
       setError(
-        getErrorMessage(err)
-        || "Unable to process your request."
+        !err?.response || status >= 500
+          ? capture(err, { feature: "password_reset" })
+          : diagnose(err, { feature: "password_reset" })
       );
-
     } finally {
       setLoading(false);
     }
@@ -127,11 +132,7 @@ const ForgotPassword = () => {
                 </div>
 
 
-                {error && (
-                  <div className="error-message">
-                    {error}
-                  </div>
-                )}
+                {error && <ErrorState diagnosis={error} />}
 
 
                 <button

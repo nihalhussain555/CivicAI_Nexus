@@ -15,7 +15,8 @@ import {
 } from "lucide-react";
 
 import api from "../../services/api";
-import { getErrorMessage } from "../../utils/helpers";
+import ErrorState from "../../components/common/ErrorState";
+import { useDiagnostics } from "../../hooks/useDiagnostics";
 import CivicLoader from "../../components/common/CivicLoader";
 
 
@@ -44,11 +45,17 @@ const ResetPassword = () => {
   const [error, setError] =
     useState("");
 
+  // The inline string above covers the client-side field checks; request
+  // failures render as a full diagnosis card via this separate state.
+  const [failure, setFailure] = useState(null);
+  const { capture, diagnose } = useDiagnostics();
+
 
   const handleSubmit = async (event) => {
     event.preventDefault();
 
     setError("");
+    setFailure(null);
 
     if (!token) {
       setError(
@@ -93,9 +100,14 @@ const ResetPassword = () => {
 
     } catch (err) {
 
-      setError(
-        getErrorMessage(err)
-        || "Unable to reset your password."
+      // An expired or already-used token is the user's correction (request a
+      // fresh link), so we classify it without filing it. Only a 5xx or no
+      // response at all is our platform failure — capture() files those too.
+      const status = err?.response?.status;
+      setFailure(
+        !err?.response || status >= 500
+          ? capture(err, { feature: "password_reset" })
+          : diagnose(err, { feature: "password_reset" })
       );
 
     } finally {
@@ -273,6 +285,8 @@ const ResetPassword = () => {
                     {error}
                   </div>
                 )}
+
+                {failure && <ErrorState diagnosis={failure} />}
 
 
                 <button

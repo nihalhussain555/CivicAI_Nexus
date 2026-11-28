@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, MapPin, Users, AlertTriangle } from "lucide-react";
 import { getIncident } from "../../services/incidentService";
@@ -8,7 +8,7 @@ import { CATEGORY_LABELS } from "../../utils/constants";
 import GrievanceCard from "../../components/grievances/GrievanceCard";
 import LoadingSpinner from "../../components/common/LoadingSpinner";
 import ErrorState from "../../components/common/ErrorState";
-import { getErrorMessage } from "../../utils/helpers";
+import { useDiagnostics } from "../../hooks/useDiagnostics";
 
 const RISK_COLOR = { LOW: "badge-low", MEDIUM: "badge-medium", HIGH: "badge-critical" };
 
@@ -19,23 +19,39 @@ const IncidentDetail = () => {
   const [incident, setIncident] = useState(null);
   const [relatedGrievances, setRelatedGrievances] = useState([]);
   const [error, setError] = useState(null);
+  const { capture } = useDiagnostics();
 
-  useEffect(() => {
+  const load = useCallback(() => {
+    setError(null);
     getIncident(incidentId)
       .then((res) => {
         setIncident(res.data);
         if (user.role !== "citizen") {
-          getAllGrievances({ limit: 50 }).then((r) =>
-            setRelatedGrievances(r.data.items.filter((g) => res.data.grievance_ids.includes(g.grievance_id)))
-          );
+          getAllGrievances({ limit: 50 })
+            .then((r) =>
+              setRelatedGrievances(r.data.items.filter((g) => res.data.grievance_ids.includes(g.grievance_id)))
+            )
+            // The incident itself is readable without this list, so it is filed
+            // rather than turned into a page-level error.
+            .catch((err) => capture(err, { feature: "grievance_list" }));
         }
       })
-      .catch((err) => setError(getErrorMessage(err)));
-  }, [incidentId, user.role]);
+      .catch((err) => setError(capture(err, { feature: "incident_list" })));
+  }, [incidentId, user.role, capture]);
+
+  useEffect(() => { load(); }, [load]);
 
   const basePath = `/${user.role}/grievances`;
 
-  if (error) return <ErrorState description={error} />;
+  if (error) {
+    return (
+      <ErrorState
+        diagnosis={error}
+        title="Couldn’t load this incident"
+        onRetry={load}
+      />
+    );
+  }
   if (!incident) return <div className="page-loading"><LoadingSpinner label="Loading incident..." /></div>;
 
   return (

@@ -25,6 +25,7 @@ push_subscriptions_collection = db["push_subscriptions"]
 sla_config_collection = db["sla_config"]
 sla_logs_collection = db["sla_logs"]
 sla_state_collection = db["sla_state"]
+error_events_collection = db["error_events"]
 
 # Backward-compatible alias (older modules referred to "complaints")
 complaints_collection = grievances_collection
@@ -120,6 +121,21 @@ def create_indexes():
         sla_logs_collection.create_index([("department", ASCENDING), ("created_at", DESCENDING)])
         sla_logs_collection.create_index([("level", ASCENDING), ("created_at", DESCENDING)])
         sla_logs_collection.create_index("created_at")
+
+        # --- Error diagnosis ---
+        # The dashboard opens on "newest, grouped by fingerprint", so both the
+        # recency sort and the grouping column need to be indexable.
+        error_events_collection.create_index([("occurred_at", DESCENDING)])
+        error_events_collection.create_index("fingerprint")
+        error_events_collection.create_index([("fingerprint", ASCENDING), ("occurred_at", DESCENDING)])
+        error_events_collection.create_index([("status", ASCENDING), ("occurred_at", DESCENDING)])
+        error_events_collection.create_index([("category", ASCENDING), ("occurred_at", DESCENDING)])
+        error_events_collection.create_index([("feature", ASCENDING), ("occurred_at", DESCENDING)])
+        # Raw events are a debugging aid, not a record of practice: drop them
+        # after 90 days so the collection cannot grow without bound.
+        error_events_collection.create_index(
+            "created_at", expireAfterSeconds=90 * 24 * 60 * 60
+        )
 
     except PyMongoError as error:
         print(f"WARNING: index creation failed: {error}")

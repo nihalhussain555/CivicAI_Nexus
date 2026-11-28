@@ -23,7 +23,8 @@ import { getTracking, updateFeedback } from "../../services/trackingService";
 import { deleteGrievance, verifyResolution } from "../../services/grievanceService";
 import { uploadsBaseUrl } from "../../services/api";
 import { useToast } from "../../context/ToastContext";
-import { formatDate, formatDateTime, formatRelative, getErrorMessage, reopenTimes, toDisplayText } from "../../utils/helpers";
+import { formatDate, formatDateTime, formatRelative, reopenTimes, toDisplayText } from "../../utils/helpers";
+import { useDiagnostics, useErrorToast } from "../../hooks/useDiagnostics";
 import { CATEGORY_LABELS, STATUS_LABELS } from "../../utils/constants";
 import StatusBadge from "../../components/grievances/StatusBadge";
 import PriorityBadge from "../../components/grievances/PriorityBadge";
@@ -67,6 +68,8 @@ const GrievanceTracking = () => {
   const { grievanceId } = useParams();
   const navigate = useNavigate();
   const toast = useToast();
+  const { capture } = useDiagnostics();
+  const fail = useErrorToast();
 
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
@@ -88,7 +91,7 @@ const GrievanceTracking = () => {
         setData(res.data);
         setError(null);
       })
-      .catch((err) => setError(getErrorMessage(err)))
+      .catch((err) => setError(capture(err, { feature: "grievance_detail" })))
       .finally(() => setRefreshing(false));
   }, [grievanceId]);
 
@@ -107,7 +110,7 @@ const GrievanceTracking = () => {
     return () => clearInterval(timer);
   }, [live, load]);
 
-  if (error && !data) return <ErrorState description={error} onRetry={() => load()} />;
+  if (error && !data) return <ErrorState diagnosis={error} onRetry={() => load()} />;
   if (!data) return <div className="page-loading"><LoadingSpinner label="Loading your tracking page..." /></div>;
 
   const { stage, sla, permissions, feedback, reopen, resolution, officer, remarks, notifications, override, flag } = data;
@@ -116,8 +119,12 @@ const GrievanceTracking = () => {
     try {
       await navigator.clipboard.writeText(data.grievance_id);
       toast.success("Reference copied");
-    } catch {
-      toast.error("Your browser blocked the clipboard — the reference is shown above");
+    } catch (err) {
+      fail(err, {
+        feature: "grievance_detail",
+        category: "client",
+        message: "Your browser blocked the clipboard — the reference is shown above",
+      });
     }
   };
 
@@ -130,7 +137,7 @@ const GrievanceTracking = () => {
       close?.();
       return true;
     } catch (err) {
-      toast.error(getErrorMessage(err));
+      fail(err, { feature: "grievance_detail" });
       return false;
     } finally {
       setBusy(false);

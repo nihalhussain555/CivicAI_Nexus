@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Mic, Square, Send, Trash2, Loader2, AlertTriangle, Play, Keyboard } from "lucide-react";
 import { transcribeVoiceNote } from "../../services/aiService";
 import { formatDuration } from "../../utils/helpers";
+import { useDiagnostics } from "../../hooks/useDiagnostics";
 
 /**
  * Voice capture for the assistant: press the microphone, speak the complaint
@@ -30,7 +31,9 @@ const PHASES = { idle: "idle", recording: "recording", listening: "listening", r
 const VoiceCapture = ({ onAccept, language = "Auto", disabled = false }) => {
   const [phase, setPhase] = useState(PHASES.idle);
   const [seconds, setSeconds] = useState(0);
-  const [error, setError] = useState(null);
+  // Held as a diagnosis, not a string: which voice failure happened decides
+  // both what the citizen reads and what the dashboard counts.
+  const [problem, setProblem] = useState(null);
   const [result, setResult] = useState(null);
   const [text, setText] = useState("");
   // Held in state, not a ref, because it is rendered — and it points at the
@@ -45,6 +48,15 @@ const VoiceCapture = ({ onAccept, language = "Auto", disabled = false }) => {
   const canvasRef = useRef(null);
   const frameRef = useRef(null);
   const timerRef = useRef(null);
+
+  const { capture } = useDiagnostics();
+
+  // One place records a voice failure: the note on screen and the row on the
+  // diagnostics dashboard always come from the same diagnosis.
+  const fail = (diagnosis) => {
+    setProblem(diagnosis);
+    return diagnosis;
+  };
 
   const cleanup = useCallback(() => {
     cancelAnimationFrame(frameRef.current);
@@ -96,18 +108,27 @@ const VoiceCapture = ({ onAccept, language = "Auto", disabled = false }) => {
   }, []);
 
   const start = async () => {
-    setError(null);
+    setProblem(null);
     setResult(null);
     if (!navigator.mediaDevices?.getUserMedia || typeof MediaRecorder === "undefined") {
-      setError("Your browser can't record audio here. Type your message instead.");
+      // The one voice failure the citizen cannot fix themselves, so it is
+      // counted: a climb here is a support decision, not user error.
+      fail(capture(null, {
+        feature: "voice_capture",
+        category: "voice",
+        message: "getUserMedia or MediaRecorder unavailable in this browser",
+      }));
       return;
     }
 
     let stream;
     try {
       stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
-    } catch {
-      setError("The microphone was blocked. Allow microphone access, or type your message instead.");
+    } catch (err) {
+      // Was a flat "the microphone was blocked" for every cause: a phone with
+      // no mic, an app holding the mic, and a refused permission are three
+      // different answers for the citizen.
+      fail(capture(err, { feature: "voice_capture", category: "voice" }));
       return;
     }
 
@@ -140,7 +161,9 @@ const VoiceCapture = ({ onAccept, language = "Auto", disabled = false }) => {
       } catch (err) {
         setPhase(PHASES.review);
         setResult({ needs_text_fallback: true, transcript: "", audio_url: null });
-        setError(err?.response?.data?.detail || "The recording could not be processed. Type your message instead.");
+        // The recording is kept on the page either way, so the note has to say
+        // the transcript failed, not that the complaint did.
+        fail(capture(err, { feature: "speech_recognition", category: "voice" }));
       }
     };
 
@@ -183,7 +206,7 @@ const VoiceCapture = ({ onAccept, language = "Auto", disabled = false }) => {
     setResult(null);
     setText("");
     setReplayUrl(null);
-    setError(null);
+    setProblem(null);
     setPhase(PHASES.idle);
   };
 
@@ -228,6 +251,7 @@ const VoiceCapture = ({ onAccept, language = "Auto", disabled = false }) => {
           border-radius: 9px; padding: 8px 10px; margin-bottom: 8px;
         }
         .voice-error { color: var(--danger); background: var(--danger-soft); }
+        .voice-note-fix { display: block; margin-top: 3px; color: var(--text-muted); }
         .voice-textarea {
           width: 100%; min-height: 68px; resize: vertical; border-radius: 9px;
           border: 1px solid var(--border-strong); background: var(--bg); color: var(--text);
@@ -260,19 +284,22 @@ const VoiceCapture = ({ onAccept, language = "Auto", disabled = false }) => {
             )}
           </div>
 
-          {error && (
-            <div className="voice-note voice-error">
+          {problem && (
+            <div className="voice-note voice-error" role="alert">
               <AlertTriangle size={14} style={{ flexShrink: 0, marginTop: 1 }} />
-              <span>{error}</span>
+              <span>
+                {problem.what}
+                {problem.solution && <span className="voice-note-fix">{problem.solution}</span>}
+              </span>
             </div>
           )}
-          {!error && result?.note && (
+          {!problem && result?.note && (
             <div className="voice-note">
               <AlertTriangle size={14} style={{ flexShrink: 0, marginTop: 1 }} />
               <span>{result.note}</span>
             </div>
           )}
-          {!error && !result?.note && result?.low_confidence && (
+          {!problem && !result?.note && result?.low_confidence && (
             <div className="voice-note">
               <AlertTriangle size={14} style={{ flexShrink: 0, marginTop: 1 }} />
               <span>We are not fully sure of these words — please correct anything that is wrong.</span>
@@ -337,10 +364,13 @@ const VoiceCapture = ({ onAccept, language = "Auto", disabled = false }) => {
         </div>
       )}
 
-      {error && phase !== PHASES.review && (
-        <div className="voice-note voice-error">
+      {problem && phase !== PHASES.review && (
+        <div className="voice-note voice-error" role="alert">
           <Keyboard size={14} style={{ flexShrink: 0, marginTop: 1 }} />
-          <span>{error}</span>
+          <span>
+            {problem.what}
+            {problem.solution && <span className="voice-note-fix">{problem.solution}</span>}
+          </span>
         </div>
       )}
     </div>

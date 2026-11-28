@@ -8,8 +8,7 @@ import { SkeletonList } from "../../components/common/Skeleton";
 import Pagination from "../../components/common/Pagination";
 import ErrorState from "../../components/common/ErrorState";
 import Modal from "../../components/common/Modal";
-import { useToast } from "../../context/ToastContext";
-import { getErrorMessage } from "../../utils/helpers";
+import { useDiagnostics, useErrorToast } from "../../hooks/useDiagnostics";
 
 const TABS = [
   { key: "queue", label: "Priority Queue" },
@@ -24,7 +23,7 @@ const Grievances = () => {
   const [page, setPage] = useState(1);
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [error, setError] = useState(null);
   const [refreshKey, setRefreshKey] = useState(0);
 
   const [selected, setSelected] = useState(() => new Set());
@@ -32,7 +31,8 @@ const Grievances = () => {
   const [bulkLoading, setBulkLoading] = useState(false);
   const [resultModal, setResultModal] = useState(null); // { accepted, skipped }
 
-  const toast = useToast();
+  const { capture } = useDiagnostics();
+  const fail = useErrorToast();
 
   // Debounced search — waits for a pause in typing before hitting the API.
   useEffect(() => {
@@ -45,15 +45,17 @@ const Grievances = () => {
 
   useEffect(() => {
     setLoading(true);
-    setError("");
+    setError(null);
     setSelected(new Set());
     const params = { page, limit: 10, search: search || undefined };
     const fetcher = tab === "queue" ? getQueue(params) : getAssigned({ ...params, status: status || undefined });
     fetcher
       .then((res) => setData(res.data && Array.isArray(res.data.items) ? res.data : { items: [], page: 1, total_pages: 1 }))
-      .catch((err) => setError(getErrorMessage(err)))
+      // The diagnosis object rather than a string: which queue broke, why, and
+      // whether retrying is the right next move.
+      .catch((err) => setError(capture(err, { feature: "grievance_list" })))
       .finally(() => setLoading(false));
-  }, [tab, status, search, page, refreshKey]);
+  }, [tab, status, search, page, refreshKey, capture]);
 
   const items = data?.items || [];
   const allSelectedOnPage = items.length > 0 && items.every((g) => selected.has(g.grievance_id));
@@ -87,7 +89,11 @@ const Grievances = () => {
       setSelected(new Set());
       setRefreshKey((k) => k + 1);
     } catch (err) {
-      toast.error(getErrorMessage(err));
+      fail(err, {
+        feature: "grievance_detail",
+        message: "None of the selected cases were accepted — the queue is unchanged.",
+        onRetry: runBulkAccept,
+      });
     } finally {
       setBulkLoading(false);
     }
@@ -151,7 +157,11 @@ const Grievances = () => {
       {loading ? (
         <SkeletonList rows={5} />
       ) : error ? (
-        <ErrorState title="Couldn’t load grievances" description={error} onRetry={() => setRefreshKey((key) => key + 1)} />
+        <ErrorState
+          diagnosis={error}
+          title="Couldn’t load grievances"
+          onRetry={() => setRefreshKey((key) => key + 1)}
+        />
       ) : items.length === 0 ? (
         <EmptyState
           icon={search ? Search : ListChecks}

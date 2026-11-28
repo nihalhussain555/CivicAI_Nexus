@@ -13,9 +13,10 @@ import {
 import EmptyState from "../../components/common/EmptyState";
 import ErrorState from "../../components/common/ErrorState";
 import { SkeletonList } from "../../components/common/Skeleton";
-import { getErrorMessage, titleCase } from "../../utils/helpers";
+import { titleCase } from "../../utils/helpers";
 import { DEPARTMENTS, PRIORITIES } from "../../utils/constants";
 import { useToast } from "../../context/ToastContext";
+import { useDiagnostics, useErrorToast } from "../../hooks/useDiagnostics";
 
 const fmtPct = (value) => (value === null || value === undefined ? "—" : `${value}%`);
 
@@ -35,6 +36,8 @@ const Delta = ({ current, previous }) => {
 
 const SlaDepartmentPerformance = () => {
   const toast = useToast();
+  const { capture } = useDiagnostics();
+  const fail = useErrorToast();
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -57,11 +60,11 @@ const SlaDepartmentPerformance = () => {
       const res = await getDepartmentPerformance(params());
       setData(res.data);
     } catch (err) {
-      setError(getErrorMessage(err));
+      setError(capture(err, { feature: "analytics" }));
     } finally {
       setLoading(false);
     }
-  }, [params]);
+  }, [params, capture]);
 
   useEffect(() => {
     load();
@@ -73,7 +76,7 @@ const SlaDepartmentPerformance = () => {
       await downloadDepartmentReport(params());
       toast.success("Report downloaded");
     } catch (err) {
-      toast.error(getErrorMessage(err));
+      fail(err, { feature: "analytics", onRetry: exportCsv });
     } finally {
       setExporting(false);
     }
@@ -123,7 +126,7 @@ const SlaDepartmentPerformance = () => {
       {data === null && !error ? (
         <SkeletonList rows={6} />
       ) : error ? (
-        <div className="card"><ErrorState description={error} onRetry={load} /></div>
+        <div className="card"><ErrorState diagnosis={error} title="Couldn't load department performance" onRetry={load} /></div>
       ) : rows.length === 0 ? (
         <EmptyState icon={BarChart3} title="No cases in this window"
                     description="Widen the date range or clear the filters to see department performance." />

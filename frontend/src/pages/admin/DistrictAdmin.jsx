@@ -37,22 +37,32 @@ import LineChartCard from "../../components/charts/LineChartCard";
 import BarChartCard from "../../components/charts/BarChartCard";
 
 import EmptyState from "../../components/common/EmptyState";
+import ErrorState from "../../components/common/ErrorState";
 import LoadingSpinner from "../../components/common/LoadingSpinner";
 
 import { useAuth } from "../../hooks/useAuth";
-import { useToast } from "../../context/ToastContext";
-import { getErrorMessage } from "../../utils/helpers";
+import {
+  useDiagnostics,
+  useErrorToast,
+} from "../../hooks/useDiagnostics";
 
 
 const DistrictAdmin = () => {
   const { user } = useAuth();
-  const toast = useToast();
+  const { capture } = useDiagnostics();
+  const fail = useErrorToast();
 
   /* =========================================================
      STATE
   ========================================================= */
 
   const [stats, setStats] = useState(null);
+
+  const [statsError, setStatsError] =
+    useState(null);
+
+  const [unassignedError, setUnassignedError] =
+    useState(null);
 
   const [trends, setTrends] = useState([]);
 
@@ -105,24 +115,26 @@ const DistrictAdmin = () => {
           : [];
 
         setUnassigned(items);
+        setUnassignedError(null);
 
         return true;
       } catch (error) {
-        console.error(
-          "Failed to load unassigned grievances:",
-          error
-        );
-
+        // showError marks a deliberate refresh (toast); the silent paths surface
+        // the failure in the section itself instead.
         if (showError) {
-          toast.error(
-            getErrorMessage(error)
+          // No retry on this toast: the section below keeps its own retry once
+          // the failure is on screen, and a refresh is what the admin pressed.
+          fail(error, { feature: "grievance_list" });
+        } else {
+          setUnassignedError(
+            capture(error, { feature: "grievance_list" })
           );
         }
 
         return false;
       }
     },
-    [district, toast]
+    [district, capture, fail]
   );
 
 
@@ -159,10 +171,10 @@ const DistrictAdmin = () => {
           setStats(
             response?.data || null
           );
+          setStatsError(null);
         } catch (error) {
-          console.error(
-            "District overview error:",
-            error
+          setStatsError(
+            capture(error, { feature: "analytics" })
           );
         }
       };
@@ -181,10 +193,7 @@ const DistrictAdmin = () => {
               : []
           );
         } catch (error) {
-          console.error(
-            "District trends error:",
-            error
-          );
+          capture(error, { feature: "analytics" });
         }
       };
 
@@ -211,10 +220,7 @@ const DistrictAdmin = () => {
             }))
           );
         } catch (error) {
-          console.error(
-            "Department performance error:",
-            error
-          );
+          capture(error, { feature: "analytics" });
         }
       };
 
@@ -234,10 +240,7 @@ const DistrictAdmin = () => {
               : []
           );
         } catch (error) {
-          console.error(
-            "District officers error:",
-            error
-          );
+          capture(error, { feature: "admin_list" });
         }
       };
 
@@ -258,6 +261,7 @@ const DistrictAdmin = () => {
       setRefreshing(false);
     }, [
       district,
+      capture,
       loadUnassigned,
     ]);
 
@@ -485,6 +489,19 @@ const DistrictAdmin = () => {
           PRIMARY STATS
       ===================================================== */}
 
+      {!stats && statsError && (
+        <div
+          className="card"
+          style={{ marginBottom: 16 }}
+        >
+          <ErrorState
+            diagnosis={statsError}
+            title="Couldn't load district stats"
+            onRetry={loadDashboard}
+          />
+        </div>
+      )}
+
       <div
         className="grid grid-4"
         style={{
@@ -697,6 +714,20 @@ const DistrictAdmin = () => {
 
       {unassigned.length === 0 ? (
 
+        unassignedError ? (
+
+          /* ===================================================
+             LOAD FAILED
+          =================================================== */
+
+          <ErrorState
+            diagnosis={unassignedError}
+            title="Couldn't load unassigned grievances"
+            onRetry={() => loadUnassigned(true)}
+          />
+
+        ) : (
+
         /* ===================================================
            EMPTY STATE
         =================================================== */
@@ -738,6 +769,8 @@ const DistrictAdmin = () => {
           </div>
 
         </div>
+
+        )
 
       ) : (
 

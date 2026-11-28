@@ -15,19 +15,16 @@ import {
 } from "../../services/departmentService";
 
 import {
-  useToast,
-} from "../../context/ToastContext";
-
-import {
-  getErrorMessage,
-} from "../../utils/helpers";
+  useDiagnostics,
+} from "../../hooks/useDiagnostics";
 
 import EmptyState from "../../components/common/EmptyState";
+import ErrorState from "../../components/common/ErrorState";
 import { SkeletonList } from "../../components/common/Skeleton";
 
 
 const Departments = () => {
-  const toast = useToast();
+  const { capture } = useDiagnostics();
 
   const [
     departments,
@@ -42,7 +39,7 @@ const Departments = () => {
   const [
     error,
     setError,
-  ] = useState("");
+  ] = useState(null);
 
 
   // ==========================================================
@@ -52,7 +49,7 @@ const Departments = () => {
   const load = async () => {
     try {
       setLoading(true);
-      setError("");
+      setError(null);
 
       const response =
         await getDepartments();
@@ -64,14 +61,11 @@ const Departments = () => {
       );
 
     } catch (requestError) {
-      const message =
-        getErrorMessage(
-          requestError
-        );
-
-      setError(message);
-
-      toast.error(message);
+      setError(
+        capture(requestError, {
+          feature: "admin_list",
+        })
+      );
 
     } finally {
       setLoading(false);
@@ -129,29 +123,20 @@ const Departments = () => {
 
 
       {/* =====================================================
-          ERROR
-      ====================================================== */}
-
-      {error && (
-        <div
-          className="card"
-          style={{
-            marginBottom: 16,
-            color: "var(--danger)",
-          }}
-        >
-          {error}
-        </div>
-      )}
-
-
-      {/* =====================================================
-          LOADING
+          LOADING / ERROR
       ====================================================== */}
 
       {departments === null ? (
 
-        <SkeletonList rows={7} />
+        error ? (
+          <ErrorState
+            diagnosis={error}
+            title="Couldn't load departments"
+            onRetry={load}
+          />
+        ) : (
+          <SkeletonList rows={7} />
+        )
 
       ) : departments.length === 0 ? (
 

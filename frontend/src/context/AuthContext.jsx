@@ -1,11 +1,15 @@
 import { createContext, useContext, useState, useEffect } from "react";
 import * as authService from "../services/authService";
+import { useDiagnostics } from "../hooks/useDiagnostics";
 
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  // capture is stable across renders, so the mount-only effect below can use it
+  // without re-running.
+  const { capture } = useDiagnostics();
 
   useEffect(() => {
     const token = localStorage.getItem("civicai_token");
@@ -33,10 +37,22 @@ export const AuthProvider = ({ children }) => {
           setUser(freshUser);
           localStorage.setItem("civicai_user", JSON.stringify(freshUser));
         })
-        .catch(() => {
-          localStorage.removeItem("civicai_token");
-          localStorage.removeItem("civicai_user");
-          setUser(null);
+        .catch((err) => {
+          // A 401 is the only answer that means the token is genuinely dead.
+          // (For that case the api interceptor has already cleared storage and
+          // bounced to /login; we mirror it so context state stops disagreeing
+          // with storage.)
+          if (err?.response?.status === 401) {
+            localStorage.removeItem("civicai_token");
+            localStorage.removeItem("civicai_user");
+            setUser(null);
+            return;
+          }
+          // Offline / 5xx / timeout is a backend blip, not a sign-out: keep the
+          // cached session so the user isn't ejected whenever the server wobbles,
+          // and record it instead of swallowing it. The app's offline state and
+          // the diagnostics dashboard both pick it up from here.
+          capture(err, { feature: "auth" });
         })
         .finally(() => setLoading(false));
     } else {
@@ -54,9 +70,11 @@ export const AuthProvider = ({ children }) => {
     try {
       const me = await authService.getMe();
       profile = { ...loggedInUser, ...me.data, id: me.data._id };
-    } catch {
-      // The token is already valid; a failed profile refresh shouldn't
-      // strand the user outside the app.
+    } catch (err) {
+      // The token is already valid; a failed profile refresh shouldn't strand
+      // the user outside the app — but it is our failure, so record it rather
+      // than swallowing it silently.
+      capture(err, { feature: "auth" });
     }
     localStorage.setItem("civicai_user", JSON.stringify(profile));
     setUser(profile);

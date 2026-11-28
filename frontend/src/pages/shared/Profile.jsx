@@ -16,13 +16,15 @@ import {
 import { getMe, updateProfile } from "../../services/authService";
 import { uploadImage } from "../../services/uploadService";
 import { useToast } from "../../context/ToastContext";
-import { getErrorMessage, formatDate } from "../../utils/helpers";
+import { formatDate } from "../../utils/helpers";
+import { useErrorToast } from "../../hooks/useDiagnostics";
 import { useAuth } from "../../hooks/useAuth";
 import Avatar from "../../components/common/Avatar";
 import BadgesAndCertificates from "../../components/common/BadgesAndCertificates";
 
 const Profile = () => {
   const toast = useToast();
+  const fail = useErrorToast();
   const { user, updateUser } = useAuth();
 
   const fileInputRef = useRef(null);
@@ -68,7 +70,7 @@ const Profile = () => {
         }
       }
     } catch (error) {
-      toast.error(getErrorMessage(error));
+      fail(error, { feature: "profile", onRetry: loadProfile });
     } finally {
       setLoading(false);
     }
@@ -172,7 +174,7 @@ const Profile = () => {
       setEditingPersonal(false);
       toast.success("Personal information updated successfully.");
     } catch (error) {
-      toast.error(getErrorMessage(error));
+      fail(error, { feature: "profile" });
     } finally {
       setSaving(false);
     }
@@ -218,7 +220,7 @@ const Profile = () => {
       setEditingAddress(false);
       toast.success("Address updated successfully.");
     } catch (error) {
-      toast.error(getErrorMessage(error));
+      fail(error, { feature: "profile" });
     } finally {
       setSaving(false);
     }
@@ -263,7 +265,10 @@ const Profile = () => {
       const imageUrl = uploadResponse?.data?.url;
 
       if (!imageUrl) {
-        throw new Error("Image upload failed.");
+        // The upload answered without a URL — a platform failure, not a bad
+        // choice by the user, so it is recorded as one before stopping here.
+        fail(null, { feature: "file_upload", category: "upload" });
+        return;
       }
 
       const response = await updateProfile({
@@ -280,7 +285,7 @@ const Profile = () => {
 
       toast.success("Profile photo updated successfully.");
     } catch (error) {
-      toast.error(getErrorMessage(error));
+      fail(error, { feature: "profile" });
     } finally {
       setUploadingPhoto(false);
     }

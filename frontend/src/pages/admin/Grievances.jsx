@@ -8,9 +8,10 @@ import EmptyState from "../../components/common/EmptyState";
 import { SkeletonList } from "../../components/common/Skeleton";
 import Pagination from "../../components/common/Pagination";
 import ErrorState from "../../components/common/ErrorState";
-import { getErrorMessage } from "../../utils/helpers";
+import { useDiagnostics } from "../../hooks/useDiagnostics";
 
 const Grievances = () => {
+  const { capture } = useDiagnostics();
   const [filters, setFilters] = useState({ status: "", category: "", department: "", priority: "", search: "" });
   const [searchInput, setSearchInput] = useState("");
   const [page, setPage] = useState(1);
@@ -20,7 +21,13 @@ const Grievances = () => {
   const [error, setError] = useState("");
   const [refreshKey, setRefreshKey] = useState(0);
 
-  useEffect(() => { getDepartments().then((res) => setDepartments(res.data)); }, []);
+  // The dropdown falls back to nothing if this fails, but the filters above it
+  // are canonical lists — report it, don't interrupt the page for it.
+  useEffect(() => {
+    getDepartments()
+      .then((res) => setDepartments(res.data))
+      .catch((err) => capture(err, { feature: "admin_list" }));
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     setLoading(true);
@@ -28,9 +35,9 @@ const Grievances = () => {
     const params = Object.fromEntries(Object.entries(filters).filter(([, v]) => v));
     getAllGrievances({ ...params, page, limit: 12 })
       .then((res) => setData(res.data && Array.isArray(res.data.items) ? res.data : { items: [], page: 1, total_pages: 1 }))
-      .catch((err) => setError(getErrorMessage(err)))
+      .catch((err) => setError(capture(err, { feature: "grievance_list" })))
       .finally(() => setLoading(false));
-  }, [filters, page, refreshKey]);
+  }, [filters, page, refreshKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const updateFilter = (key) => (e) => { setFilters((f) => ({ ...f, [key]: e.target.value })); setPage(1); };
 
@@ -70,7 +77,7 @@ const Grievances = () => {
       {loading ? (
         <SkeletonList rows={6} />
       ) : error ? (
-        <ErrorState title="Couldn’t load grievances" description={error} onRetry={() => setRefreshKey((key) => key + 1)} />
+        <ErrorState diagnosis={error} title="Couldn’t load grievances" onRetry={() => setRefreshKey((key) => key + 1)} />
       ) : data?.items?.length === 0 ? (
         <EmptyState icon={FileText} title="No grievances found" description="Try adjusting your filters." />
       ) : (

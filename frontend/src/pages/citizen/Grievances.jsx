@@ -14,7 +14,8 @@ import EmptyState from "../../components/common/EmptyState";
 import { SkeletonList } from "../../components/common/Skeleton";
 import Pagination from "../../components/common/Pagination";
 import ErrorState from "../../components/common/ErrorState";
-import { getErrorMessage, titleCase } from "../../utils/helpers";
+import { useDiagnostics } from "../../hooks/useDiagnostics";
+import { titleCase } from "../../utils/helpers";
 
 const LIMIT = 10;
 
@@ -44,9 +45,10 @@ const Grievances = () => {
 
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [error, setError] = useState(null);
   const [refreshKey, setRefreshKey] = useState(0);
   const [searchInput, setSearchInput] = useState(search);
+  const { capture } = useDiagnostics();
 
   // The URL holds the filters, so a reload, a back button or a link sent to
   // someone else lands on the same list instead of a reset one.
@@ -77,7 +79,7 @@ const Grievances = () => {
 
   useEffect(() => {
     setLoading(true);
-    setError("");
+    setError(null);
     getMyGrievances({
       status: statusParam(status, bucket) || undefined,
       priority: priority || undefined,
@@ -88,7 +90,9 @@ const Grievances = () => {
       .then((res) =>
         setData(res.data && Array.isArray(res.data.items) ? res.data : { items: [], page: 1, total_pages: 1 })
       )
-      .catch((err) => setError(getErrorMessage(err)))
+      // The diagnosis object, not a flattened string: the error block needs the
+      // reason, the suggested fix and whether a retry is worth offering.
+      .catch((err) => setError(capture(err, { feature: "grievance_list" })))
       .finally(() => setLoading(false));
   }, [status, bucket, priority, search, page, refreshKey]);
 
@@ -173,7 +177,11 @@ const Grievances = () => {
       {loading ? (
         <SkeletonList rows={5} />
       ) : error ? (
-        <ErrorState title="Couldn’t load your grievances" description={error} onRetry={() => setRefreshKey((key) => key + 1)} />
+        <ErrorState
+          diagnosis={error}
+          title="Couldn’t load your grievances"
+          onRetry={() => setRefreshKey((key) => key + 1)}
+        />
       ) : items.length === 0 ? (
         <EmptyState
           icon={FileText}

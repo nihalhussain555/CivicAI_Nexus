@@ -6,9 +6,11 @@ import { uploadImage } from "../../services/uploadService";
 import { reverseGeocode } from "../../services/geocodeService";
 import { LANGUAGES, DISTRICTS, DISTRICT_CENTERS, STATE_CENTER, STATUS_LABELS } from "../../utils/constants";
 import { useToast } from "../../context/ToastContext";
-import { getErrorMessage, toDisplayText, formatRelative } from "../../utils/helpers";
+import { toDisplayText, formatRelative } from "../../utils/helpers";
+import { useDiagnostics, useErrorToast } from "../../hooks/useDiagnostics";
 import AIAnalysisPanel from "../../components/ai/AIAnalysisPanel";
 import AIProcessingAnimation from "../../components/ai/AIProcessingAnimation";
+import DiagnosticCard from "../../components/common/DiagnosticCard";
 import ImageUploader from "../../components/grievances/ImageUploader";
 import LocationPicker from "../../components/grievances/LocationPicker";
 import VoiceCapture from "../../components/voice/VoiceCapture";
@@ -60,9 +62,14 @@ const ReportIssue = () => {
   const [analysisReady, setAnalysisReady] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(null);
+  // A failed submission stays on the page until the citizen retries or starts
+  // again — a toast would expire while they were still reading it.
+  const [submitError, setSubmitError] = useState(null);
 
   const toast = useToast();
   const navigate = useNavigate();
+  const { capture, diagnose } = useDiagnostics();
+  const fail = useErrorToast();
 
   // Derived, not stored: an untouched title field follows the description, and
   // the citizen's own words take over the moment they type one.
@@ -74,7 +81,10 @@ const ReportIssue = () => {
     if (!prefill.prefillFile) return;
     uploadImage(prefill.prefillFile)
       .then((res) => setAttachments((prev) => [...prev, res.data]))
-      .catch(() => toast.error("Couldn't attach the photo from your quick note — please add it again below."))
+      .catch((err) => fail(err, {
+        feature: "file_upload",
+        message: "Couldn't attach the photo from your quick note — please add it again below.",
+      }))
       .finally(() => setPrefillUploading(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -91,7 +101,13 @@ const ReportIssue = () => {
     const timer = setTimeout(() => {
       getNearbyReports({ latitude: pinLat, longitude: pinLng, district: pinDistrict })
         .then((res) => { if (!cancelled) setNearby({ key: pinKey, ...res.data }); })
-        .catch(() => { if (!cancelled) setNearby({ key: pinKey, reports: [], total_nearby: 0 }); });
+        // An empty list here reads as "nobody has reported this", so the
+        // failure is recorded and said out loud instead of shown as a zero.
+        .catch((err) => {
+          if (cancelled) return;
+          capture(err, { feature: "grievance_list" });
+          setNearby({ key: pinKey, reports: [], total_nearby: 0, failed: true });
+        });
     }, 600);
     return () => { cancelled = true; clearTimeout(timer); };
   }, [pinKey, pinLat, pinLng, pinDistrict]);
@@ -136,8 +152,14 @@ const ReportIssue = () => {
         detection_method: method ?? prev?.detection_method ?? "manual",
       }));
       if (!keepDistrict && district) setDistrictWasGuessed(true);
-    } catch {
+    } catch (err) {
       // Coordinates are what the report needs; an address is a convenience.
+      // Falling back quietly though leaves raw numbers in the address box and
+      // no explanation, so the failure is recorded and said out loud.
+      capture(err, { feature: "geocode" });
+      setLocateError(
+        "We could not turn that pin into an address, so the coordinates are saved instead. Search for your area, or type the district below."
+      );
       setLocation((prev) => ({
         ...(prev || {}),
         latitude,
@@ -170,12 +192,21 @@ const ReportIssue = () => {
         // Code 1 is a denial the citizen may never have seen a prompt for (an
         // embedded webview, a browser that silently blocks), so the message has
         // to point at the way out rather than at a permission they didn't refuse.
+        if (error?.code === 1) {
+          // Declining the prompt is the citizen's choice, not a platform
+          // failure: shown, never counted, or the dashboard would measure how
+          // many people pressed "Don't allow".
+          diagnose(error, { feature: "location", category: "location" });
+          setLocateError("Location access is blocked.");
+          return;
+        }
+        // Unavailable hardware and a fix that never arrived are real faults, so
+        // those do reach the dashboard.
+        capture(error, { feature: "location", category: "location" });
         setLocateError(
-          error?.code === 1
-            ? "Location access is blocked."
-            : error?.code === 3
-              ? "Taking too long to get a fix."
-              : "Couldn't read your location."
+          error?.code === 3
+            ? "Taking too long to get a fix."
+            : "Couldn't read your location."
         );
       },
       // Without `timeout` a browser that never answers the request leaves this
@@ -237,8 +268,14 @@ const ReportIssue = () => {
         setAnalyzing(false);
       }, 500);
     } catch (error) {
-      toast.error(getErrorMessage(error));
       setAnalyzing(false);
+      // The AI pre-check is a convenience on the way to a complaint: losing it
+      // must not read as losing the report.
+      fail(error, {
+        feature: "ai_chat",
+        message: "The automatic check could not run — you can still send your report.",
+        onRetry: runAnalysis,
+      });
     }
   };
 
@@ -249,6 +286,7 @@ const ReportIssue = () => {
       return;
     }
     setSubmitting(true);
+    setSubmitError(null);
     try {
       const payload = {
         title, description, language,
@@ -273,7 +311,10 @@ const ReportIssue = () => {
       setStep(2);
       toast.success("Grievance submitted successfully");
     } catch (error) {
-      toast.error(getErrorMessage(error));
+      // A failed submission is the one error on this page that must not live
+      // only in a toast: the citizen needs it on screen while they decide
+      // whether to retry, and the draft has to stay put.
+      setSubmitError(capture(error, { feature: "grievance_submit" }));
     } finally {
       setSubmitting(false);
     }
@@ -386,6 +427,12 @@ const ReportIssue = () => {
                 </div>
               </div>
             )}
+            {nearby?.key === pinKey && nearby.failed && (
+              <p style={{ fontSize: 12, color: "var(--text-muted)", marginTop: 8 }}>
+                We could not check for similar reports here just now — that says nothing about
+                whether others have reported it. Submit anyway.
+              </p>
+            )}
           </div>
 
           <div className="form-group">
@@ -449,6 +496,21 @@ const ReportIssue = () => {
             <p style={{ fontSize: 13.5, color: "var(--text-muted)" }}>{description}</p>
           </div>
 
+          {submitError && (
+            <div style={{ marginBottom: 14 }}>
+              <DiagnosticCard
+                variant="inline"
+                diagnosis={submitError}
+                onRetry={handleSubmit}
+                retryLabel="Submit again"
+              >
+                <p className="diagnosis-value">
+                  Your report has not been sent, and everything you typed is still here.
+                </p>
+              </DiagnosticCard>
+            </div>
+          )}
+
           <div style={{ display: "flex", gap: 10 }}>
             <button className="btn btn-secondary" onClick={() => setStep(0)}>
               <ArrowLeft size={15} /> Edit
@@ -487,6 +549,7 @@ const ReportIssue = () => {
               setSubmitted(null); setAttachments([]); setVoiceTranscript(""); setVoiceAudioUrl(null);
               setLocation(null);
               setDistrictWasGuessed(false);
+              setSubmitError(null);
             }}>
               Report another issue
             </button>

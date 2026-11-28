@@ -4,8 +4,10 @@ import { getCaseSla, manualEscalate } from "../../services/slaService";
 import SlaCountdown from "./SlaCountdown";
 import Modal from "../common/Modal";
 import Skeleton from "../common/Skeleton";
+import DiagnosticCard from "../common/DiagnosticCard";
 import { useToast } from "../../context/ToastContext";
-import { formatDateTime, getErrorMessage, titleCase } from "../../utils/helpers";
+import { useDiagnostics, useErrorToast } from "../../hooks/useDiagnostics";
+import { formatDateTime, titleCase } from "../../utils/helpers";
 
 // Maps the management-side SLA status onto the tone set SlaCountdown draws.
 const STATE_MAP = {
@@ -40,16 +42,30 @@ const CaseSlaPanel = ({ grievanceId, isStaff }) => {
   const toast = useToast();
   const [sla, setSla] = useState(null);
   const [loaded, setLoaded] = useState(false);
+  const [error, setError] = useState(null);
   const [escalateOpen, setEscalateOpen] = useState(false);
   const [reason, setReason] = useState("");
   const [busy, setBusy] = useState(false);
+  const { capture } = useDiagnostics();
+  const fail = useErrorToast();
 
   const load = useCallback(() => {
+    setLoaded(false);
+    setError(null);
     getCaseSla(grievanceId)
       .then((res) => setSla(res.data))
-      .catch(() => setSla(null))
-      .finally(() => setLoaded(true));
-  }, [grievanceId]);
+      .catch((err) => {
+        // A case with no SLA row is a legacy record, not a broken panel: the
+        // page simply has nothing to show. Anything else is a real failure.
+        if (err?.response?.status === 404) {
+          setSla(null);
+          setLoaded(true);
+          return;
+        }
+        setError(capture(err, { feature: "grievance_detail" }));
+        setLoaded(true);
+      });
+  }, [grievanceId, capture]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -62,7 +78,11 @@ const CaseSlaPanel = ({ grievanceId, isStaff }) => {
       setReason("");
       load();
     } catch (err) {
-      toast.error(getErrorMessage(err));
+      fail(err, {
+        feature: "grievance_detail",
+        message: "The escalation was not recorded — nobody has been alerted.",
+        onRetry: escalate,
+      });
     } finally {
       setBusy(false);
     }
@@ -78,8 +98,24 @@ const CaseSlaPanel = ({ grievanceId, isStaff }) => {
     );
   }
 
-  // The panel is additive: if the case has no SLA data at all (legacy
-  // record, or the endpoint failed) the page simply omits it.
+  if (error) {
+    return (
+      <div className="card">
+        <div className="section-title">SLA Tracking</div>
+        <DiagnosticCard
+          variant="inline"
+          diagnosis={{ ...error, what: "Couldn’t load this case’s SLA clock" }}
+          onRetry={load}
+          retryLabel="Load it again"
+        >
+          <p className="diagnosis-value">The rest of the case is open and unchanged.</p>
+        </DiagnosticCard>
+      </div>
+    );
+  }
+
+  // The panel is additive: a case with no SLA row of its own (a legacy record)
+  // leaves the page without it.
   if (!sla || !sla.sla_due_at) return null;
 
   const countdown = {

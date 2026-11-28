@@ -5,6 +5,7 @@ import { ThemeProvider } from "./context/ThemeContext";
 import { ToastProvider } from "./context/ToastContext";
 import { LanguageProvider } from "./context/LanguageContext";
 import ProtectedRoute from "./routes/ProtectedRoute";
+import GlobalErrorWatcher from "./components/common/GlobalErrorWatcher";
 import DashboardLayout from "./layouts/DashboardLayout";
 import PublicLayout from "./layouts/PublicLayout";
 
@@ -62,6 +63,7 @@ const UnassignedGrievances = lazy(
   () => import("./pages/admin/UnassignedGrievances"),
 );
 const AdminIntegrityDashboard = lazy(() => import("./pages/admin/Integrity"));
+const AdminErrorDiagnostics = lazy(() => import("./pages/admin/ErrorDiagnostics"));
 
 // Shared
 const GrievanceDetail = lazy(() => import("./pages/shared/GrievanceDetail"));
@@ -86,6 +88,7 @@ function App() {
         <ToastProvider>
           <AuthProvider>
             <BrowserRouter>
+              <GlobalErrorWatcher />
               <Suspense fallback={<RouteLoader />}>
                 <Routes>
                   {/* ========================= */}
@@ -311,6 +314,18 @@ function App() {
                     />
 
                     <Route path="map" element={<AdminMap />} />
+
+                    <Route
+                      path="errors"
+                      element={
+                        <ProtectedRoute
+                          allowedRoles={["admin"]}
+                          adminScope="super"
+                        >
+                          <AdminErrorDiagnostics />
+                        </ProtectedRoute>
+                      }
+                    />
 
                     <Route path="ai-insights" element={<AdminAIInsights />} />
 

@@ -5,7 +5,8 @@ import GrievanceMap, { COLOR_MODES, colorFor, resolveClock } from "../../compone
 import LoadingSpinner from "../../components/common/LoadingSpinner";
 import ErrorState from "../../components/common/ErrorState";
 import { useAuth } from "../../hooks/useAuth";
-import { getErrorMessage, titleCase } from "../../utils/helpers";
+import { useDiagnostics } from "../../hooks/useDiagnostics";
+import { titleCase } from "../../utils/helpers";
 import { CATEGORIES, DEPARTMENTS, DISTRICTS, PRIORITIES, STATE_CENTER } from "../../utils/constants";
 
 const STAGE_OPTIONS = [
@@ -38,6 +39,7 @@ const EMPTY_FILTERS = {
 
 const Map = () => {
   const { user } = useAuth();
+  const { capture } = useDiagnostics();
   const isDistrictScoped = !!user?.district;
 
   const [filters, setFilters] = useState(EMPTY_FILTERS);
@@ -78,10 +80,10 @@ const Map = () => {
         setOutcome({ key: requestKey, error: null });
       })
       .catch((error) => {
-        if (!cancelled) setOutcome({ key: requestKey, error: getErrorMessage(error) });
+        if (!cancelled) setOutcome({ key: requestKey, error: capture(error, { feature: "map" }) });
       });
     return () => { cancelled = true; };
-  }, [params, requestKey]);
+  }, [params, requestKey, capture]);
 
   const loading = outcome?.key !== requestKey;
   const error = outcome?.key === requestKey ? outcome.error : null;
@@ -258,8 +260,8 @@ const Map = () => {
       {error && (
         <div className="card">
           <ErrorState
+            diagnosis={error}
             title="Couldn't load the map"
-            description={`${error} The API may be asleep — retrying usually works.`}
             onRetry={reload}
           />
         </div>

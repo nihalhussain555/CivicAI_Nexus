@@ -17,7 +17,8 @@ import {
 import { useAuth } from "../../hooks/useAuth";
 import { useToast } from "../../context/ToastContext";
 import CivicLoader from "../../components/common/CivicLoader";
-import { getErrorMessage } from "../../utils/helpers";
+import ErrorState from "../../components/common/ErrorState";
+import { useDiagnostics } from "../../hooks/useDiagnostics";
 import {
   verifyOtp,
   resendOtp,
@@ -61,6 +62,20 @@ const Register = () => {
   const { register, login } = useAuth();
   const toast = useToast();
   const navigate = useNavigate();
+  const { capture, diagnose } = useDiagnostics();
+
+  // Registration/OTP failures render inline as a diagnosis card.
+  const [formError, setFormError] = useState(null);
+
+  // Expected rejections (duplicate email, wrong/expired code, rate limit) are
+  // the user's correction: classify them without filing. A 5xx or no response
+  // at all is our failure, so capture() files it too.
+  const classify = (error) => {
+    const status = error?.response?.status;
+    return !error?.response || status >= 500
+      ? capture(error, { feature: "register" })
+      : diagnose(error, { feature: "register" });
+  };
 
   const validateName = (value) => {
     if (!value.trim()) {
@@ -184,6 +199,7 @@ const Register = () => {
     }
 
     setLoading(true);
+    setFormError(null);
 
     try {
       const res = await register(form);
@@ -211,7 +227,7 @@ const Register = () => {
         50
       );
     } catch (error) {
-      toast.error(getErrorMessage(error));
+      setFormError(classify(error));
     } finally {
       setLoading(false);
     }
@@ -289,6 +305,7 @@ const Register = () => {
     }
 
     setVerifying(true);
+    setFormError(null);
 
     try {
       await verifyOtp(
@@ -310,9 +327,7 @@ const Register = () => {
         { replace: true }
       );
     } catch (error) {
-      toast.error(
-        getErrorMessage(error)
-      );
+      setFormError(classify(error));
 
       setOtpDigits(
         Array(OTP_LENGTH).fill("")
@@ -326,6 +341,7 @@ const Register = () => {
 
   const handleResend = async () => {
     setResending(true);
+    setFormError(null);
 
     try {
       const res = await resendOtp(
@@ -355,9 +371,7 @@ const Register = () => {
 
       otpRefs.current[0]?.focus();
     } catch (error) {
-      toast.error(
-        getErrorMessage(error)
-      );
+      setFormError(classify(error));
     } finally {
       setResending(false);
     }
@@ -388,6 +402,8 @@ const Register = () => {
             </p>
 
           </div>
+
+          {formError && <ErrorState diagnosis={formError} />}
 
           {step === "form" ? (
             <>

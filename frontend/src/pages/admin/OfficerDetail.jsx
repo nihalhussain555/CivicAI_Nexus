@@ -13,7 +13,6 @@ import {
   AlertTriangle,
   Clock,
   MapPin,
-  RefreshCw,
 } from "lucide-react";
 
 import {
@@ -22,10 +21,13 @@ import {
 } from "../../services/officerService";
 
 import {
-  getErrorMessage,
   formatDate,
   formatRelative,
 } from "../../utils/helpers";
+
+import {
+  useDiagnostics,
+} from "../../hooks/useDiagnostics";
 
 import {
   CATEGORY_LABELS,
@@ -40,21 +42,28 @@ import LineChartCard from "../../components/charts/LineChartCard";
 const OfficerDetail = () => {
   const { officerId } = useParams();
   const navigate = useNavigate();
+  const { capture } = useDiagnostics();
 
   const [officer, setOfficer] = useState(null);
   const [performance, setPerformance] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [error, setError] = useState(null);
 
   const loadOfficer = async () => {
     if (!officerId) {
-      setError("Officer ID is missing.");
+      setError({
+        what: "Officer ID is missing.",
+        featureLabel: "Officer profiles",
+        reason: "This page was opened without an officer id in the URL.",
+        solution: "Go back to the officers list and open a profile from there.",
+        retryable: false,
+      });
       setLoading(false);
       return;
     }
 
     setLoading(true);
-    setError("");
+    setError(null);
 
     try {
       const [officerResponse, performanceResponse] =
@@ -116,13 +125,10 @@ const OfficerDetail = () => {
             : [],
       });
     } catch (requestError) {
-      console.error(
-        "Failed to load officer:",
-        requestError
-      );
-
       setError(
-        getErrorMessage(requestError)
+        capture(requestError, {
+          feature: "admin_list",
+        })
       );
     } finally {
       setLoading(false);
@@ -156,24 +162,11 @@ const OfficerDetail = () => {
           Back to Officers
         </button>
 
-        <ErrorState description={error} />
-
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "center",
-            marginTop: 16,
-          }}
-        >
-          <button
-            type="button"
-            className="btn btn-primary"
-            onClick={loadOfficer}
-          >
-            <RefreshCw size={14} />
-            Try again
-          </button>
-        </div>
+        <ErrorState
+          diagnosis={error}
+          title="Couldn't load this officer"
+          onRetry={loadOfficer}
+        />
       </div>
     );
   }

@@ -28,21 +28,27 @@ import {
 
 import Modal from "../../components/common/Modal";
 import EmptyState from "../../components/common/EmptyState";
+import ErrorState from "../../components/common/ErrorState";
 import { SkeletonList } from "../../components/common/Skeleton";
 
 import { useToast } from "../../context/ToastContext";
 import { useAuth } from "../../hooks/useAuth";
-
 import {
-  getErrorMessage,
-} from "../../utils/helpers";
+  useDiagnostics,
+  useErrorToast,
+} from "../../hooks/useDiagnostics";
 
 const UnassignedGrievances = () => {
   const { user } = useAuth();
   const toast = useToast();
+  const { capture } = useDiagnostics();
+  const fail = useErrorToast();
 
   const [items, setItems] =
     useState([]);
+
+  const [error, setError] =
+    useState(null);
 
   const [loading, setLoading] =
     useState(true);
@@ -85,9 +91,12 @@ const UnassignedGrievances = () => {
       setItems(
         response.data?.items || []
       );
-    } catch (error) {
-      toast.error(
-        getErrorMessage(error)
+      setError(null);
+    } catch (requestError) {
+      setError(
+        capture(requestError, {
+          feature: "grievance_list",
+        })
       );
     } finally {
       setLoading(false);
@@ -131,9 +140,10 @@ const UnassignedGrievances = () => {
 
         setModalOpen(true);
       } catch (error) {
-        toast.error(
-          getErrorMessage(error)
-        );
+        fail(error, {
+          feature: "admin_list",
+          onRetry: () => openAssignModal(grievance),
+        });
       }
     };
 
@@ -174,9 +184,10 @@ const UnassignedGrievances = () => {
 
         await load();
       } catch (error) {
-        toast.error(
-          getErrorMessage(error)
-        );
+        fail(error, {
+          feature: "grievance_detail",
+          onRetry: handleAssign,
+        });
       } finally {
         setAssigning(false);
       }
@@ -218,7 +229,7 @@ const UnassignedGrievances = () => {
       setBulkOfficer("");
       setBulkModalOpen(true);
     } catch (error) {
-      toast.error(getErrorMessage(error));
+      fail(error, { feature: "admin_list", onRetry: openBulkModal });
     }
   };
 
@@ -238,7 +249,7 @@ const UnassignedGrievances = () => {
       setSelected(new Set());
       await load();
     } catch (error) {
-      toast.error(getErrorMessage(error));
+      fail(error, { feature: "grievance_detail", onRetry: handleBulkAssign });
     } finally {
       setBulkAssigning(false);
     }
@@ -343,6 +354,12 @@ const UnassignedGrievances = () => {
 
       {loading ? (
         <SkeletonList rows={6} />
+      ) : error ? (
+        <ErrorState
+          diagnosis={error}
+          title="Couldn't load unassigned grievances"
+          onRetry={load}
+        />
       ) : items.length === 0 ? (
         <EmptyState
           icon={UserCheck}

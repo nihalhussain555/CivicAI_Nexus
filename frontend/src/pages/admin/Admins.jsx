@@ -5,10 +5,11 @@ import {
 import { getAdmins, createAdmin } from "../../services/adminService";
 import { useAuth } from "../../hooks/useAuth";
 import { useToast } from "../../context/ToastContext";
-import { getErrorMessage } from "../../utils/helpers";
+import { useDiagnostics, useErrorToast } from "../../hooks/useDiagnostics";
 import { DISTRICTS } from "../../utils/constants";
 import Modal from "../../components/common/Modal";
 import EmptyState from "../../components/common/EmptyState";
+import ErrorState from "../../components/common/ErrorState";
 import { SkeletonList } from "../../components/common/Skeleton";
 import Avatar from "../../components/common/Avatar";
 
@@ -17,9 +18,11 @@ const emptyForm = { name: "", email: "", password: "", phone: "", district: "", 
 const Admins = () => {
   const { user } = useAuth();
   const toast = useToast();
+  const { capture } = useDiagnostics();
+  const fail = useErrorToast();
 
   const [admins, setAdmins] = useState(null);
-  const [loadError, setLoadError] = useState(false);
+  const [loadError, setLoadError] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
@@ -27,7 +30,10 @@ const Admins = () => {
 
   const isSuperAdmin = !user?.district;
 
-  const load = () => getAdmins().then((res) => setAdmins(res.data)).catch(() => setLoadError(true));
+  const load = () =>
+    getAdmins()
+      .then((res) => { setAdmins(res.data); setLoadError(null); })
+      .catch((err) => setLoadError(capture(err, { feature: "admin_list" })));
   useEffect(() => { if (isSuperAdmin) load(); }, [isSuperAdmin]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!isSuperAdmin) {
@@ -57,7 +63,7 @@ const Admins = () => {
       setModalOpen(false);
       load();
     } catch (error) {
-      toast.error(getErrorMessage(error));
+      fail(error, { feature: "admin_list", onRetry: handleCreate });
     } finally {
       setSaving(false);
     }
@@ -93,7 +99,9 @@ const Admins = () => {
       </div>
 
       {admins === null ? (
-        loadError ? null : <SkeletonList rows={4} />
+        loadError ? (
+          <ErrorState diagnosis={loadError} title="Couldn't load admin accounts" onRetry={load} />
+        ) : <SkeletonList rows={4} />
       ) : admins.length === 0 ? (
         <EmptyState icon={ShieldCheck} title="No admins yet" />
       ) : (
