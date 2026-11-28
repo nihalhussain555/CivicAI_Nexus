@@ -75,30 +75,20 @@ const IssueReportDialog = ({ open, diagnosis, onClose, defaultFeature }) => {
       {done ? (
         <div className="report-done">
           <CheckCircle2 size={28} />
-          <p>
-            The error details below went with your report
-            {diagnosis?.errorRef ? (
-              <>
-                {" "}against reference <code>{diagnosis.errorRef}</code>
-              </>
-            ) : null}
-            .
-          </p>
+          <p>Thanks — the team can see this report and what the app recorded around it.</p>
         </div>
       ) : (
         <>
           <p className="modal-intro">
-            Tell us what you were trying to do. The technical summary is attached for you.
+            Tell us what you were trying to do. We attach what the app was already doing, so you
+            do not have to describe it.
           </p>
 
           {diagnosis && (
             <div className="report-attached">
               <div>
                 <span>{diagnosis.what}</span>
-                <small>
-                  {diagnosis.featureLabel} · {diagnosis.categoryLabel}
-                  {diagnosis.errorRef ? ` · ref ${diagnosis.errorRef}` : ""}
-                </small>
+                <small>{diagnosis.featureLabel}</small>
               </div>
             </div>
           )}

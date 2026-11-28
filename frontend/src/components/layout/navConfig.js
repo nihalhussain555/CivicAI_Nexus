@@ -22,6 +22,7 @@ import {
   Gauge,
   SlidersHorizontal,
   Stethoscope,
+  LifeBuoy,
 } from "lucide-react";
 
 /*
@@ -41,6 +42,7 @@ export const NAV_BY_ROLE = {
     { to: "/citizen/notifications", label: "Notifications", icon: Bell, group: "nav.groupAccount" },
     { to: "/citizen/profile", label: "Profile", icon: User, group: "nav.groupAccount" },
     { to: "/citizen/settings", label: "Settings", icon: Settings, group: "nav.groupAccount" },
+    { to: "/citizen/help", label: "Help Center", icon: LifeBuoy, group: "nav.groupAccount" },
   ],
 
   officer: [
@@ -52,6 +54,7 @@ export const NAV_BY_ROLE = {
     { to: "/officer/analytics", label: "Analytics", icon: BarChart3, group: "nav.groupIntelligence" },
     { to: "/officer/profile", label: "Profile", icon: User, group: "nav.groupAccount" },
     { to: "/officer/settings", label: "Settings", icon: Settings, group: "nav.groupAccount" },
+    { to: "/officer/help", label: "Help Center", icon: LifeBuoy, group: "nav.groupAccount" },
   ],
 
   admin: [
@@ -68,6 +71,7 @@ export const NAV_BY_ROLE = {
     { to: "/admin/assistant", label: "AI Assistant", icon: Bot, group: "nav.groupIntelligence" },
     { to: "/admin/profile", label: "Profile", icon: User, group: "nav.groupAccount" },
     { to: "/admin/settings", label: "Settings", icon: Settings, group: "nav.groupAccount" },
+    { to: "/admin/help", label: "Help Center", icon: LifeBuoy, group: "nav.groupAccount" },
   ],
 };
 
@@ -90,6 +94,7 @@ const SUPER_ADMIN_NAV = [
   { to: "/admin/assistant", label: "AI Assistant", icon: Bot, group: "nav.groupIntelligence" },
   { to: "/admin/profile", label: "Profile", icon: User, group: "nav.groupAccount" },
   { to: "/admin/settings", label: "Settings", icon: Settings, group: "nav.groupAccount" },
+  { to: "/admin/help", label: "Help Center", icon: LifeBuoy, group: "nav.groupAccount" },
 ];
 
 const DISTRICT_ADMIN_NAV = [
@@ -108,6 +113,7 @@ const DISTRICT_ADMIN_NAV = [
   { to: "/admin/assistant", label: "AI Assistant", icon: Bot, group: "nav.groupIntelligence" },
   { to: "/admin/profile", label: "Profile", icon: User, group: "nav.groupAccount" },
   { to: "/admin/settings", label: "Settings", icon: Settings, group: "nav.groupAccount" },
+  { to: "/admin/help", label: "Help Center", icon: LifeBuoy, group: "nav.groupAccount" },
 ];
 
 export const getNavigationItems = (user) => {
@@ -138,6 +144,7 @@ export const NAV_LABEL_KEY = {
   "/citizen/notifications": "nav.notifications", "/officer/notifications": "nav.notifications", "/admin/notifications": "nav.notifications",
   "/citizen/profile": "nav.profile", "/officer/profile": "nav.profile", "/admin/profile": "nav.profile",
   "/citizen/settings": "nav.settings", "/officer/settings": "nav.settings", "/admin/settings": "nav.settings",
+  "/citizen/help": "nav.help", "/officer/help": "nav.help", "/admin/help": "nav.help",
   "/admin/departments": "nav.departments",
   "/admin/officers": "nav.officers",
   "/admin/admins": "nav.admins",

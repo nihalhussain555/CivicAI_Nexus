@@ -117,21 +117,15 @@ const ToastItem = ({ toast, Icon, onDismiss, onToggle }) => {
           <div className="toast-detail">
             <p>
               <strong>{detail.featureLabel}</strong>
-              <span>{detail.categoryLabel}</span>
             </p>
             <p>
               <span className="toast-detail-key">Why</span>
               {detail.reason}
             </p>
             <p>
-              <span className="toast-detail-key">What to do</span>
+              <span className="toast-detail-key">How to fix it</span>
               {detail.solution}
             </p>
-            {detail.errorRef && (
-              <p className="toast-detail-ref">
-                Reference <code>{detail.errorRef}</code>
-              </p>
-            )}
           </div>
         )}
       </div>

@@ -60,7 +60,10 @@ class ErrorBoundary extends Component {
             feature: "page_render",
             featureLabel: "Loading this page",
             what: "This page could not be displayed.",
-            reason: error?.message || "An unexpected error occurred while rendering.",
+            // A raw exception string ("Cannot read properties of undefined…") is
+            // noise to a citizen, and this branch only runs when the classifier
+            // itself failed, so nobody will read the real message anywhere.
+            reason: "Something on this page did not load correctly.",
             solution: "Reload the page. If it keeps happening, please report the issue.",
             retryable: true,
             technical: { message: String(error?.message || error) },

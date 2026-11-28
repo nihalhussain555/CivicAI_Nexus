@@ -73,6 +73,7 @@ const Notifications = lazy(() => import("./pages/shared/Notifications"));
 const Profile = lazy(() => import("./pages/shared/Profile"));
 const Settings = lazy(() => import("./pages/shared/Settings"));
 const AIAssistant = lazy(() => import("./pages/shared/AIAssistant"));
+const HelpCenter = lazy(() => import("./pages/shared/HelpCenter"));
 const IntegrityReview = lazy(() => import("./pages/shared/IntegrityReview"));
 
 const RouteLoader = () => (
@@ -151,6 +152,7 @@ function App() {
                     <Route path="notifications" element={<Notifications />} />
                     <Route path="profile" element={<Profile />} />
                     <Route path="settings" element={<Settings />} />
+                    <Route path="help" element={<HelpCenter />} />
                   </Route>
 
                   {/* ========================= */}
@@ -187,6 +189,7 @@ function App() {
                     <Route path="notifications" element={<Notifications />} />
                     <Route path="profile" element={<Profile />} />
                     <Route path="settings" element={<Settings />} />
+                    <Route path="help" element={<HelpCenter />} />
                   </Route>
 
                   {/* ========================= */}
@@ -336,6 +339,8 @@ function App() {
                     <Route path="profile" element={<Profile />} />
 
                     <Route path="settings" element={<Settings />} />
+
+                    <Route path="help" element={<HelpCenter />} />
                   </Route>
 
                   {/* ========================= */}

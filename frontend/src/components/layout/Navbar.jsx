@@ -10,17 +10,14 @@ import {
   ChevronDown,
   ChevronRight,
   Menu,
-  LifeBuoy,
 } from "lucide-react";
 
 import { useAuth } from "../../hooks/useAuth";
 import { useTranslation } from "../../context/LanguageContext";
 import { getBreadcrumbs } from "./navConfig";
-import { featureFromUrl } from "../../utils/errorDiagnosis";
 import ThemeToggle from "../common/ThemeToggle";
 import LanguageSwitcher from "../common/LanguageSwitcher";
 import NotificationBell from "../notifications/NotificationBell";
-import IssueReportDialog from "../common/IssueReportDialog";
 import Avatar from "../common/Avatar";
 
 const Topbar = ({ title, onMenuToggle }) => {
@@ -30,9 +27,6 @@ const Topbar = ({ title, onMenuToggle }) => {
   const location = useLocation();
 
   const [profileOpen, setProfileOpen] = useState(false);
-  // A problem nobody noticed the app reporting is still a problem. This is the
-  // one route to the issue form that does not require an error to have fired.
-  const [reportOpen, setReportOpen] = useState(false);
   const profileRef = useRef(null);
 
   const role = user?.role || "citizen";
@@ -125,24 +119,6 @@ const Topbar = ({ title, onMenuToggle }) => {
 
       {/* Topbar Actions */}
       <div className="topbar-actions">
-        <button
-          type="button"
-          className="icon-button"
-          onClick={() => setReportOpen(true)}
-          title="Report a problem"
-          aria-label="Report a problem"
-        >
-          <LifeBuoy size={18} />
-        </button>
-
-        {reportOpen && (
-          <IssueReportDialog
-            open
-            onClose={() => setReportOpen(false)}
-            defaultFeature={featureFromUrl(location.pathname)}
-          />
-        )}
-
         <LanguageSwitcher compact />
         <ThemeToggle />
 
